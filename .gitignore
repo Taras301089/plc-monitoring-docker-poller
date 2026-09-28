@@ -1,0 +1,5 @@
+﻿pg_data/
+графіна_data/
+grafana_data/
+n8n_data/
+.env
