@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PLC Variable Browser</title>
+  <style>
+    :root { font-family: "Segoe UI", sans-serif; color: #17202a; background: #edf1f4; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header { background: #17324d; color: white; padding: 22px 28px; }
+    h1 { margin: 0 0 6px; font-size: 24px; }
+    header p { margin: 0; color: #bcd0df; }
+    main { max-width: 1400px; margin: 24px auto; padding: 0 20px; }
+    .toolbar { display: grid; grid-template-columns: 240px 1fr 1fr auto auto; gap: 10px; margin-bottom: 16px; }
+    select, input, button { min-height: 40px; border: 1px solid #b9c5ce; border-radius: 4px; padding: 0 12px; font: inherit; background: white; }
+    button { background: #177245; color: white; border-color: #177245; cursor: pointer; font-weight: 600; }
+    button:hover { background: #125d39; }
+    .status { display: flex; align-items: center; gap: 12px; min-height: 46px; margin: 12px 0; padding: 10px 14px; border: 1px solid #c7d0d7; border-left: 5px solid #8493a0; border-radius: 5px; background: #f8fafb; color: #536471; }
+    .status-title { font-weight: 700; color: #203746; white-space: nowrap; }
+    .status-detail { overflow-wrap: anywhere; }
+    .status.loading { border-left-color: #b7791f; background: #fffaf0; }
+    .status.success { border-left-color: #177245; background: #effaf3; }
+    .status.error { border-left-color: #b42318; background: #fff2f0; color: #8a1c13; }
+    .status.error .status-title { color: #8a1c13; }
+    .tree-wrap { max-height: calc(100vh - 230px); overflow: auto; background: white; border: 1px solid #c7d0d7; box-shadow: 0 3px 12px #17202a14; padding: 0; }
+    .tree { list-style: none; padding: 0; margin: 0; }
+    .tree-item { margin: 0; }
+    .db-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f0f3f6; border-bottom: 1px solid #e1e6ea; cursor: pointer; user-select: none; font-weight: 600; color: #203746; }
+    .db-item:hover { background: #e6ebed; }
+    .db-item.collapsed::before { content: '▶'; display: inline-block; width: 16px; color: #536471; }
+    .db-item.expanded::before { content: '▼'; display: inline-block; width: 16px; color: #536471; }
+    .db-item.expanded { background: #e6ebed; }
+    .db-items { display: none; }
+    .db-items.visible { display: block; }
+    .var-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 40px; border-bottom: 1px solid #f0f3f6; font-size: 13px; }
+    .var-item:hover { background: #fafbfc; }
+    .var-checkbox { width: 18px; height: 18px; accent-color: #177245; cursor: pointer; }
+    .var-name { flex: 1; color: #245b78; font-weight: 500; }
+    .var-nodeid { flex: 1; color: #687985; font-size: 12px; font-family: monospace; }
+    .var-datatype { flex: 0 0 100px; color: #536471; font-size: 12px; }
+    .var-settings { display: flex; gap: 8px; margin-left: 8px; }
+    .var-settings input { width: 18px; height: 18px; accent-color: #177245; cursor: pointer; }
+    .options { display: flex; align-items: center; gap: 8px; color: #536471; font-size: 13px; }
+    .check { min-height: auto; width: 18px; height: 18px; accent-color: #177245; }
+    .empty { padding: 32px; text-align: center; color: #687985; }
+    @media (max-width: 800px) { .toolbar { grid-template-columns: 1fr; } main { padding: 0 12px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PLC Variable Browser</h1>
+    <p>Просмотр доступных OPC UA-переменных перед сохранением выбранных тегов</p>
+  </header>
+  <main>
+    <div class="toolbar">
+      <select id="plc"></select>
+      <select id="browse-mode" aria-label="Режим поиска">
+        <option value="tree">Все дерево</option>
+        <option value="db">Определенный Data Block</option>
+      </select>
+      <input id="db" placeholder="Поиск по Data Block">
+      <input id="name" placeholder="Поиск по имени переменной">
+      <button id="load">Загрузить из БД</button>
+      <button id="refresh" style="background:#2b6cb0; border-color:#2b6cb0;">Обновить с ПЛК</button>
+      <button id="save">Сохранить выбранные</button>
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+      <button id="expand-all" style="background: #536471; border-color: #536471; padding: 6px 12px; font-size: 13px;">▼ Развернуть все</button>
+      <button id="collapse-all" style="background: #536471; border-color: #536471; padding: 6px 12px; font-size: 13px;">▶ Свернуть все</button>
+    </div>
+
+    <div class="options"><label><input id="include-system" class="check" type="checkbox"> Показать служебные OPC UA-узлы</label><span>NodeId — уникальный адрес узла; типы отображаются именами OPC UA.</span></div>
+    <div class="status" id="status" role="status"><span class="status-title">Готово</span><span class="status-detail">Выберите ПЛК и нажмите «Загрузить».</span></div>
+    <div class="tree-wrap">
+      <ul class="tree" id="rows"><li class="empty">Данные еще не загружены</li></ul>
+    </div>
+  </main>
+  <script>
+    const plc = document.querySelector('#plc');
+    const db = document.querySelector('#db');
+    const name = document.querySelector('#name');
+    const browseMode = document.querySelector('#browse-mode');
+    const load = document.querySelector('#load');
+    const refresh = document.querySelector('#refresh');
+    const save = document.querySelector('#save');
+    const expandAll = document.querySelector('#expand-all');
+    const collapseAll = document.querySelector('#collapse-all');
+    const includeSystem = document.querySelector('#include-system');
+    const status = document.querySelector('#status');
+    const rows = document.querySelector('#rows');
+
+    async function loadPlcs() {
+      const response = await fetch('/api/plcs');
+      if (!response.ok) throw new Error('Не удалось получить список ПЛК');
+      const items = await response.json();
+      plc.replaceChildren(...items.map(item => new Option(`${item.name} (id=${item.id})`, item.id)));
+      if (items.length) {
+        setStatus('success', 'Готово', 'Выберите режим и параметры поиска, затем нажмите «Загрузить из БД» или «Обновить с ПЛК».');
+      }
+    }
+
+    function setStatus(kind, title, detail) {
+      status.className = `status ${kind}`;
+      status.replaceChildren();
+      const titleElement = document.createElement('span');
+      titleElement.className = 'status-title';
+      titleElement.textContent = title;
+      const detailElement = document.createElement('span');
+      detailElement.className = 'status-detail';
+      detailElement.textContent = detail;
+      status.append(titleElement, detailElement);
+    }
+
+    function buildHierarchy(items) {
+      const tree = {};
+      items.forEach(item => {
+        const path = item.browse_path ? item.browse_path.split('.') : [item.variable_name];
+        let current = tree;
+        for (let i = 0; i < path.length - 1; i++) {
+          const key = path[i];
+          if (!current[key]) current[key] = {};
+          else if (Array.isArray(current[key])) return;
+          current = current[key];
+        }
+        const varKey = path[path.length - 1];
+        if (!current[varKey]) current[varKey] = [];
+        else if (!Array.isArray(current[varKey])) return;
+        current[varKey].push(item);
+      });
+      return tree;
+    }
+
+    async function loadVariables(forceRefresh = false) {
+      if (!plc.value) return;
+      if (browseMode.value === 'db' && !db.value.trim()) {
+        setStatus('error', 'Нужен Data Block', 'Введите имя DB для режима поиска определенного Data Block.');
+        return;
+      }
+      setStatus('loading', 'Загрузка', forceRefresh ? 'Сканирование OPC UA на ПЛК и сохранение в БД...' : 'Чтение дерева переменных из базы данных...');
+      load.disabled = true;
+      refresh.disabled = true;
+      try {
+        const params = new URLSearchParams();
+        if (browseMode.value === 'db' && db.value.trim()) params.set('db', db.value.trim());
+        if (name.value.trim()) params.set('name', name.value.trim());
+        if (includeSystem.checked) params.set('include_system', 'true');
+        if (forceRefresh) params.set('refresh', 'true');
+        const response = await fetch(`/api/plcs/${plc.value}/opcua/variables?${params}`);
+        const payload = await response.json();
+        if (!response.ok) {
+          let msg = payload.detail || 'Browse завершился ошибкой';
+          if (msg.includes('TimeoutError') || response.status === 504) {
+            msg = 'Превышено время ожидания сервера ПЛК. Попробуйте выбрать "Определенный Data Block" и указать название DB для быстрого обхода.';
+          }
+          throw new Error(msg);
+        }
+        renderHierarchy(payload, db.value);
+        setStatus('success', 'Успешно', `Загружено переменных: ${payload.length}.`);
+      } catch (error) {
+        rows.innerHTML = '<li class="empty">Нет данных для отображения.</li>';
+        setStatus('error', 'Ошибка загрузки', error.message);
+      } finally { load.disabled = false; refresh.disabled = false; }
+    }
+
+    function renderHierarchy(items, dbFilter = '') {
+      if (!items.length) {
+        rows.innerHTML = '<li class="empty">Переменные не найдены</li>';
+        return;
+      }
+
+      // Фильтруем по Data Block если нужно
+      let filtered = items;
+      if (dbFilter.trim()) {
+        const dbLower = dbFilter.trim().toLowerCase();
+        filtered = items.filter(item => {
+          const path = item.browse_path ? item.browse_path.split('.') : [];
+          return path.some(part => part.toLowerCase().includes(dbLower));
+        });
+      }
+
+      const tree = buildHierarchy(filtered);
+
+      function countVars(node) {
+        if (Array.isArray(node)) return node.length;
+        return Object.values(node).reduce((sum, n) => sum + countVars(n), 0);
+      }
+
+      function renderNode(key, node, depth) {
+        const li = document.createElement('li');
+        li.className = 'tree-item';
+
+        if (Array.isArray(node)) {
+          // Это переменные
+          const varItem = node[0];
+          li.className = 'tree-item var-item';
+          li.dataset.nodeId = varItem.node_id;
+          li.dataset.item = JSON.stringify(varItem);
+          li.innerHTML = `
+            <input class="var-checkbox select" type="checkbox" aria-label="Выбрать">
+            <span class="var-name" title="${escapeHtml(varItem.variable_name)}">${escapeHtml(varItem.variable_name)}</span>
+            <span class="var-nodeid" title="${escapeHtml(varItem.node_id)}">${escapeHtml(varItem.node_id)}</span>
+            <span class="var-datatype">${escapeHtml(varItem.data_type)}</span>
+            <div class="var-settings">
+              <input class="archive" type="checkbox" title="Архив">
+              <input class="grafana" type="checkbox" title="Grafana">
+              <input class="alarm" type="checkbox" title="Авария">
+            </div>
+          `;
+        } else {
+          const subKeys = Object.keys(node).sort();
+          const count = countVars(node);
+          const toggle = document.createElement('div');
+          toggle.className = 'db-item expanded';
+          toggle.style.paddingLeft = (12 + depth * 12) + 'px';
+          toggle.textContent = `${key} (${count})`;
+
+          const folder = document.createElement('ul');
+          folder.className = 'db-items tree visible';
+          folder.replaceChildren(...subKeys.map(k => renderNode(k, node[k], depth + 1)));
+
+          toggle.addEventListener('click', () => {
+            toggle.classList.toggle('expanded');
+            toggle.classList.toggle('collapsed');
+            folder.classList.toggle('visible');
+          });
+
+          li.append(toggle, folder);
+        }
+        return li;
+      }
+
+      const rootKeys = Object.keys(tree).sort();
+      rows.replaceChildren(...rootKeys.map(k => renderNode(k, tree[k], 0)));
+    }
+
+    function escapeHtml(value) { return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char])); }
+
+    async function saveSelected() {
+      const tags = [...rows.querySelectorAll('.var-item[data-node-id]')].filter(row => row.querySelector('.select').checked).map(row => {
+        const item = JSON.parse(row.dataset.item);
+        return { name: item.variable_name, node_id: item.node_id, tag_type: item.data_type === 'Boolean' ? 'DIGITAL' : 'ANALOG', is_archived: row.querySelector('.archive').checked, is_grafana_plotted: row.querySelector('.grafana').checked, is_alarm_enabled: row.querySelector('.alarm').checked };
+      });
+      if (!tags.length) { setStatus('error', 'Нечего сохранять', 'Сначала выберите хотя бы один тег.'); return; }
+      save.disabled = true;
+      try {
+        const response = await fetch(`/api/plcs/${plc.value}/tags`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({tags}) });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.detail || 'Не удалось сохранить теги');
+        setStatus('success', 'Сохранено', `Тегов добавлено или обновлено: ${payload.saved}.`);
+      } catch (error) { setStatus('error', 'Ошибка сохранения', error.message); } finally { save.disabled = false; }
+    }
+
+    function toggleAllDbs(expand = true) {
+      [...rows.querySelectorAll('.db-item')].forEach(dbItem => {
+        const list = dbItem.nextElementSibling;
+        if (expand) {
+          dbItem.classList.add('expanded');
+          dbItem.classList.remove('collapsed');
+          list.classList.add('visible');
+        } else {
+          dbItem.classList.remove('expanded');
+          dbItem.classList.add('collapsed');
+          list.classList.remove('visible');
+        }
+      });
+    }
+
+    load.addEventListener('click', () => loadVariables(false));
+    refresh.addEventListener('click', () => loadVariables(true));
+    save.addEventListener('click', saveSelected);
+    expandAll.addEventListener('click', () => toggleAllDbs(true));
+    collapseAll.addEventListener('click', () => toggleAllDbs(false));
+    browseMode.addEventListener('change', () => {
+      db.placeholder = browseMode.value === 'db' ? 'Имя Data Block (обязательное)' : 'Фильтр по Data Block';
+    });
+    includeSystem.addEventListener('change', () => loadVariables(false));
+    [db, name].forEach(input => input.addEventListener('keydown', event => { if (event.key === 'Enter') loadVariables(false); }));
+    db.addEventListener('input', () => {
+      const items = [...rows.querySelectorAll('.var-item')].map(li => JSON.parse(li.dataset.item));
+      if (items.length > 0) renderHierarchy(items, db.value);
+    });
+    plc.addEventListener('change', () => loadVariables(false));
+
+    loadPlcs().catch(error => setStatus('error', 'Ошибка API', error.message));
+  </script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+from __future__ import annotations
+
+import asyncio
+import os
+from contextlib import asynccontextmanager
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any
+
+import asyncpg
+import httpx
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://n8n_user:my_strong_password@postgres_db:5432/general_data_hub_BD",
+)
+STATIC_DIR = Path(__file__).parent / "static"
+POLLER_URL = os.getenv("POLLER_URL", "http://plc-monitoring-docker-poller:8080")
+
+
+@dataclass(slots=True)
+class OpcuaVariable:
+    db_name: str
+    variable_name: str
+    node_id: str
+    namespace_index: int
+    node_class: str
+    data_type: str
+    browse_path: str
+    is_system: bool
+
+
+class SelectedTag(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    node_id: str = Field(min_length=1, max_length=1024)
+    tag_type: str = Field(pattern="^(ANALOG|DIGITAL)$")
+    is_archived: bool = False
+    is_grafana_plotted: bool = False
+    is_alarm_enabled: bool = False
+
+
+class SaveTagsRequest(BaseModel):
+    tags: list[SelectedTag] = Field(default_factory=list)
+
+
+async def get_pool(app: FastAPI) -> asyncpg.Pool:
+    pool = getattr(app.state, "pool", None)
+    if pool is None:
+        raise HTTPException(status_code=503, detail="Database is unavailable")
+    return pool
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
+    try:
+        yield
+    finally:
+        await app.state.pool.close()
+
+
+app = FastAPI(title="PLC Monitoring API", version="0.1.0", lifespan=lifespan)
+
+
+@app.get("/", response_class=FileResponse)
+async def index() -> FileResponse:
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/api/plcs")
+async def list_plcs() -> list[dict[str, Any]]:
+    pool = await get_pool(app)
+    rows = await pool.fetch(
+        """
+        SELECT id, name, opc_endpoint, is_active
+        FROM plcs
+        ORDER BY id
+        """
+    )
+    return [dict(row) for row in rows]
+
+
+@app.get("/api/plcs/{plc_id}/opcua/variables")
+async def browse_plc_variables(
+    plc_id: int,
+    db: str | None = Query(default=None),
+    name: str | None = Query(default=None),
+    include_system: bool = Query(default=False),
+    refresh: bool = Query(default=False),
+) -> Any:
+    pool = await get_pool(app)
+
+    # Если пользователь НЕ просит принудительное пересканирование (refresh=True)
+    if not refresh:
+        sql = """
+            SELECT db_name, variable_name, node_id, namespace_index,
+                   node_class, data_type, browse_path, is_system
+            FROM plc_discovered_nodes
+            WHERE plc_id = $1
+        """
+        conditions = []
+        args: list[Any] = [plc_id]
+        if not include_system:
+            conditions.append("is_system = FALSE")
+        if db:
+            args.append(f"%{db}%")
+            conditions.append(f"(db_name ILIKE ${len(args)} OR browse_path ILIKE ${len(args)})")
+        if name:
+            args.append(f"%{name}%")
+            conditions.append(f"variable_name ILIKE ${len(args)}")
+
+        if conditions:
+            sql += " AND " + " AND ".join(conditions)
+        sql += " ORDER BY id"
+
+        cached_rows = await pool.fetch(sql, *args)
+        if cached_rows:
+            return [dict(row) for row in cached_rows]
+
+    # Если в базе нет данных или запрошен refresh=True — запрашиваем у опросчика (Poller)
+    params = {"include_system": str(include_system).lower()}
+    if db:
+        params["db"] = db
+    if name:
+        params["name"] = name
+    url = f"{POLLER_URL}/internal/plcs/{plc_id}/opcua/variables"
+    try:
+        limits = httpx.Timeout(timeout=10.0, connect=10.0)
+        async with httpx.AsyncClient(timeout=limits) as client:
+            response = await client.get(url, params=params)
+            if response.status_code == 202:
+                payload = response.json()
+                job_id = payload["job_id"]
+                for _ in range(600):
+                    await asyncio.sleep(1)
+                    job_response = await client.get(
+                        url, params={"job_id": job_id}
+                    )
+                    if job_response.status_code == 202:
+                        job_payload = job_response.json()
+                        if job_payload.get("status") == "done":
+                            return job_payload.get("variables", [])
+                        continue
+                    response = job_response
+                    break
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=f"Poller Browse API unavailable: {exc}") from exc
+    if response.status_code >= 400:
+        detail = response.json().get("detail", "Poller Browse failed")
+        raise HTTPException(status_code=response.status_code, detail=detail)
+    payload = response.json()
+    if isinstance(payload, dict) and "variables" in payload:
+        return payload["variables"]
+    return payload
+
+
+
+@app.post("/api/plcs/{plc_id}/tags")
+async def save_plc_tags(plc_id: int, request: SaveTagsRequest) -> dict[str, int]:
+    pool = await get_pool(app)
+    plc_exists = await pool.fetchval(
+        "SELECT EXISTS(SELECT 1 FROM plcs WHERE id = $1)", plc_id
+    )
+    if not plc_exists:
+        raise HTTPException(status_code=404, detail="PLC not found")
+
+    async with pool.acquire() as connection:
+        async with connection.transaction():
+            for tag in request.tags:
+                await connection.execute(
+                    """
+                    INSERT INTO plc_tags
+                        (plc_id, name, node_id, tag_type, is_alarm_enabled,
+                         is_archived, is_grafana_plotted, is_active)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
+                    ON CONFLICT (plc_id, node_id) DO UPDATE SET
+                        name = EXCLUDED.name,
+                        tag_type = EXCLUDED.tag_type,
+                        is_alarm_enabled = EXCLUDED.is_alarm_enabled,
+                        is_archived = EXCLUDED.is_archived,
+                        is_grafana_plotted = EXCLUDED.is_grafana_plotted,
+                        is_active = TRUE
+                    """,
+                    plc_id,
+                    tag.name,
+                    tag.node_id,
+                    tag.tag_type,
+                    tag.is_alarm_enabled,
+                    tag.is_archived,
+                    tag.is_grafana_plotted,
+                )
+    return {"saved": len(request.tags)}

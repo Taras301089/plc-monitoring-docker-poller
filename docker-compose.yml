@@ -1,0 +1,98 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres_db
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: n8n_user
+      POSTGRES_PASSWORD: my_strong_password
+      POSTGRES_DB: postgres
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  plc-monitoring-docker-poller:
+    build: ./python-async-poller
+    container_name: python-async-poller
+    restart: always
+    env_file:
+      - ./python-async-poller/.env
+    environment:
+      POSTGRES_HOST: postgres_db
+      POSTGRES_DB: general_data_hub_BD
+      POSTGRES_USER: n8n_user
+      POSTGRES_PASSWORD: my_strong_password
+    depends_on:
+      - postgres
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  fastapi-api:
+    build: ./fastapi-api
+    container_name: fastapi_api
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://n8n_user:my_strong_password@postgres_db:5432/general_data_hub_BD
+      POLLER_URL: http://plc-monitoring-docker-poller:8080
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - plc-monitoring-docker-poller
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n_app
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres_db
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n_db
+      - DB_POSTGRESDB_USER=n8n_user
+      - DB_POSTGRESDB_PASSWORD=my_strong_password
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    depends_on:
+      - postgres
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana_app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=my_strong_password
+    volumes:
+      - ./grafana_data:/var/lib/grafana
+    depends_on:
+      - postgres
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
