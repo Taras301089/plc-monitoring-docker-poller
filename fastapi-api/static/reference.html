@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Справка — PLC Monitoring</title>
+  <style>
+    :root { font-family: "Segoe UI", sans-serif; color: #17202a; background: #edf1f4; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header { background: #17324d; color: white; padding: 22px 28px; display: flex; justify-content: space-between; align-items: center; }
+    h1 { margin: 0; font-size: 24px; }
+    .nav-link { color: #bcd0df; text-decoration: none; font-size: 14px; padding: 8px 12px; border-radius: 4px; }
+    .nav-link:hover { background: rgba(255,255,255,0.1); }
+    main { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
+    section { background: white; border: 1px solid #c7d0d7; border-radius: 4px; padding: 20px; margin-bottom: 20px; box-shadow: 0 3px 12px #17202a14; }
+    h2 { color: #17324d; border-bottom: 2px solid #177245; padding-bottom: 8px; margin-top: 0; }
+    h3 { color: #245b78; margin-top: 16px; }
+    .code-block { background: #f5f5f5; border-left: 4px solid #2b6cb0; padding: 12px; margin: 12px 0; font-family: "Courier New", monospace; font-size: 12px; overflow-x: auto; }
+    .folder-tree { background: #f9fafb; border: 1px solid #e1e6ea; border-radius: 4px; padding: 16px; font-family: monospace; font-size: 12px; line-height: 1.6; }
+    .folder-tree .indent { display: inline-block; width: 20px; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    table th, table td { border: 1px solid #c7d0d7; padding: 10px; text-align: left; }
+    table th { background: #f0f3f6; font-weight: 600; color: #203746; }
+    table tr:nth-child(even) { background: #f9fafb; }
+    .highlight { background: #fffaf0; padding: 2px 6px; border-radius: 3px; color: #b7791f; }
+    .success { background: #effaf3; color: #125d39; }
+    .warning { background: #fff2f0; color: #8a1c13; }
+    .step { display: flex; gap: 12px; margin: 12px 0; align-items: flex-start; }
+    .step-num { background: #177245; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 600; }
+    ul { line-height: 1.8; }
+    li { margin: 6px 0; }
+    @media (max-width: 800px) { main { padding: 0 12px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Справка — PLC Monitoring</h1>
+    <nav>
+      <a href="index.html" class="nav-link">← Назад к браузеру</a>
+    </nav>
+  </header>
+  <main>
+
+    <!-- ========== АРХИТЕКТУРА ========== -->
+    <section>
+      <h2>📊 Архитектура проекта</h2>
+      <p>PLC Monitoring состоит из нескольких компонентов, которые работают в Docker контейнерах:</p>
+
+      <h3>Структура каталогов</h3>
+      <div class="folder-tree">
+C:\plc-monitoring-docker-poller/
+├── docker-compose.yml          ← Конфигурация всех контейнеров
+├── init.sql                    ← Инициализация БД
+├── CLAUDE.md                   ← Инструкции для разработки
+├── backups/                    ← SQL дампы БД (автоматически)
+│   ├── backup_2026-09-28.sql
+│   └── backup_2026-09-29.sql
+├── pg_data/                    ← Данные PostgreSQL (том Docker)
+├── n8n_data/                   ← Конфиги N8N (том Docker)
+├── grafana_data/               ← Дашборды Grafana (том Docker)
+├── fastapi-api/
+│   ├── main.py                 ← REST API для браузера
+│   ├── requirements.txt
+│   └── static/
+│       ├── index.html          ← Браузер переменных ПЛК
+│       └── reference.html      ← Эта справка
+└── python-async-poller/
+    ├── main.py                 ← Асинхронный сборщик данных
+    ├── opc_client.py           ← Клиент OPC UA
+    ├── database.py             ← Работа с БД
+    ├── requirements.txt
+    └── .env                    ← Переменные окружения
+      </div>
+
+      <h3>Docker контейнеры</h3>
+      <table>
+        <tr>
+          <th>Контейнер</th>
+          <th>Назначение</th>
+          <th>Порт</th>
+          <th>Том (данные)</th>
+        </tr>
+        <tr>
+          <td><strong>PostgreSQL</strong></td>
+          <td>База данных с тегами и значениями</td>
+          <td>5432</td>
+          <td>./pg_data/</td>
+        </tr>
+        <tr>
+          <td><strong>FastAPI</strong></td>
+          <td>REST API + веб-интерфейс</td>
+          <td>8000</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><strong>Python Poller</strong></td>
+          <td>Асинхронный опрос ПЛК по OPC UA</td>
+          <td>—</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><strong>N8N</strong></td>
+          <td>Automation (опциональный)</td>
+          <td>5678</td>
+          <td>./n8n_data/</td>
+        </tr>
+        <tr>
+          <td><strong>Grafana</strong></td>
+          <td>Визуализация данных (опциональный)</td>
+          <td>3000</td>
+          <td>./grafana_data/</td>
+        </tr>
+      </table>
+    </section>
+
+    <!-- ========== СТРАТЕГИЯ БЭКАПА ========== -->
+    <section>
+      <h2>💾 Стратегия бэкапа и восстановления</h2>
+
+      <table>
+        <tr>
+          <th>Компонент</th>
+          <th>Что бэкапировать</th>
+          <th>Где находится</th>
+          <th>Как бэкапировать</th>
+        </tr>
+        <tr>
+          <td><strong>✅ Исходный код</strong></td>
+          <td>Все файлы проекта</td>
+          <td>Git репозиторий</td>
+          <td><code>git commit</code> + <code>git push</code></td>
+        </tr>
+        <tr>
+          <td><strong>✅ PostgreSQL БД</strong></td>
+          <td>Теги, значения, конфиги</td>
+          <td>./pg_data/ (том)</td>
+          <td><code>pg_dump</code> → ./backups/*.sql</td>
+        </tr>
+        <tr>
+          <td><strong>✅ N8N конфиги</strong></td>
+          <td>Workflows, credentials</td>
+          <td>./n8n_data/</td>
+          <td>Копировать всю папку</td>
+        </tr>
+        <tr>
+          <td><strong>✅ Grafana дашборды</strong></td>
+          <td>Дашборды, datasources</td>
+          <td>./grafana_data/</td>
+          <td>Копировать всю папку</td>
+        </tr>
+        <tr class="warning">
+          <td><strong>❌ Логи контейнеров</strong></td>
+          <td>Служебные логи</td>
+          <td>Внутри контейнеров</td>
+          <td>Можно пересоздать (не критично)</td>
+        </tr>
+      </table>
+
+      <h3>Автоматический бэкап</h3>
+      <p>База данных автоматически бэкапируется каждый день в папку <span class="highlight">./backups/</span></p>
+      <p>Это происходит благодаря скрипту в docker-compose.yml</p>
+    </section>
+
+    <!-- ========== РАЗВЁРТЫВАНИЕ НА НОВОМ ПК ========== -->
+    <section>
+      <h2>🚀 Развёртывание на другом ПК</h2>
+
+      <h3>Требования</h3>
+      <ul>
+        <li>Windows 11 Pro (с WSL2)</li>
+        <li>Docker Desktop установлен и запущен</li>
+        <li>Git установлен</li>
+      </ul>
+
+      <h3>Пошаговый план</h3>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <strong>Клонировать репозиторий</strong>
+          <div class="code-block">git clone https://github.com/YOUR_USER/plc-monitoring-docker-poller.git C:\plc-monitoring-docker-poller</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <strong>Перейти в папку проекта</strong>
+          <div class="code-block">cd C:\plc-monitoring-docker-poller</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <strong>Создать папку для бэкапов (если нужно восстановление)</strong>
+          <div class="code-block">mkdir backups</div>
+          <p><small>Если у вас есть старые бэкапы БД — скопируйте файлы *.sql в эту папку</small></p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <strong>Запустить все контейнеры</strong>
+          <div class="code-block">docker compose up -d</div>
+          <p><small>Подождите 30 сек, пока PostgreSQL инициализируется</small></p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div>
+          <strong>Если нужно восстановить БД из бэкапа</strong>
+          <div class="code-block">docker exec plc-monitoring-docker-poller-postgres-1 psql -U postgres < backups/backup_ДАТА.sql</div>
+          <p><small>Замените ДАТА на актуальную дату файла бэкапа</small></p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">6</div>
+        <div>
+          <strong>Открыть веб-интерфейс</strong>
+          <div class="code-block">http://localhost:8000</div>
+          <p><small>Браузер переменных ПЛК будет доступен по этому адресу</small></p>
+        </div>
+      </div>
+
+      <h3 class="success">✅ Проект развёрнут!</h3>
+      <ul>
+        <li>Веб-интерфейс: http://localhost:8000</li>
+        <li>API: http://localhost:8000/api/</li>
+        <li>N8N (если включен): http://localhost:5678</li>
+        <li>Grafana (если включен): http://localhost:3000</li>
+      </ul>
+    </section>
+
+    <!-- ========== ОПТИМИЗАЦИИ ДЛЯ ПЕРЕНОСА ========== -->
+    <section>
+      <h2>⚡ Оптимизации для упрощения переноса</h2>
+
+      <h3>1. Использование .env файла</h3>
+      <p>Все переменные окружения (IP ПЛК, логины БД) хранятся в <span class="highlight">.env</span></p>
+      <p>При переносе просто отредактируйте этот файл под новые значения:</p>
+      <div class="code-block">PLC_IP=192.168.1.100
+POSTGRES_PASSWORD=your_secure_password
+POSTGRES_DB=general_data_hub_BD</div>
+
+      <h3>2. Docker volumes вместо хост-папок</h3>
+      <p>Все данные хранятся в Docker томах (./pg_data/, ./n8n_data/, и т.д.)</p>
+      <p>Это делает систему независимой от операционной системы и легче переносится между машинами</p>
+
+      <h3>3. Git для кода</h3>
+      <p>Весь исходный код в Git — просто <code>git clone</code> и готово</p>
+
+      <h3>4. SQL дампы для БД</h3>
+      <p>Вместо копирования томов, используются SQL дампы, которые легче архивировать и распространять</p>
+
+      <h3>5. Скрипт быстрого развёртывания (рекомендуется)</h3>
+      <p>Можно создать batch-скрипт для автоматизации:</p>
+      <div class="code-block">@echo off
+git clone https://github.com/YOUR_USER/plc-monitoring-docker-poller.git
+cd plc-monitoring-docker-poller
+docker compose up -d
+echo Ожидание инициализации БД...
+timeout /t 30
+echo.
+echo ✅ Проект запущен! Откройте http://localhost:8000
+pause</div>
+    </section>
+
+    <!-- ========== РЕШЕНИЕ ПРОБЛЕМ ========== -->
+    <section>
+      <h2>🔧 Решение проблем</h2>
+
+      <h3>❌ Контейнеры не запускаются</h3>
+      <ul>
+        <li>Проверьте, запущен ли Docker Desktop</li>
+        <li>Проверьте порты: не занят ли 5432, 8000, 5678, 3000</li>
+        <li>Просмотрите логи: <code>docker compose logs</code></li>
+      </ul>
+
+      <h3>❌ БД не инициализируется</h3>
+      <ul>
+        <li>Удалите volume: <code>docker volume rm plc-monitoring-docker-poller_pg_data</code></li>
+        <li>Пересоздайте контейнеры: <code>docker compose down && docker compose up -d</code></li>
+      </ul>
+
+      <h3>❌ Веб-интерфейс показывает старый код</h3>
+      <ul>
+        <li>Очистьте кэш браузера: <code>Ctrl+Shift+R</code></li>
+        <li>Или пересоберите контейнер: <code>docker compose build --no-cache fastapi-api && docker compose up -d fastapi-api</code></li>
+      </ul>
+
+      <h3>❌ ПЛК не подключается</h3>
+      <ul>
+        <li>Проверьте IP адрес ПЛК в .env файле</li>
+        <li>Убедитесь, что ПЛК в сети и включена OPC UA</li>
+        <li>Посмотрите логи Poller: <code>docker logs plc-monitoring-docker-poller-plc-monitoring-docker-poller-1</code></li>
+      </ul>
+    </section>
+
+    <!-- ========== ВЕРСИЯ ========== -->
+    <section style="background: #f9fafb; border-left: 4px solid #536471;">
+      <p><small>📝 Справка обновлена: <strong>2026-09-29</strong></small></p>
+      <p><small>Версия проекта: <strong>1.0.0</strong></small></p>
+      <p><small>Сборка: <strong>Иерархический браузер переменных + поиск по Data Block</strong></small></p>
+    </section>
+
+  </main>
+</body>
+</html>

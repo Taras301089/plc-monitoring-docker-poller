@@ -11,6 +11,7 @@ import asyncpg
 import httpx
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 DATABASE_URL = os.getenv(
@@ -63,11 +64,20 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="PLC Monitoring API", version="0.1.0", lifespan=lifespan)
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 @app.get("/", response_class=FileResponse)
 async def index() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/{filename}", response_class=FileResponse)
+async def static_file(filename: str) -> FileResponse:
+    file_path = STATIC_DIR / filename
+    if not file_path.is_file() or not file_path.resolve().is_relative_to(STATIC_DIR.resolve()):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)
 
 
 @app.get("/health")
