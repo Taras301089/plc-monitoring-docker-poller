@@ -157,10 +157,10 @@
 </head>
 <body>
   <nav class="tabs">
-    <button class="tab active" data-tab="browser">📊 Переменные</button>
-    <button class="tab" data-tab="saved">💾 Сохранённые</button>
+    <button class="tab active" data-tab="browser">📊 Переменные ПЛК</button>
+    <button class="tab" data-tab="saved">💾 Переменные БД</button>
     <button class="tab" data-tab="charts">📈 Графики</button>
-    <button class="tab" data-tab="notifications">⚙️ Параметры</button>
+    <button class="tab" data-tab="notifications">🔔 Оповещения</button>
     <div class="tabs-divider"></div>
     <div class="tabs-tools">
       <button id="theme-toggle" class="theme-toggle" title="Переключить тему">🌙</button>
@@ -192,9 +192,9 @@
       </div>
     </div>
 
-    <!-- TAB 2: Saved Variables -->
+    <!-- TAB 2: DB Variables -->
     <div id="saved" class="tab-content">
-      <p style="color: var(--fg-secondary); font-size: 13px;">Сохранённые переменные будут показаны здесь</p>
+      <p style="color: var(--fg-secondary); font-size: 13px;">Переменные из БД будут показаны здесь</p>
     </div>
 
     <!-- TAB 3: Charts -->
@@ -202,10 +202,10 @@
       <p style="color: var(--fg-secondary); font-size: 13px;">Графики будут показаны здесь</p>
     </div>
 
-    <!-- TAB 4: Settings -->
+    <!-- TAB 4: Alerts & Notifications -->
     <div id="notifications" class="tab-content">
       <div class="settings-form">
-        <h2 style="font-size: 16px; margin-top: 0;">Параметры подключения ПЛК</h2>
+        <h2 style="font-size: 16px; margin-top: 0;">Параметры подключения и оповещений</h2>
 
         <div class="form-group">
           <label for="plc-name">Имя ПЛК:</label>
