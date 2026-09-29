@@ -95,7 +95,17 @@ async def list_plcs() -> list[dict[str, Any]]:
         ORDER BY id
         """
     )
-    return [dict(row) for row in rows]
+    result = []
+    for row in rows:
+        d = dict(row)
+        if d['opc_endpoint']:
+            import re
+            match = re.search(r'://([^:]+)', d['opc_endpoint'])
+            d['ip_address'] = match.group(1) if match else 'N/A'
+        else:
+            d['ip_address'] = 'N/A'
+        result.append(d)
+    return result
 
 
 @app.get("/api/plcs/{plc_id}/opcua/variables")

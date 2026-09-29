@@ -268,7 +268,11 @@
         const response = await fetch('/api/plcs');
         if (!response.ok) throw new Error('Ошибка загрузки списка ПЛК');
         const items = await response.json();
-        plc.replaceChildren(...items.map(item => new Option(`${item.name} (id=${item.id})`, item.id)));
+        plc.replaceChildren(...items.map(item => {
+          const status = item.is_active ? '🟢' : '❌';
+          const ip = item.ip_address || 'N/A';
+          return new Option(`${status} ${item.name} - ${ip}`, item.id);
+        }));
         if (items.length) {
           setStatus('success', 'Готово', 'Выберите ПЛК и нажмите «Загрузить из БД» или «Обновить с ПЛК»');
         }
