@@ -76,7 +76,7 @@
     header { background: var(--header-bg); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
     h1 { margin: 0; font-size: 18px; font-weight: 600; }
     .header-right { display: flex; gap: 12px; align-items: center; }
-    .theme-toggle { background: var(--button-tertiary); color: white; border: none; border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 14px; }
+    .theme-toggle { background: none; color: white; border: none; padding: 0; cursor: pointer; font-size: 18px; margin-right: 12px; }
     .theme-toggle:hover { opacity: 0.8; }
 
     /* Навигационные табы */
@@ -119,14 +119,14 @@
     .tree-wrap { max-height: calc(100vh - 200px); overflow: auto; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
     .tree { list-style: none; padding: 0; margin: 0; }
     .tree-item { margin: 0; }
-    .db-item { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); cursor: pointer; user-select: none; font-weight: 600; font-size: 13px; color: var(--fg-primary); }
+    .db-item { display: flex; align-items: center; gap: 4px; padding: 3px 10px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); cursor: pointer; user-select: none; font-weight: 600; font-size: 12px; color: var(--fg-primary); min-height: 24px; }
     .db-item:hover { background: var(--bg-tertiary); }
-    .db-item.collapsed::before { content: '▶'; display: inline-block; width: 14px; color: var(--fg-secondary); }
-    .db-item.expanded::before { content: '▼'; display: inline-block; width: 14px; color: var(--fg-secondary); }
+    .db-item.collapsed::before { content: '▶'; display: inline-block; width: 12px; color: var(--fg-secondary); font-size: 11px; }
+    .db-item.expanded::before { content: '▼'; display: inline-block; width: 12px; color: var(--fg-secondary); font-size: 11px; }
     .db-item.expanded { background: var(--bg-tertiary); }
     .db-items { display: none; }
     .db-items.visible { display: block; }
-    .var-item { display: flex; align-items: center; gap: 6px; padding: 4px 12px 4px 32px; border-bottom: 1px solid var(--border-color); font-size: 12px; min-height: 28px; }
+    .var-item { display: flex; align-items: center; gap: 4px; padding: 2px 10px 2px 28px; border-bottom: 1px solid var(--border-color); font-size: 11px; min-height: 22px; }
     .var-item:hover { background: var(--bg-secondary); }
     .var-checkbox { width: 16px; height: 16px; accent-color: var(--button-primary); cursor: pointer; margin: 0; }
     .var-name { flex: 0 0 150px; color: var(--fg-primary); font-weight: 500; }
@@ -159,17 +159,15 @@
 <body>
   <header>
     <h1>🔷 PLC Monitoring System</h1>
-    <div class="header-right">
-      <button id="theme-toggle" class="theme-toggle" title="Переключить тему">🌙</button>
-      <a href="reference.html" style="color: #bcd0df; text-decoration: none; font-size: 13px; padding: 6px 10px; border-radius: 4px;">📖 Справка</a>
-    </div>
+    <button id="theme-toggle" class="theme-toggle" title="Переключить тему">🌙</button>
   </header>
 
   <nav class="tabs">
     <button class="tab active" data-tab="browser">📊 PLC Variables</button>
     <button class="tab" data-tab="saved">💾 Saved Variables</button>
     <button class="tab" data-tab="charts">📈 Charts</button>
-    <button class="tab" data-tab="settings">⚙️ Settings</button>
+    <button class="tab" data-tab="notifications">🔔 Notifications</button>
+    <a href="reference.html" style="color: var(--fg-secondary); text-decoration: none; font-size: 13px; padding: 12px 20px; border-bottom: 3px solid transparent; display: flex; align-items: center; margin-left: auto;">📖 Reference</a>
   </nav>
 
   <main>
@@ -206,8 +204,8 @@
       <p style="color: var(--fg-secondary); font-size: 13px;">Charts will be shown here</p>
     </div>
 
-    <!-- TAB 4: Settings -->
-    <div id="settings" class="tab-content">
+    <!-- TAB 4: Notifications -->
+    <div id="notifications" class="tab-content">
       <div class="settings-form">
         <h2 style="font-size: 16px; margin-top: 0;">PLC Connection Settings</h2>
 
@@ -289,7 +287,10 @@
     function buildHierarchy(items) {
       const tree = {};
       items.forEach(item => {
-        const path = item.browse_path ? item.browse_path.split('.') : [item.variable_name];
+        const fullPath = item.browse_path ? item.browse_path.split('.') : [item.variable_name];
+        // Filter out "Inputs" and "Static" levels
+        const path = fullPath.filter(p => p !== 'Inputs' && p !== 'Static');
+
         let current = tree;
         for (let i = 0; i < path.length - 1; i++) {
           const key = path[i];
@@ -357,18 +358,33 @@
           li.className = 'tree-item';
           const count = countVars(node);
           const toggle = document.createElement('div');
-          toggle.className = 'db-item expanded';
-          toggle.style.paddingLeft = (12 + depth * 12) + 'px';
-          toggle.textContent = `${key} (${count})`;
-          const folder = document.createElement('ul');
-          folder.className = 'db-items tree visible';
-          folder.replaceChildren(...Object.keys(node).sort().map(k => renderNode(k, node[k], depth + 1)));
-          toggle.addEventListener('click', () => {
-            toggle.classList.toggle('expanded');
-            toggle.classList.toggle('collapsed');
-            folder.classList.toggle('visible');
-          });
-          li.append(toggle, folder);
+          // Expand/collapse only for depth >= 1 (not for PLC level)
+          if (depth >= 1) {
+            toggle.className = 'db-item expanded';
+            toggle.style.paddingLeft = (12 + (depth - 1) * 12) + 'px';
+            toggle.textContent = `${key} (${count})`;
+            const folder = document.createElement('ul');
+            folder.className = 'db-items tree visible';
+            folder.replaceChildren(...Object.keys(node).sort().map(k => renderNode(k, node[k], depth + 1)));
+            toggle.addEventListener('click', () => {
+              toggle.classList.toggle('expanded');
+              toggle.classList.toggle('collapsed');
+              folder.classList.toggle('visible');
+            });
+            li.append(toggle, folder);
+          } else {
+            // PLC level - no toggle, just render children
+            toggle.className = 'db-item';
+            toggle.style.paddingLeft = '0px';
+            toggle.textContent = `${key}`;
+            toggle.style.pointerEvents = 'none';
+            toggle.style.fontWeight = '700';
+            toggle.style.color = 'var(--fg-primary)';
+            const folder = document.createElement('ul');
+            folder.className = 'db-items tree visible';
+            folder.replaceChildren(...Object.keys(node).sort().map(k => renderNode(k, node[k], depth + 1)));
+            li.append(toggle, folder);
+          }
         }
         return li;
       }
