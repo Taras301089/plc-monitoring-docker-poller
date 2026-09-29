@@ -157,14 +157,14 @@
 </head>
 <body>
   <nav class="tabs">
-    <button class="tab active" data-tab="browser">📊 Переменные ПЛК</button>
-    <button class="tab" data-tab="saved">💾 Переменные БД</button>
-    <button class="tab" data-tab="charts">📈 Графики</button>
-    <button class="tab" data-tab="notifications">🔔 Оповещения</button>
+    <button class="tab active" data-tab="browser" title="Просмотр всех переменных ПЛК в реальном времени с возможностью поиска и фильтрации">📊 Переменные ПЛК</button>
+    <button class="tab" data-tab="saved" title="Переменные сохранённые в базе данных для дальнейшего анализа и мониторинга">💾 Переменные БД</button>
+    <button class="tab" data-tab="charts" title="Графики и визуализация исторических данных переменных">📈 Графики</button>
+    <button class="tab" data-tab="notifications" title="Параметры подключения к ПЛК и настройки оповещений">🔔 Оповещения</button>
     <div class="tabs-divider"></div>
     <div class="tabs-tools">
-      <button id="theme-toggle" class="theme-toggle" title="Переключить тему">🌙</button>
-      <a href="reference.html" style="color: var(--fg-secondary); text-decoration: none; font-size: 13px; padding: 12px 16px; border-bottom: 3px solid transparent; display: flex; align-items: center; white-space: nowrap;">📖 Справка</a>
+      <button id="theme-toggle" class="theme-toggle" title="Переключить между тёмной и светлой темой (сохраняется автоматически)">🌙</button>
+      <a href="reference.html" style="color: var(--fg-secondary); text-decoration: none; font-size: 13px; padding: 12px 16px; border-bottom: 3px solid transparent; display: flex; align-items: center; white-space: nowrap; cursor: help;" title="Справочная информация о системе, архитектуре и развёртывании">📖 Справка</a>
     </div>
   </nav>
 
@@ -172,16 +172,16 @@
     <!-- TAB 1: PLC Variables Browser -->
     <div id="browser" class="tab-content active">
       <div class="toolbar">
-        <select id="plc" style="grid-column: 1;"></select>
-        <input id="db-filter" placeholder="Фильтр по Data Block" style="grid-column: 2;">
-        <input id="var-filter" placeholder="Фильтр по переменной" style="grid-column: 3;">
-        <button id="load">Загрузить из БД</button>
-        <button id="refresh">Обновить с ПЛК</button>
-        <button id="save">Сохранить выбранные</button>
+        <select id="plc" style="grid-column: 1;" title="Выберите ПЛК для подключения. Зелёный кружок 🟢 = на связи, красный крестик ❌ = отключено. Показывает IP адрес и статус подключения."></select>
+        <input id="db-filter" placeholder="Фильтр по Data Block" style="grid-column: 2;" title="Поиск по названию Data Block (блока данных). Поддерживает частичное совпадение.">
+        <input id="var-filter" placeholder="Фильтр по переменной" style="grid-column: 3;" title="Поиск по названию переменной. Поддерживает частичное совпадение.">
+        <button id="load" title="Загрузить переменные из базы данных (кэшированные ранее данные)">Загрузить из БД</button>
+        <button id="refresh" title="Обновить переменные с ПЛК (сканирование OPC UA, может занять время)">Обновить с ПЛК</button>
+        <button id="save" title="Сохранить выбранные переменные в базу данных для дальнейшего анализа">Сохранить выбранные</button>
       </div>
       <div class="action-buttons">
-        <button id="expand-all" style="background: var(--button-tertiary); border-color: var(--button-tertiary);">▼ Развернуть все</button>
-        <button id="collapse-all" style="background: var(--button-tertiary); border-color: var(--button-tertiary);">▶ Свернуть все</button>
+        <button id="expand-all" style="background: var(--button-tertiary); border-color: var(--button-tertiary);" title="Развернуть все Data Blocks и показать все переменные">▼ Развернуть все</button>
+        <button id="collapse-all" style="background: var(--button-tertiary); border-color: var(--button-tertiary);" title="Свернуть все Data Blocks для компактного представления">▶ Свернуть все</button>
       </div>
       <div class="status" id="status" role="status">
         <span class="status-title">Готово</span>
