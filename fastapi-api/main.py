@@ -108,6 +108,35 @@ async def list_plcs() -> list[dict[str, Any]]:
     return result
 
 
+@app.post("/api/plcs")
+async def create_plc(
+    name: str = Query(...),
+    opc_endpoint: str = Query(...)
+) -> dict[str, Any]:
+    pool = await get_pool(app)
+    try:
+        plc_id = await pool.fetchval(
+            """
+            INSERT INTO plcs (name, opc_endpoint, is_active)
+            VALUES ($1, $2, TRUE)
+            RETURNING id
+            """,
+            name, opc_endpoint
+        )
+        return {"id": plc_id, "name": name, "opc_endpoint": opc_endpoint, "is_active": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.delete("/api/plcs/{plc_id}")
+async def delete_plc(plc_id: int) -> dict[str, str]:
+    pool = await get_pool(app)
+    result = await pool.execute("DELETE FROM plcs WHERE id = $1", plc_id)
+    if result == "DELETE 0":
+        raise HTTPException(status_code=404, detail="ПЛК не найден")
+    return {"status": "ok", "message": "ПЛК удалён"}
+
+
 @app.get("/api/plcs/{plc_id}/opcua/variables")
 async def browse_plc_variables(
     plc_id: int,
