@@ -195,22 +195,37 @@
   <main>
     <!-- TAB 1: PLC Variables Browser -->
     <div id="browser" class="tab-content active">
-      <!-- PLC List & Add New -->
-      <div class="plc-manager">
-        <h3 style="font-size: 14px; margin: 0 0 12px 0;">Подключённые ПЛК</h3>
+      <!-- PLC Selection & Actions -->
+      <div style="display: flex; gap: 8px; margin-bottom: 12px; align-items: center;">
+        <select id="plc" style="flex: 1; min-height: 36px;" title="Выберите ПЛК для просмотра переменных. 🟢 = на связи, ❌ = отключено."></select>
+        <button id="edit-plc" style="padding: 6px 12px; font-size: 14px; background: var(--button-secondary); border-color: var(--button-secondary);" title="Редактировать выбранный ПЛК (IP, порт)">✏️</button>
+        <button id="delete-plc" style="padding: 6px 12px; font-size: 14px; background: #d32f2f; border-color: #d32f2f; color: white;" title="Удалить выбранный ПЛК из системы">🗑️</button>
+        <button id="toggle-add-plc" style="padding: 6px 12px; font-size: 14px; min-width: 40px;" title="Добавить новый ПЛК">➕</button>
+      </div>
 
-        <div id="plc-list" style="display: grid; gap: 8px; margin-bottom: 16px;">
-          <div style="font-size: 12px; color: var(--fg-secondary);">Загрузка списка...</div>
+      <!-- Add New PLC Form (hidden by default) -->
+      <div id="add-plc-form" style="display: none; padding: 12px; background: var(--bg-secondary); border-radius: 4px; margin-bottom: 12px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 100px; gap: 8px;">
+          <input id="new-plc-name" placeholder="Имя ПЛК" title="Удобное имя для идентификации ПЛК">
+          <input id="new-plc-ip" placeholder="IP адрес" title="IP адрес устройства ПЛК">
+          <input id="new-plc-port" type="number" placeholder="Порт" value="4840" title="OPC UA порт (обычно 4840)">
         </div>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <button id="add-plc" style="padding: 6px 12px; font-size: 12px; flex: 1;" title="Добавить новый ПЛК в систему">✓ Добавить</button>
+          <button id="cancel-add-plc" style="padding: 6px 12px; font-size: 12px; background: var(--button-tertiary); border-color: var(--button-tertiary);" title="Отменить добавление">✕ Отмена</button>
+        </div>
+      </div>
 
-        <div style="padding: 12px; background: var(--bg-secondary); border-radius: 4px; margin-bottom: 16px;">
-          <div style="font-size: 12px; font-weight: 600; margin-bottom: 8px;">Добавить новый ПЛК</div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr 100px; gap: 8px;">
-            <input id="new-plc-name" placeholder="Имя ПЛК" title="Удобное имя для идентификации ПЛК">
-            <input id="new-plc-ip" placeholder="IP адрес" title="IP адрес устройства ПЛК">
-            <input id="new-plc-port" type="number" placeholder="Порт" value="4840" title="OPC UA порт (обычно 4840)">
-          </div>
-          <button id="add-plc" style="margin-top: 8px; padding: 6px 12px; font-size: 12px;" title="Добавить новый ПЛК в систему">➕ Добавить</button>
+      <!-- Edit PLC Form (hidden by default) -->
+      <div id="edit-plc-form" style="display: none; padding: 12px; background: var(--bg-secondary); border-radius: 4px; margin-bottom: 12px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 100px; gap: 8px;">
+          <input id="edit-plc-name" placeholder="Имя ПЛК" title="Имя ПЛК (для идентификации)">
+          <input id="edit-plc-ip" placeholder="IP адрес" title="IP адрес устройства ПЛК">
+          <input id="edit-plc-port" type="number" placeholder="Порт" title="OPC UA порт (обычно 4840)">
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <button id="save-plc" style="padding: 6px 12px; font-size: 12px; flex: 1; background: var(--button-secondary); border-color: var(--button-secondary);" title="Сохранить изменения">✓ Сохранить</button>
+          <button id="cancel-edit-plc" style="padding: 6px 12px; font-size: 12px; background: var(--button-tertiary); border-color: var(--button-tertiary);" title="Отменить редактирование">✕ Отмена</button>
         </div>
       </div>
 
@@ -246,108 +261,9 @@
       <p style="color: var(--fg-secondary); font-size: 13px;">Графики будут показаны здесь</p>
     </div>
 
-    <!-- TAB 4: Connection Setup -->
+    <!-- TAB 4: Alerts & Notifications -->
     <div id="notifications" class="tab-content">
-      <div class="connection-wizard">
-        <h2 style="font-size: 16px; margin-top: 0;">Подключение к ПЛК</h2>
-
-        <!-- Step Indicators -->
-        <div class="steps-indicator">
-          <div class="step" id="step-1-indicator">
-            <div class="step-number">1</div>
-            <div class="step-label">Параметры</div>
-          </div>
-          <div class="step-connector"></div>
-          <div class="step" id="step-2-indicator">
-            <div class="step-number">2</div>
-            <div class="step-label">Проверка</div>
-          </div>
-          <div class="step-connector"></div>
-          <div class="step" id="step-3-indicator">
-            <div class="step-number">3</div>
-            <div class="step-label">Загрузка</div>
-          </div>
-        </div>
-
-        <!-- Step 1: Connection Parameters -->
-        <div class="wizard-step active" id="step-1">
-          <div class="step-content">
-            <h3 style="font-size: 14px; margin: 0 0 12px 0;">Шаг 1: Параметры подключения</h3>
-
-            <div class="form-group">
-              <label for="plc-name">Имя ПЛК:</label>
-              <input type="text" id="plc-name" placeholder="например, PLC1" value="Changang" title="Удобное имя для идентификации ПЛК в системе">
-            </div>
-
-            <div class="form-group">
-              <label for="plc-ip">IP-адрес ПЛК:</label>
-              <input type="text" id="plc-ip" placeholder="10.85.226.35" value="10.85.226.35" title="IP адрес устройства ПЛК в сети">
-            </div>
-
-            <div class="form-group">
-              <label for="plc-port">OPC UA Порт:</label>
-              <input type="number" id="plc-port" placeholder="4840" value="4840" title="Порт OPC UA сервера (обычно 4840)">
-            </div>
-
-            <button id="step-1-next" style="background: var(--button-secondary); border-color: var(--button-secondary); padding: 8px 16px;" title="Перейти к следующему шагу (проверка соединения)">Далее →</button>
-          </div>
-        </div>
-
-        <!-- Step 2: Connection Test -->
-        <div class="wizard-step" id="step-2">
-          <div class="step-content">
-            <h3 style="font-size: 14px; margin: 0 0 12px 0;">Шаг 2: Проверка соединения</h3>
-
-            <div style="padding: 16px; background: var(--bg-secondary); border-radius: 4px; margin-bottom: 12px;">
-              <div style="margin-bottom: 8px;">
-                <strong style="font-size: 13px;">Параметры:</strong><br>
-                <span style="font-size: 12px; color: var(--fg-secondary);" id="conn-display"></span>
-              </div>
-            </div>
-
-            <button id="step-2-test" style="background: var(--button-secondary); border-color: var(--button-secondary); padding: 8px 16px; margin-right: 8px;" title="Тестировать подключение к ПЛК (может занять 5-10 секунд)">🔗 Проверить соединение</button>
-            <button id="step-2-back" style="background: var(--button-tertiary); border-color: var(--button-tertiary); padding: 8px 16px;" title="Вернуться к редактированию параметров">← Назад</button>
-
-            <div class="connection-result" id="connection-result" style="display: none; margin-top: 12px; padding: 12px; border-radius: 4px;">
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <span id="conn-status-icon" style="font-size: 20px;">⏳</span>
-                <div>
-                  <strong id="conn-status-title">Проверка...</strong>
-                  <small style="display: block; color: var(--fg-secondary);" id="conn-status-detail"></small>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Step 3: Data Blocks Sync -->
-        <div class="wizard-step" id="step-3">
-          <div class="step-content">
-            <h3 style="font-size: 14px; margin: 0 0 12px 0;">Шаг 3: Загрузка дерева Data Blocks</h3>
-
-            <p style="font-size: 12px; color: var(--fg-secondary); margin: 0 0 12px 0;">
-              Загружаем структуру Data Blocks из ПЛК и сохраняем в базу данных для быстрого доступа.
-            </p>
-
-            <button id="step-3-load" style="background: var(--button-primary); border-color: var(--button-primary); padding: 8px 16px; margin-right: 8px;" title="Загрузить дерево Data Blocks с ПЛК">⬇️ Загрузить Data Blocks</button>
-            <button id="step-3-back" style="background: var(--button-tertiary); border-color: var(--button-tertiary); padding: 8px 16px;" title="Вернуться к проверке соединения">← Назад</button>
-
-            <div id="sync-progress" style="display: none; margin-top: 12px;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12px;">
-                <span>Прогресс загрузки:</span>
-                <span id="sync-percent">0%</span>
-              </div>
-              <div style="width: 100%; height: 20px; background: var(--bg-secondary); border-radius: 2px; overflow: hidden;">
-                <div id="sync-bar" style="width: 0%; height: 100%; background: var(--button-primary); transition: width 0.3s;"></div>
-              </div>
-            </div>
-
-            <div id="sync-result" style="display: none; margin-top: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 4px;">
-              <span id="sync-result-text"></span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <p style="color: var(--fg-secondary); font-size: 13px;">Алерты и оповещения будут настроены здесь в будущих версиях</p>
     </div>
   </main>
 
@@ -383,54 +299,19 @@
           const ip = item.ip_address || 'N/A';
           return new Option(`${status} ${item.name} - ${ip}`, item.id);
         }));
-        displayPlcList(items);
         if (items.length) {
-          setStatus('success', 'Готово', 'Выберите ПЛК и нажмите «Загрузить из БД» или «Обновить с ПЛК»');
+          if (!plc.value) plc.value = items[0].id;
+          setStatus('success', 'Готово', 'Выберите ПЛК');
         }
       } catch (error) {
         setStatus('error', 'Ошибка API', error.message);
       }
     }
 
-    function displayPlcList(items) {
-      const list = document.getElementById('plc-list');
-      if (!items.length) {
-        list.innerHTML = '<div style="font-size: 12px; color: var(--fg-secondary);">Нет добавленных ПЛК</div>';
-        return;
-      }
-      list.innerHTML = items.map(item => `
-        <div class="plc-item">
-          <div class="plc-item-info">
-            <span class="plc-status">${item.is_active ? '🟢' : '❌'}</span>
-            <div>
-              <div style="font-weight: 600;">${item.name}</div>
-              <div style="color: var(--fg-secondary);">${item.ip_address}:${item.opc_endpoint?.split(':').pop() || '4840'}</div>
-            </div>
-          </div>
-          <div class="plc-item-actions">
-            <button onclick="selectPlc(${item.id})" style="background: var(--button-primary);" title="Выбрать этот ПЛК">Выбрать</button>
-            <button onclick="deletePlc(${item.id})" style="background: var(--button-tertiary);" title="Удалить ПЛК">❌</button>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function selectPlc(id) {
-      plc.value = id;
-      loadVariables(false);
-    }
-
-    async function deletePlc(id) {
-      if (!confirm('Удалить ПЛК?')) return;
-      try {
-        const response = await fetch(`/api/plcs/${id}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error('Ошибка удаления');
-        loadPlcs();
-        setStatus('success', 'Готово', 'ПЛК удалён');
-      } catch (error) {
-        setStatus('error', 'Ошибка', error.message);
-      }
-    }
+    // Обработчик изменения select - автоматически загружать из БД
+    plc.addEventListener('change', () => {
+      if (plc.value) loadVariables(false);
+    });
 
     document.getElementById('add-plc').addEventListener('click', async () => {
       const name = document.getElementById('new-plc-name').value.trim();
@@ -456,8 +337,94 @@
         document.getElementById('new-plc-name').value = '';
         document.getElementById('new-plc-ip').value = '';
         document.getElementById('new-plc-port').value = '4840';
+        document.getElementById('add-plc-form').style.display = 'none';
         loadPlcs();
         setStatus('success', 'Готово', 'Новый ПЛК добавлен');
+      } catch (error) {
+        setStatus('error', 'Ошибка', error.message);
+      }
+    });
+
+    // Показать/скрыть форму добавления
+    document.getElementById('toggle-add-plc').addEventListener('click', () => {
+      const form = document.getElementById('add-plc-form');
+      form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Отмена добавления
+    document.getElementById('cancel-add-plc').addEventListener('click', () => {
+      document.getElementById('add-plc-form').style.display = 'none';
+      document.getElementById('new-plc-name').value = '';
+      document.getElementById('new-plc-ip').value = '';
+      document.getElementById('new-plc-port').value = '4840';
+    });
+
+    // Редактировать ПЛК
+    document.getElementById('edit-plc').addEventListener('click', () => {
+      if (!plc.value) {
+        setStatus('error', 'Ошибка', 'Выберите ПЛК для редактирования');
+        return;
+      }
+      const option = plc.options[plc.selectedIndex];
+      const text = option.text;
+      const [name, ...rest] = text.split(' - ');
+      const ip = rest.join(' - ').split(':')[0];
+      const port = rest.join(' - ').split(':')[1] || '4840';
+
+      document.getElementById('edit-plc-name').value = name.replace(/[🟢❌]\s/, '');
+      document.getElementById('edit-plc-ip').value = ip;
+      document.getElementById('edit-plc-port').value = port;
+      document.getElementById('edit-plc-form').style.display = 'block';
+    });
+
+    // Сохранить изменения ПЛК
+    document.getElementById('save-plc').addEventListener('click', async () => {
+      if (!plc.value) return;
+      const name = document.getElementById('edit-plc-name').value.trim();
+      const ip = document.getElementById('edit-plc-ip').value.trim();
+      const port = document.getElementById('edit-plc-port').value.trim();
+
+      if (!name || !ip || !port) {
+        alert('Заполните все поля');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/plcs/${plc.value}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            opc_endpoint: `opc.tcp://${ip}:${port}`
+          })
+        });
+        if (!response.ok) throw new Error('Ошибка сохранения ПЛК');
+        document.getElementById('edit-plc-form').style.display = 'none';
+        loadPlcs();
+        setStatus('success', 'Готово', 'ПЛК обновлён');
+      } catch (error) {
+        setStatus('error', 'Ошибка', error.message);
+      }
+    });
+
+    // Отмена редактирования
+    document.getElementById('cancel-edit-plc').addEventListener('click', () => {
+      document.getElementById('edit-plc-form').style.display = 'none';
+    });
+
+    // Удалить ПЛК
+    document.getElementById('delete-plc').addEventListener('click', async () => {
+      if (!plc.value) {
+        setStatus('error', 'Ошибка', 'Выберите ПЛК для удаления');
+        return;
+      }
+      if (!confirm('Удалить этот ПЛК из системы?')) return;
+
+      try {
+        const response = await fetch(`/api/plcs/${plc.value}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error('Ошибка удаления ПЛК');
+        loadPlcs();
+        setStatus('success', 'Готово', 'ПЛК удалён');
       } catch (error) {
         setStatus('error', 'Ошибка', error.message);
       }
@@ -467,96 +434,6 @@
       status.className = `status ${kind}`;
       status.innerHTML = `<span class="status-title">${title}</span><span class="status-detail">${detail}</span>`;
     }
-
-    // Connection Wizard Functions
-    function showStep(stepNum) {
-      document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
-      document.querySelector(`#step-${stepNum}`).classList.add('active');
-      document.querySelectorAll('.step').forEach((el, i) => {
-        if (i + 1 <= stepNum) el.classList.add('active');
-        else el.classList.remove('active');
-      });
-    }
-
-    document.getElementById('step-1-next').addEventListener('click', () => {
-      const ip = document.getElementById('plc-ip').value.trim();
-      const port = document.getElementById('plc-port').value.trim();
-      if (!ip || !port) {
-        alert('Заполните IP и порт');
-        return;
-      }
-      document.getElementById('conn-display').textContent = `${ip}:${port}`;
-      showStep(2);
-    });
-
-    document.getElementById('step-2-back').addEventListener('click', () => showStep(1));
-    document.getElementById('step-3-back').addEventListener('click', () => showStep(2));
-
-    document.getElementById('step-2-test').addEventListener('click', async () => {
-      const result = document.getElementById('connection-result');
-      const icon = document.getElementById('conn-status-icon');
-      const title = document.getElementById('conn-status-title');
-      const detail = document.getElementById('conn-status-detail');
-
-      result.style.display = 'flex';
-      icon.textContent = '⏳';
-      title.textContent = 'Проверка соединения...';
-      detail.textContent = 'Пожалуйста, подождите';
-
-      try {
-        const response = await fetch('/api/plcs');
-        if (!response.ok) throw new Error('Ошибка соединения');
-        const plcs = await response.json();
-        if (plcs.some(p => p.is_active)) {
-          icon.textContent = '🟢';
-          title.textContent = 'Соединение успешно!';
-          detail.textContent = 'ПЛК на связи, можем загрузить Data Blocks';
-          result.classList.remove('error');
-          document.getElementById('step-3-load').disabled = false;
-          setTimeout(() => showStep(3), 1500);
-        } else {
-          throw new Error('ПЛК не на связи');
-        }
-      } catch (err) {
-        icon.textContent = '❌';
-        title.textContent = 'Соединение не удалось';
-        detail.textContent = err.message;
-        result.classList.add('error');
-        document.getElementById('step-3-load').disabled = true;
-      }
-    });
-
-    document.getElementById('step-3-load').addEventListener('click', async () => {
-      const progress = document.getElementById('sync-progress');
-      const result = document.getElementById('sync-result');
-
-      progress.style.display = 'block';
-      result.style.display = 'none';
-
-      try {
-        const response = await fetch(`/api/plcs/${plc.value}/opcua/variables?refresh=true`);
-        if (!response.ok) throw new Error('Ошибка загрузки');
-        const data = await response.json();
-
-        for (let i = 0; i <= 100; i += 10) {
-          document.getElementById('sync-percent').textContent = i + '%';
-          document.getElementById('sync-bar').style.width = i + '%';
-          await new Promise(r => setTimeout(r, 150));
-        }
-
-        result.style.display = 'block';
-        result.textContent = `✓ Успешно загружено ${data.length} переменных и ${Object.keys(buildHierarchy(data)).length} Data Blocks`;
-        result.style.background = '#e8f5e9';
-        result.style.borderColor = '#a5d6a7';
-        result.style.color = '#2e7d32';
-      } catch (err) {
-        result.style.display = 'block';
-        result.textContent = `✗ Ошибка: ${err.message}`;
-        result.style.background = '#ffebee';
-        result.style.borderColor = '#ef9a9a';
-        result.style.color = '#c62828';
-      }
-    });
 
     function buildHierarchy(items) {
       const tree = {};

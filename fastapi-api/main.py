@@ -108,11 +108,13 @@ async def list_plcs() -> list[dict[str, Any]]:
     return result
 
 
+class CreatePlcRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    opc_endpoint: str = Field(min_length=1, max_length=1024)
+
+
 @app.post("/api/plcs")
-async def create_plc(
-    name: str = Query(...),
-    opc_endpoint: str = Query(...)
-) -> dict[str, Any]:
+async def create_plc(request: CreatePlcRequest) -> dict[str, Any]:
     pool = await get_pool(app)
     try:
         plc_id = await pool.fetchval(
@@ -121,9 +123,33 @@ async def create_plc(
             VALUES ($1, $2, TRUE)
             RETURNING id
             """,
-            name, opc_endpoint
+            request.name, request.opc_endpoint
         )
-        return {"id": plc_id, "name": name, "opc_endpoint": opc_endpoint, "is_active": True}
+        return {"id": plc_id, "name": request.name, "opc_endpoint": request.opc_endpoint, "is_active": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.put("/api/plcs/{plc_id}")
+async def update_plc(plc_id: int, request: CreatePlcRequest) -> dict[str, Any]:
+    pool = await get_pool(app)
+    try:
+        result = await pool.fetchrow(
+            """
+            UPDATE plcs SET name = $1, opc_endpoint = $2
+            WHERE id = $3
+            RETURNING id, name, opc_endpoint, is_active
+            """,
+            request.name, request.opc_endpoint, plc_id
+        )
+        if not result:
+            raise HTTPException(status_code=404, detail="ПЛК не найден")
+        d = dict(result)
+        if d['opc_endpoint']:
+            import re
+            match = re.search(r'://([^:]+)', d['opc_endpoint'])
+            d['ip_address'] = match.group(1) if match else 'N/A'
+        return d
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
