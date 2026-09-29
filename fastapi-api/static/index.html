@@ -586,11 +586,14 @@
       allVariables = items;
       const dbMap = {};
 
-      // Group variables by db_name
+      // Group variables by first level of browse_path (Data Block name)
       items.forEach(item => {
-        const dbName = item.db_name || 'Unknown';
-        if (!dbMap[dbName]) dbMap[dbName] = [];
-        dbMap[dbName].push(item);
+        const browsePath = item.browse_path || '';
+        const pathParts = browsePath.split('.');
+        const dataBlockName = pathParts[0] || item.variable_name || 'Unknown';
+
+        if (!dbMap[dataBlockName]) dbMap[dataBlockName] = [];
+        dbMap[dataBlockName].push(item);
       });
 
       // Render DB list in left panel
@@ -614,7 +617,12 @@
 
     function renderVariablesForDB(dbName) {
       const filtered = allVariables.filter(v => {
-        if (v.db_name !== dbName) return false;
+        // Filter by first level of browse_path (Data Block name)
+        const browsePath = v.browse_path || '';
+        const pathParts = browsePath.split('.');
+        const dataBlockName = pathParts[0] || v.variable_name || 'Unknown';
+
+        if (dataBlockName !== dbName) return false;
         if (!varFilter.value.trim()) return true;
         const search = varFilter.value.trim().toLowerCase();
         return v.variable_name.toLowerCase().includes(search) ||
