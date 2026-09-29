@@ -177,6 +177,83 @@
     .plc-status { font-size: 14px; }
     .plc-item-actions { display: flex; gap: 4px; }
     .plc-item-actions button { padding: 2px 6px; font-size: 11px; }
+
+    /* Two-panel WinCC layout */
+    .browser-header { padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+    .two-panel-layout { display: flex; gap: 8px; height: calc(100vh - 300px); margin-top: 8px; }
+
+    .db-list-panel {
+      flex: 0 0 220px;
+      border: 1px solid var(--border-color);
+      border-radius: 3px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-primary);
+    }
+    .db-list-panel .panel-header {
+      padding: 8px 10px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--fg-primary);
+      white-space: nowrap;
+    }
+    .db-list {
+      flex: 1;
+      overflow-y: auto;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .db-list-item {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e0e0e0;
+      cursor: pointer;
+      font-size: 11px;
+      color: var(--fg-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .db-list-item:hover {
+      background: var(--bg-tertiary);
+    }
+    .db-list-item.selected {
+      background: var(--button-primary);
+      color: white;
+      font-weight: 600;
+    }
+
+    .variables-panel {
+      flex: 1;
+      border: 1px solid var(--border-color);
+      border-radius: 3px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-primary);
+    }
+    .variables-panel .panel-header {
+      padding: 8px 10px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--fg-primary);
+      white-space: nowrap;
+    }
+    .variables-panel .tree-wrap {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0;
+    }
+    .variables-panel #rows {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
   </style>
 </head>
 <body>
@@ -229,25 +306,41 @@
         </div>
       </div>
 
-      <!-- Variables Browser -->
-      <div class="toolbar">
-        <select id="plc" style="grid-column: 1;" title="Выберите ПЛК для просмотра переменных. 🟢 = на связи, ❌ = отключено."></select>
-        <input id="db-filter" placeholder="Фильтр по Data Block" style="grid-column: 2;" title="Поиск по названию Data Block">
-        <input id="var-filter" placeholder="Фильтр по переменной" style="grid-column: 3;" title="Поиск по названию переменной">
-        <button id="load" title="Загрузить переменные из БД">Загрузить из БД</button>
-        <button id="refresh" title="Обновить с ПЛК">Обновить с ПЛК</button>
-        <button id="save" title="Сохранить выбранные">Сохранить выбранные</button>
+      <!-- Variables Browser - Two Panel Layout -->
+      <div class="browser-header">
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap;">
+          <select id="plc" style="min-width: 200px; min-height: 32px;" title="Выберите ПЛК для просмотра переменных. 🟢 = на связи, ❌ = отключено."></select>
+          <input id="var-filter" placeholder="Поиск переменной" style="flex: 1; min-width: 150px; min-height: 32px;" title="Поиск по названию переменной">
+          <button id="load" title="Загрузить переменные из БД">Загрузить из БД</button>
+          <button id="refresh" title="Обновить с ПЛК">Обновить с ПЛК</button>
+          <button id="save" title="Сохранить выбранные">Сохранить выбранные</button>
+        </div>
+        <div class="status" id="status" role="status" style="margin-bottom: 8px;">
+          <span class="status-title">Готово</span>
+          <span class="status-detail">Выберите ПЛК и нажмите «Загрузить из БД» или «Обновить с ПЛК»</span>
+        </div>
       </div>
-      <div class="action-buttons">
-        <button id="expand-all" style="background: var(--button-tertiary); border-color: var(--button-tertiary);" title="Развернуть все Data Blocks">▼ Развернуть все</button>
-        <button id="collapse-all" style="background: var(--button-tertiary); border-color: var(--button-tertiary);" title="Свернуть все Data Blocks">▶ Свернуть все</button>
-      </div>
-      <div class="status" id="status" role="status">
-        <span class="status-title">Готово</span>
-        <span class="status-detail">Выберите ПЛК и нажмите «Загрузить из БД» или «Обновить с ПЛК»</span>
-      </div>
-      <div class="tree-wrap">
-        <ul class="tree" id="rows"><li class="empty">Данные не загружены</li></ul>
+
+      <!-- Two Panel Layout -->
+      <div class="two-panel-layout">
+        <!-- Left Panel: Data Blocks List -->
+        <div class="db-list-panel">
+          <div class="panel-header">📊 Data Blocks</div>
+          <ul class="db-list" id="db-list"></ul>
+        </div>
+
+        <!-- Right Panel: Variables -->
+        <div class="variables-panel">
+          <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <span id="selected-db-name">Выберите Data Block</span>
+            <div style="display: flex; gap: 4px;">
+              <button id="expand-all" style="padding: 4px 8px; font-size: 11px; background: var(--button-tertiary); border-color: var(--button-tertiary); color: white;" title="Развернуть все">▼</button>
+              <button id="collapse-all" style="padding: 4px 8px; font-size: 11px; background: var(--button-tertiary); border-color: var(--button-tertiary); color: white;" title="Свернуть все">▶</button>
+            </div>
+          </div>
+          <input id="db-filter" placeholder="Поиск в блоке" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid var(--border-color); border-radius: 3px; background: var(--bg-primary); color: var(--fg-primary); font-size: 12px; box-sizing: border-box;" title="Поиск в выбранном Data Block">
+          <ul class="tree" id="rows"><li class="empty">Выберите Data Block слева</li></ul>
+        </div>
       </div>
     </div>
 
@@ -480,16 +573,84 @@
       } finally { load.disabled = false; refresh.disabled = false; }
     }
 
+    let allVariables = []; // Store all loaded variables for filtering
+    let selectedDB = null; // Currently selected DB
+
     function renderHierarchy(items) {
       if (!items.length) {
         rows.innerHTML = '<li class="empty">Переменные не найдены</li>';
+        dbList.innerHTML = '<li class="empty" style="padding: 10px; text-align: center; color: var(--fg-secondary);">Нет Data Blocks</li>';
         return;
       }
-      const tree = buildHierarchy(items);
+
+      allVariables = items;
+      const dbMap = {};
+
+      // Group variables by db_name
+      items.forEach(item => {
+        const dbName = item.db_name || 'Unknown';
+        if (!dbMap[dbName]) dbMap[dbName] = [];
+        dbMap[dbName].push(item);
+      });
+
+      // Render DB list in left panel
+      const dbList = document.querySelector('#db-list');
+      dbList.innerHTML = '';
+      Object.keys(dbMap).sort().forEach(dbName => {
+        const li = document.createElement('li');
+        li.className = 'db-list-item';
+        li.textContent = `${dbName} (${dbMap[dbName].length})`;
+        li.dataset.dbName = dbName;
+        li.addEventListener('click', () => {
+          document.querySelectorAll('.db-list-item').forEach(x => x.classList.remove('selected'));
+          li.classList.add('selected');
+          selectedDB = dbName;
+          renderVariablesForDB(dbName);
+          document.querySelector('#selected-db-name').textContent = dbName;
+        });
+        dbList.appendChild(li);
+      });
+    }
+
+    function renderVariablesForDB(dbName) {
+      const filtered = allVariables.filter(v => {
+        if (v.db_name !== dbName) return false;
+        if (!varFilter.value.trim()) return true;
+        const search = varFilter.value.trim().toLowerCase();
+        return v.variable_name.toLowerCase().includes(search) ||
+               v.node_id.toLowerCase().includes(search);
+      });
+
+      if (!filtered.length) {
+        rows.innerHTML = '<li class="empty">Переменные не найдены</li>';
+        return;
+      }
+
+      // Build tree for this DB
+      const tree = {};
+      filtered.forEach(item => {
+        const fullPath = item.browse_path ? item.browse_path.split('.') : [item.variable_name];
+        const path = fullPath.filter(p => p !== 'Inputs' && p !== 'Static');
+
+        let current = tree;
+        for (let i = 0; i < path.length - 1; i++) {
+          const key = path[i];
+          if (!current[key]) current[key] = {};
+          else if (Array.isArray(current[key])) return;
+          current = current[key];
+        }
+        const varKey = path[path.length - 1];
+        if (!current[varKey]) current[varKey] = [];
+        else if (!Array.isArray(current[varKey])) return;
+        current[varKey].push(item);
+      });
+
+      // Render variables
       function countVars(node) {
         if (Array.isArray(node)) return node.length;
         return Object.values(node).reduce((sum, n) => sum + countVars(n), 0);
       }
+
       function renderNode(key, node, depth) {
         const li = document.createElement('li');
         if (Array.isArray(node)) {
@@ -511,37 +672,18 @@
           li.className = 'tree-item';
           const count = countVars(node);
           const toggle = document.createElement('div');
-          // Expand/collapse only for depth >= 1 (not for PLC level)
-          if (depth >= 1) {
-            toggle.className = 'db-item expanded';
-            toggle.style.paddingLeft = (12 + (depth - 1) * 12) + 'px';
-            toggle.textContent = `${key} (${count})`;
-            const folder = document.createElement('ul');
-            folder.className = 'db-items tree visible';
-            folder.replaceChildren(...Object.keys(node).sort().map(k => renderNode(k, node[k], depth + 1)));
-            toggle.addEventListener('click', () => {
-              toggle.classList.toggle('expanded');
-              toggle.classList.toggle('collapsed');
-              folder.classList.toggle('visible');
-            });
-            li.append(toggle, folder);
-          } else {
-            // PLC level - add toggle with listener
-            toggle.className = 'db-item expanded';
-            toggle.style.paddingLeft = '0px';
-            toggle.textContent = `${key}`;
-            toggle.style.fontWeight = '700';
-            toggle.style.color = 'var(--fg-primary)';
-            const folder = document.createElement('ul');
-            folder.className = 'db-items tree visible';
-            folder.replaceChildren(...Object.keys(node).sort().map(k => renderNode(k, node[k], depth + 1)));
-            toggle.addEventListener('click', () => {
-              toggle.classList.toggle('expanded');
-              toggle.classList.toggle('collapsed');
-              folder.classList.toggle('visible');
-            });
-            li.append(toggle, folder);
-          }
+          toggle.className = 'db-item expanded';
+          toggle.style.paddingLeft = (depth * 12) + 'px';
+          toggle.textContent = `${key} (${count})`;
+          const folder = document.createElement('ul');
+          folder.className = 'db-items tree visible';
+          folder.replaceChildren(...Object.keys(node).sort().map(k => renderNode(k, node[k], depth + 1)));
+          toggle.addEventListener('click', () => {
+            toggle.classList.toggle('expanded');
+            toggle.classList.toggle('collapsed');
+            folder.classList.toggle('visible');
+          });
+          li.append(toggle, folder);
         }
         return li;
       }
@@ -563,12 +705,21 @@
       });
     }
 
+    const dbList = document.querySelector('#db-list');
+
     load.addEventListener('click', () => loadVariables(false));
     refresh.addEventListener('click', () => loadVariables(true));
     expandAll.addEventListener('click', () => toggleAllDbs(true));
     collapseAll.addEventListener('click', () => toggleAllDbs(false));
     plc.addEventListener('change', () => loadVariables(false));
-    [dbFilter, varFilter].forEach(input => input.addEventListener('keydown', e => { if (e.key === 'Enter') loadVariables(false); }));
+
+    // Filter for variables in selected DB
+    varFilter.addEventListener('input', () => {
+      if (selectedDB) renderVariablesForDB(selectedDB);
+    });
+    varFilter.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && selectedDB) renderVariablesForDB(selectedDB);
+    });
 
     // Theme toggle
     function initTheme() {
