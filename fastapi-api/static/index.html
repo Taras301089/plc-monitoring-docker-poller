@@ -5,44 +5,126 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PLC Variable Browser</title>
   <style>
-    :root { font-family: "Segoe UI", sans-serif; color: #17202a; background: #edf1f4; }
+    :root {
+      font-family: "Segoe UI", sans-serif;
+      color: #17202a;
+      background: #edf1f4;
+      --bg-primary: white;
+      --bg-secondary: #f0f3f6;
+      --bg-tertiary: #e6ebed;
+      --fg-primary: #17202a;
+      --fg-secondary: #536471;
+      --border-color: #c7d0d7;
+      --header-bg: #17324d;
+      --button-primary: #177245;
+      --button-primary-hover: #125d39;
+      --button-secondary: #2b6cb0;
+      --button-secondary-hover: #1f4d7a;
+      --button-tertiary: #536471;
+      --status-border: #8493a0;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color: #e8e8e8;
+        background: #1a1a1a;
+        --bg-primary: #2a2a2a;
+        --bg-secondary: #333333;
+        --bg-tertiary: #404040;
+        --fg-primary: #e8e8e8;
+        --fg-secondary: #b0b0b0;
+        --border-color: #444444;
+        --header-bg: #0f1419;
+        --button-primary: #2ea86e;
+        --button-primary-hover: #23845a;
+        --button-secondary: #3d8bcf;
+        --button-secondary-hover: #2f6fa8;
+        --button-tertiary: #6a7a87;
+        --status-border: #5a6f7a;
+      }
+    }
+    [data-theme="dark"] {
+      color: #e8e8e8;
+      background: #1a1a1a;
+      --bg-primary: #2a2a2a;
+      --bg-secondary: #333333;
+      --bg-tertiary: #404040;
+      --fg-primary: #e8e8e8;
+      --fg-secondary: #b0b0b0;
+      --border-color: #444444;
+      --header-bg: #0f1419;
+      --button-primary: #2ea86e;
+      --button-primary-hover: #23845a;
+      --button-secondary: #3d8bcf;
+      --button-secondary-hover: #2f6fa8;
+      --button-tertiary: #6a7a87;
+      --status-border: #5a6f7a;
+    }
+    [data-theme="light"] {
+      color: #17202a;
+      background: #edf1f4;
+      --bg-primary: white;
+      --bg-secondary: #f0f3f6;
+      --bg-tertiary: #e6ebed;
+      --fg-primary: #17202a;
+      --fg-secondary: #536471;
+      --border-color: #c7d0d7;
+      --header-bg: #17324d;
+      --button-primary: #177245;
+      --button-primary-hover: #125d39;
+      --button-secondary: #2b6cb0;
+      --button-secondary-hover: #1f4d7a;
+      --button-tertiary: #536471;
+      --status-border: #8493a0;
+    }
     * { box-sizing: border-box; }
     body { margin: 0; }
-    header { background: #17324d; color: white; padding: 22px 28px; }
+    header { background: var(--header-bg); color: white; padding: 22px 28px; display: flex; justify-content: space-between; align-items: center; }
     h1 { margin: 0 0 6px; font-size: 24px; }
     header p { margin: 0; color: #bcd0df; }
+    .theme-toggle { background: var(--button-tertiary); color: white; border: none; border-radius: 4px; padding: 8px 12px; cursor: pointer; font-size: 16px; transition: background 0.3s; }
+    .theme-toggle:hover { opacity: 0.8; }
     main { max-width: 1400px; margin: 24px auto; padding: 0 20px; }
     .toolbar { display: grid; grid-template-columns: 240px 1fr 1fr auto auto; gap: 10px; margin-bottom: 16px; }
-    select, input, button { min-height: 40px; border: 1px solid #b9c5ce; border-radius: 4px; padding: 0 12px; font: inherit; background: white; }
-    button { background: #177245; color: white; border-color: #177245; cursor: pointer; font-weight: 600; }
-    button:hover { background: #125d39; }
-    .status { display: flex; align-items: center; gap: 12px; min-height: 46px; margin: 12px 0; padding: 10px 14px; border: 1px solid #c7d0d7; border-left: 5px solid #8493a0; border-radius: 5px; background: #f8fafb; color: #536471; }
-    .status-title { font-weight: 700; color: #203746; white-space: nowrap; }
+    select, input, button { min-height: 40px; border: 1px solid var(--border-color); border-radius: 4px; padding: 0 12px; font: inherit; background: var(--bg-primary); color: var(--fg-primary); }
+    button { background: var(--button-primary); color: white; border-color: var(--button-primary); cursor: pointer; font-weight: 600; }
+    button:hover { background: var(--button-primary-hover); }
+    #refresh { background: var(--button-secondary) !important; border-color: var(--button-secondary) !important; }
+    #refresh:hover { background: var(--button-secondary-hover) !important; }
+    .status { display: flex; align-items: center; gap: 12px; min-height: 46px; margin: 12px 0; padding: 10px 14px; border: 1px solid var(--border-color); border-left: 5px solid var(--status-border); border-radius: 5px; background: var(--bg-secondary); color: var(--fg-secondary); }
+    .status-title { font-weight: 700; color: var(--fg-primary); white-space: nowrap; }
     .status-detail { overflow-wrap: anywhere; }
-    .status.loading { border-left-color: #b7791f; background: #fffaf0; }
-    .status.success { border-left-color: #177245; background: #effaf3; }
-    .status.error { border-left-color: #b42318; background: #fff2f0; color: #8a1c13; }
-    .status.error .status-title { color: #8a1c13; }
-    .tree-wrap { max-height: calc(100vh - 230px); overflow: auto; background: white; border: 1px solid #c7d0d7; box-shadow: 0 3px 12px #17202a14; padding: 0; }
+    .status.loading { border-left-color: #b7791f; background: #fffaf0; color: #3d3000; }
+    .status.loading .status-title { color: #8a5a00; }
+    .status.success { border-left-color: #177245; background: #effaf3; color: #0a3820; }
+    .status.success .status-title { color: #0a3820; }
+    .status.error { border-left-color: #b42318; background: #fff2f0; color: #5a1a12; }
+    .status.error .status-title { color: #5a1a12; }
+    [data-theme="dark"] .status.loading { background: #3a3000; color: #e8d78a; }
+    [data-theme="dark"] .status.loading .status-title { color: #f4e4a6; }
+    [data-theme="dark"] .status.success { background: #1a3a26; color: #7dd9a8; }
+    [data-theme="dark"] .status.success .status-title { color: #7dd9a8; }
+    [data-theme="dark"] .status.error { background: #3a1a14; color: #e8a89a; }
+    [data-theme="dark"] .status.error .status-title { color: #e8a89a; }
+    .tree-wrap { max-height: calc(100vh - 230px); overflow: auto; background: var(--bg-primary); border: 1px solid var(--border-color); box-shadow: 0 3px 12px rgba(0,0,0,0.1); padding: 0; }
     .tree { list-style: none; padding: 0; margin: 0; }
     .tree-item { margin: 0; }
-    .db-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f0f3f6; border-bottom: 1px solid #e1e6ea; cursor: pointer; user-select: none; font-weight: 600; color: #203746; }
-    .db-item:hover { background: #e6ebed; }
-    .db-item.collapsed::before { content: '▶'; display: inline-block; width: 16px; color: #536471; }
-    .db-item.expanded::before { content: '▼'; display: inline-block; width: 16px; color: #536471; }
-    .db-item.expanded { background: #e6ebed; }
+    .db-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); cursor: pointer; user-select: none; font-weight: 600; color: var(--fg-primary); }
+    .db-item:hover { background: var(--bg-tertiary); }
+    .db-item.collapsed::before { content: '▶'; display: inline-block; width: 16px; color: var(--fg-secondary); }
+    .db-item.expanded::before { content: '▼'; display: inline-block; width: 16px; color: var(--fg-secondary); }
+    .db-item.expanded { background: var(--bg-tertiary); }
     .db-items { display: none; }
     .db-items.visible { display: block; }
-    .var-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 40px; border-bottom: 1px solid #f0f3f6; font-size: 13px; }
-    .var-item:hover { background: #fafbfc; }
-    .var-checkbox { width: 18px; height: 18px; accent-color: #177245; cursor: pointer; }
-    .var-name { flex: 1; color: #245b78; font-weight: 500; }
-    .var-nodeid { flex: 1; color: #687985; font-size: 12px; font-family: monospace; }
-    .var-datatype { flex: 0 0 100px; color: #536471; font-size: 12px; }
+    .var-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 40px; border-bottom: 1px solid var(--border-color); font-size: 13px; }
+    .var-item:hover { background: var(--bg-secondary); }
+    .var-checkbox { width: 18px; height: 18px; accent-color: var(--button-primary); cursor: pointer; }
+    .var-name { flex: 1; color: var(--fg-primary); font-weight: 500; }
+    .var-nodeid { flex: 1; color: var(--fg-secondary); font-size: 12px; font-family: monospace; }
+    .var-datatype { flex: 0 0 100px; color: var(--fg-secondary); font-size: 12px; }
     .var-settings { display: flex; gap: 8px; margin-left: 8px; }
-    .var-settings input { width: 18px; height: 18px; accent-color: #177245; cursor: pointer; }
-    .options { display: flex; align-items: center; gap: 8px; color: #536471; font-size: 13px; }
-    .check { min-height: auto; width: 18px; height: 18px; accent-color: #177245; }
+    .var-settings input { width: 18px; height: 18px; accent-color: var(--button-primary); cursor: pointer; }
+    .options { display: flex; align-items: center; gap: 8px; color: var(--fg-secondary); font-size: 13px; }
+    .check { min-height: auto; width: 18px; height: 18px; accent-color: var(--button-primary); }
     .empty { padding: 32px; text-align: center; color: #687985; }
     @media (max-width: 800px) { .toolbar { grid-template-columns: 1fr; } main { padding: 0 12px; } }
   </style>
@@ -53,7 +135,10 @@
       <h1>PLC Variable Browser</h1>
       <p>Просмотр доступных OPC UA-переменных перед сохранением выбранных тегов</p>
     </div>
-    <a href="reference.html" style="color: #bcd0df; text-decoration: none; font-size: 14px; padding: 8px 12px; border-radius: 4px; white-space: nowrap; margin-right: 10px;" title="Архитектура, бэкап, развёртывание">📖 Справка</a>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <button id="theme-toggle" class="theme-toggle" title="Переключить тему">🌙</button>
+      <a href="reference.html" style="color: #bcd0df; text-decoration: none; font-size: 14px; padding: 8px 12px; border-radius: 4px; white-space: nowrap;" title="Архитектура, бэкап, развёртывание">📖 Справка</a>
+    </div>
   </header>
   <main>
     <div class="toolbar">
@@ -286,6 +371,26 @@
     });
     plc.addEventListener('change', () => loadVariables(false));
 
+    function initTheme() {
+      const saved = localStorage.getItem('theme');
+      const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = saved || (dark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+      updateThemeButton();
+    }
+    function updateThemeButton() {
+      const theme = document.documentElement.getAttribute('data-theme');
+      document.querySelector('#theme-toggle').textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+    document.querySelector('#theme-toggle').addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      updateThemeButton();
+    });
+
+    initTheme();
     loadPlcs().catch(error => setStatus('error', 'Ошибка API', error.message));
   </script>
 </body>
