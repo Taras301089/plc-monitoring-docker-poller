@@ -526,16 +526,20 @@
             });
             li.append(toggle, folder);
           } else {
-            // PLC level - no toggle, just render children
-            toggle.className = 'db-item';
+            // PLC level - add toggle with listener
+            toggle.className = 'db-item expanded';
             toggle.style.paddingLeft = '0px';
             toggle.textContent = `${key}`;
-            toggle.style.pointerEvents = 'none';
             toggle.style.fontWeight = '700';
             toggle.style.color = 'var(--fg-primary)';
             const folder = document.createElement('ul');
             folder.className = 'db-items tree visible';
             folder.replaceChildren(...Object.keys(node).sort().map(k => renderNode(k, node[k], depth + 1)));
+            toggle.addEventListener('click', () => {
+              toggle.classList.toggle('expanded');
+              toggle.classList.toggle('collapsed');
+              folder.classList.toggle('visible');
+            });
             li.append(toggle, folder);
           }
         }
