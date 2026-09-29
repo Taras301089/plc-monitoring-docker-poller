@@ -605,10 +605,11 @@
       // Render DB list in left panel
       const dbList = document.querySelector('#db-list');
       dbList.innerHTML = '';
-      Object.keys(dbMap).sort().forEach(dbName => {
+      const sortedDBs = Object.keys(dbMap).sort();
+      sortedDBs.forEach((dbName, index) => {
         const li = document.createElement('li');
         li.className = 'db-list-item';
-        li.textContent = `${dbName} (${dbMap[dbName].length})`;
+        li.textContent = `${index + 1}. ${dbName} (${dbMap[dbName].length})`;
         li.dataset.dbName = dbName;
         li.addEventListener('click', () => {
           document.querySelectorAll('.db-list-item').forEach(x => x.classList.remove('selected'));
