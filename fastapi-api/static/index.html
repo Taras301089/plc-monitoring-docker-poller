@@ -545,7 +545,10 @@
     }
 
     function toggleAllDbs(expand = true) {
-      [...rows.querySelectorAll('.db-item')].forEach(item => {
+      [...rows.querySelectorAll('.db-item')].filter((item, idx, all) => {
+        const parent = item.closest('.db-items');
+        return !parent || parent.parentElement === rows;
+      }).forEach(item => {
         const list = item.nextElementSibling;
         if (expand) {
           item.classList.add('expanded');
