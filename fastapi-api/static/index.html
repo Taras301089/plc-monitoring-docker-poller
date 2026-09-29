@@ -380,9 +380,11 @@
     // Сохранить изменения ПЛК
     document.getElementById('save-plc').addEventListener('click', async () => {
       if (!plc.value) return;
-      const name = document.getElementById('edit-plc-name').value.trim();
+      let name = document.getElementById('edit-plc-name').value.trim();
       const ip = document.getElementById('edit-plc-ip').value.trim();
       const port = document.getElementById('edit-plc-port').value.trim();
+
+      name = name.replace(/[🔧🌐📋]/g, '').trim();
 
       if (!name || !ip || !port) {
         alert('Заполните все поля');
