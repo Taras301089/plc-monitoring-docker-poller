@@ -3,12 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PLC Variable Browser</title>
+  <title>PLC Monitoring System</title>
   <style>
     :root {
       font-family: "Segoe UI", sans-serif;
-      color: #17202a;
-      background: #edf1f4;
       --bg-primary: white;
       --bg-secondary: #f0f3f6;
       --bg-tertiary: #e6ebed;
@@ -25,8 +23,6 @@
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        color: #e8e8e8;
-        background: #1a1a1a;
         --bg-primary: #2a2a2a;
         --bg-secondary: #333333;
         --bg-tertiary: #404040;
@@ -43,8 +39,6 @@
       }
     }
     [data-theme="dark"] {
-      color: #e8e8e8;
-      background: #1a1a1a;
       --bg-primary: #2a2a2a;
       --bg-secondary: #333333;
       --bg-tertiary: #404040;
@@ -60,8 +54,6 @@
       --status-border: #5a6f7a;
     }
     [data-theme="light"] {
-      color: #17202a;
-      background: #edf1f4;
       --bg-primary: white;
       --bg-secondary: #f0f3f6;
       --bg-tertiary: #e6ebed;
@@ -77,22 +69,39 @@
       --status-border: #8493a0;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; }
-    header { background: var(--header-bg); color: white; padding: 22px 28px; display: flex; justify-content: space-between; align-items: center; }
-    h1 { margin: 0 0 6px; font-size: 24px; }
-    header p { margin: 0; color: #bcd0df; }
-    .theme-toggle { background: var(--button-tertiary); color: white; border: none; border-radius: 4px; padding: 8px 12px; cursor: pointer; font-size: 16px; transition: background 0.3s; }
+    html, body { margin: 0; padding: 0; background: var(--bg-secondary); color: var(--fg-primary); }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* Компактный заголовок */
+    header { background: var(--header-bg); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h1 { margin: 0; font-size: 18px; font-weight: 600; }
+    .header-right { display: flex; gap: 12px; align-items: center; }
+    .theme-toggle { background: var(--button-tertiary); color: white; border: none; border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 14px; }
     .theme-toggle:hover { opacity: 0.8; }
-    main { max-width: 1400px; margin: 24px auto; padding: 0 20px; }
-    .toolbar { display: grid; grid-template-columns: 240px 1fr 1fr auto auto; gap: 10px; margin-bottom: 16px; }
-    select, input, button { min-height: 40px; border: 1px solid var(--border-color); border-radius: 4px; padding: 0 12px; font: inherit; background: var(--bg-primary); color: var(--fg-primary); }
+
+    /* Навигационные табы */
+    .tabs { background: var(--bg-primary); border-bottom: 2px solid var(--border-color); display: flex; gap: 0; padding: 0; margin: 0; }
+    .tab { padding: 12px 20px; cursor: pointer; border: none; background: none; font-size: 14px; color: var(--fg-secondary); font-weight: 500; border-bottom: 3px solid transparent; margin: 0; }
+    .tab:hover { background: var(--bg-secondary); }
+    .tab.active { color: var(--button-primary); border-bottom-color: var(--button-primary); }
+
+    /* Основной контент */
+    main { flex: 1; max-width: 100%; padding: 16px 20px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Toolbar компактнее */
+    .toolbar { display: grid; grid-template-columns: 1fr 1fr 1fr auto auto auto; gap: 8px; margin-bottom: 12px; }
+    select, input, button { min-height: 36px; border: 1px solid var(--border-color); border-radius: 4px; padding: 0 10px; font: inherit; background: var(--bg-primary); color: var(--fg-primary); font-size: 13px; }
     button { background: var(--button-primary); color: white; border-color: var(--button-primary); cursor: pointer; font-weight: 600; }
     button:hover { background: var(--button-primary-hover); }
     #refresh { background: var(--button-secondary) !important; border-color: var(--button-secondary) !important; }
     #refresh:hover { background: var(--button-secondary-hover) !important; }
-    .status { display: flex; align-items: center; gap: 12px; min-height: 46px; margin: 12px 0; padding: 10px 14px; border: 1px solid var(--border-color); border-left: 5px solid var(--status-border); border-radius: 5px; background: var(--bg-secondary); color: var(--fg-secondary); }
+
+    /* Статус компактнее */
+    .status { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 8px 12px; border: 1px solid var(--border-color); border-left: 4px solid var(--status-border); border-radius: 4px; background: var(--bg-secondary); color: var(--fg-secondary); font-size: 13px; margin: 8px 0; }
     .status-title { font-weight: 700; color: var(--fg-primary); white-space: nowrap; }
-    .status-detail { overflow-wrap: anywhere; }
+    .status-detail { overflow-wrap: anywhere; font-size: 12px; }
     .status.loading { border-left-color: #b7791f; background: #fffaf0; color: #3d3000; }
     .status.loading .status-title { color: #8a5a00; }
     .status.success { border-left-color: #177245; background: #effaf3; color: #0a3820; }
@@ -105,100 +114,176 @@
     [data-theme="dark"] .status.success .status-title { color: #7dd9a8; }
     [data-theme="dark"] .status.error { background: #3a1a14; color: #e8a89a; }
     [data-theme="dark"] .status.error .status-title { color: #e8a89a; }
-    .tree-wrap { max-height: calc(100vh - 230px); overflow: auto; background: var(--bg-primary); border: 1px solid var(--border-color); box-shadow: 0 3px 12px rgba(0,0,0,0.1); padding: 0; }
+
+    /* Дерево компактнее */
+    .tree-wrap { max-height: calc(100vh - 200px); overflow: auto; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
     .tree { list-style: none; padding: 0; margin: 0; }
     .tree-item { margin: 0; }
-    .db-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); cursor: pointer; user-select: none; font-weight: 600; color: var(--fg-primary); }
+    .db-item { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); cursor: pointer; user-select: none; font-weight: 600; font-size: 13px; color: var(--fg-primary); }
     .db-item:hover { background: var(--bg-tertiary); }
-    .db-item.collapsed::before { content: '▶'; display: inline-block; width: 16px; color: var(--fg-secondary); }
-    .db-item.expanded::before { content: '▼'; display: inline-block; width: 16px; color: var(--fg-secondary); }
+    .db-item.collapsed::before { content: '▶'; display: inline-block; width: 14px; color: var(--fg-secondary); }
+    .db-item.expanded::before { content: '▼'; display: inline-block; width: 14px; color: var(--fg-secondary); }
     .db-item.expanded { background: var(--bg-tertiary); }
     .db-items { display: none; }
     .db-items.visible { display: block; }
-    .var-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 40px; border-bottom: 1px solid var(--border-color); font-size: 13px; }
+    .var-item { display: flex; align-items: center; gap: 6px; padding: 4px 12px 4px 32px; border-bottom: 1px solid var(--border-color); font-size: 12px; min-height: 28px; }
     .var-item:hover { background: var(--bg-secondary); }
-    .var-checkbox { width: 18px; height: 18px; accent-color: var(--button-primary); cursor: pointer; }
-    .var-name { flex: 1; color: var(--fg-primary); font-weight: 500; }
-    .var-nodeid { flex: 1; color: var(--fg-secondary); font-size: 12px; font-family: monospace; }
-    .var-datatype { flex: 0 0 100px; color: var(--fg-secondary); font-size: 12px; }
-    .var-settings { display: flex; gap: 8px; margin-left: 8px; }
-    .var-settings input { width: 18px; height: 18px; accent-color: var(--button-primary); cursor: pointer; }
-    .options { display: flex; align-items: center; gap: 8px; color: var(--fg-secondary); font-size: 13px; }
-    .check { min-height: auto; width: 18px; height: 18px; accent-color: var(--button-primary); }
-    .empty { padding: 32px; text-align: center; color: #687985; }
-    @media (max-width: 800px) { .toolbar { grid-template-columns: 1fr; } main { padding: 0 12px; } }
+    .var-checkbox { width: 16px; height: 16px; accent-color: var(--button-primary); cursor: pointer; margin: 0; }
+    .var-name { flex: 0 0 150px; color: var(--fg-primary); font-weight: 500; }
+    .var-datatype { flex: 0 0 80px; color: var(--fg-secondary); font-family: monospace; font-size: 11px; }
+    .var-nodeid { flex: 1; color: var(--fg-secondary); font-family: monospace; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .var-settings { display: flex; gap: 6px; }
+    .var-settings input { width: 14px; height: 14px; margin: 0; accent-color: var(--button-primary); cursor: pointer; }
+    .var-settings label { font-size: 11px; display: flex; align-items: center; gap: 3px; }
+
+    /* Settings вкладка */
+    .settings-form { max-width: 500px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: var(--fg-primary); }
+    input[type="text"], input[type="number"] { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-primary); color: var(--fg-primary); font-size: 13px; }
+    .connection-status { display: flex; align-items: center; gap: 10px; margin-top: 20px; padding: 12px; background: var(--bg-secondary); border-radius: 4px; border: 1px solid var(--border-color); }
+    .status-indicator { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+    .status-indicator.connected { background: #d4edda; color: #155724; }
+    .status-indicator.disconnected { background: #f8d7da; color: #721c24; }
+    .status-text { flex: 1; }
+    .status-text strong { display: block; font-size: 13px; margin-bottom: 2px; }
+    .status-text small { font-size: 12px; color: var(--fg-secondary); }
+
+    /* Expand/Collapse buttons */
+    .action-buttons { display: flex; gap: 8px; margin-bottom: 12px; }
+    .action-buttons button { padding: 6px 12px; font-size: 13px; }
+
+    .empty { padding: 32px; text-align: center; color: var(--fg-secondary); font-size: 13px; }
   </style>
 </head>
 <body>
-  <header style="display: flex; justify-content: space-between; align-items: center;">
-    <div>
-      <h1>PLC Variable Browser</h1>
-      <p>Просмотр доступных OPC UA-переменных перед сохранением выбранных тегов</p>
-    </div>
-    <div style="display: flex; gap: 8px; align-items: center;">
+  <header>
+    <h1>🔷 PLC Monitoring System</h1>
+    <div class="header-right">
       <button id="theme-toggle" class="theme-toggle" title="Переключить тему">🌙</button>
-      <a href="reference.html" style="color: #bcd0df; text-decoration: none; font-size: 14px; padding: 8px 12px; border-radius: 4px; white-space: nowrap;" title="Архитектура, бэкап, развёртывание">📖 Справка</a>
+      <a href="reference.html" style="color: #bcd0df; text-decoration: none; font-size: 13px; padding: 6px 10px; border-radius: 4px;">📖 Справка</a>
     </div>
   </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="browser">📊 PLC Variables</button>
+    <button class="tab" data-tab="saved">💾 Saved Variables</button>
+    <button class="tab" data-tab="charts">📈 Charts</button>
+    <button class="tab" data-tab="settings">⚙️ Settings</button>
+  </nav>
+
   <main>
-    <div class="toolbar">
-      <select id="plc"></select>
-      <select id="browse-mode" aria-label="Режим поиска">
-        <option value="tree">Все дерево</option>
-        <option value="db">Определенный Data Block</option>
-      </select>
-      <input id="db" placeholder="Поиск по Data Block">
-      <input id="name" placeholder="Поиск по имени переменной">
-      <button id="load">Загрузить из БД</button>
-      <button id="refresh" style="background:#2b6cb0; border-color:#2b6cb0;">Обновить с ПЛК</button>
-      <button id="save">Сохранить выбранные</button>
+    <!-- TAB 1: PLC Variables Browser -->
+    <div id="browser" class="tab-content active">
+      <div class="toolbar">
+        <select id="plc" style="grid-column: 1;"></select>
+        <input id="db-filter" placeholder="Filter by Data Block" style="grid-column: 2;">
+        <input id="var-filter" placeholder="Filter by Variable" style="grid-column: 3;">
+        <button id="load">Load from DB</button>
+        <button id="refresh">Refresh from PLC</button>
+        <button id="save">Save Selected</button>
+      </div>
+      <div class="action-buttons">
+        <button id="expand-all" style="background: var(--button-tertiary); border-color: var(--button-tertiary);">▼ Expand All</button>
+        <button id="collapse-all" style="background: var(--button-tertiary); border-color: var(--button-tertiary);">▶ Collapse All</button>
+      </div>
+      <div class="status" id="status" role="status">
+        <span class="status-title">Ready</span>
+        <span class="status-detail">Select PLC and click "Load from DB" or "Refresh from PLC"</span>
+      </div>
+      <div class="tree-wrap">
+        <ul class="tree" id="rows"><li class="empty">No data loaded</li></ul>
+      </div>
     </div>
 
-    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-      <button id="expand-all" style="background: #536471; border-color: #536471; padding: 6px 12px; font-size: 13px;">▼ Развернуть все</button>
-      <button id="collapse-all" style="background: #536471; border-color: #536471; padding: 6px 12px; font-size: 13px;">▶ Свернуть все</button>
+    <!-- TAB 2: Saved Variables -->
+    <div id="saved" class="tab-content">
+      <p style="color: var(--fg-secondary); font-size: 13px;">Saved variables will be shown here</p>
     </div>
 
-    <div class="options"><label><input id="include-system" class="check" type="checkbox"> Показать служебные OPC UA-узлы</label><span>NodeId — уникальный адрес узла; типы отображаются именами OPC UA.</span></div>
-    <div class="status" id="status" role="status"><span class="status-title">Готово</span><span class="status-detail">Выберите ПЛК и нажмите «Загрузить».</span></div>
-    <div class="tree-wrap">
-      <ul class="tree" id="rows"><li class="empty">Данные еще не загружены</li></ul>
+    <!-- TAB 3: Charts -->
+    <div id="charts" class="tab-content">
+      <p style="color: var(--fg-secondary); font-size: 13px;">Charts will be shown here</p>
+    </div>
+
+    <!-- TAB 4: Settings -->
+    <div id="settings" class="tab-content">
+      <div class="settings-form">
+        <h2 style="font-size: 16px; margin-top: 0;">PLC Connection Settings</h2>
+
+        <div class="form-group">
+          <label for="plc-name">PLC Name:</label>
+          <input type="text" id="plc-name" placeholder="e.g., PLC1" value="Changang">
+        </div>
+
+        <div class="form-group">
+          <label for="plc-ip">PLC IP Address:</label>
+          <input type="text" id="plc-ip" placeholder="192.168.1.100">
+        </div>
+
+        <div class="form-group">
+          <label for="plc-port">Port:</label>
+          <input type="number" id="plc-port" placeholder="4840" value="4840">
+        </div>
+
+        <div class="form-group">
+          <label for="plc-endpoint">OPC UA Endpoint (optional):</label>
+          <input type="text" id="plc-endpoint" placeholder="opc.tcp://192.168.1.100:4840">
+        </div>
+
+        <button id="test-connection" style="background: var(--button-secondary); border-color: var(--button-secondary); padding: 8px 16px;">🔗 Test Connection</button>
+        <button id="save-settings" style="padding: 8px 16px;">💾 Save Settings</button>
+
+        <div class="connection-status" id="connection-status" style="display: none;">
+          <div class="status-indicator disconnected">✕</div>
+          <div class="status-text">
+            <strong>Disconnected</strong>
+            <small>Click "Test Connection" to check</small>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
+
   <script>
     const plc = document.querySelector('#plc');
-    const db = document.querySelector('#db');
-    const name = document.querySelector('#name');
-    const browseMode = document.querySelector('#browse-mode');
+    const dbFilter = document.querySelector('#db-filter');
+    const varFilter = document.querySelector('#var-filter');
     const load = document.querySelector('#load');
     const refresh = document.querySelector('#refresh');
     const save = document.querySelector('#save');
     const expandAll = document.querySelector('#expand-all');
     const collapseAll = document.querySelector('#collapse-all');
-    const includeSystem = document.querySelector('#include-system');
     const status = document.querySelector('#status');
     const rows = document.querySelector('#rows');
 
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+
     async function loadPlcs() {
-      const response = await fetch('/api/plcs');
-      if (!response.ok) throw new Error('Не удалось получить список ПЛК');
-      const items = await response.json();
-      plc.replaceChildren(...items.map(item => new Option(`${item.name} (id=${item.id})`, item.id)));
-      if (items.length) {
-        setStatus('success', 'Готово', 'Выберите режим и параметры поиска, затем нажмите «Загрузить из БД» или «Обновить с ПЛК».');
+      try {
+        const response = await fetch('/api/plcs');
+        if (!response.ok) throw new Error('Failed to fetch PLC list');
+        const items = await response.json();
+        plc.replaceChildren(...items.map(item => new Option(`${item.name} (id=${item.id})`, item.id)));
+        if (items.length) {
+          setStatus('success', 'Ready', 'Select PLC and click "Load from DB" or "Refresh from PLC"');
+        }
+      } catch (error) {
+        setStatus('error', 'API Error', error.message);
       }
     }
 
     function setStatus(kind, title, detail) {
       status.className = `status ${kind}`;
-      status.replaceChildren();
-      const titleElement = document.createElement('span');
-      titleElement.className = 'status-title';
-      titleElement.textContent = title;
-      const detailElement = document.createElement('span');
-      detailElement.className = 'status-detail';
-      detailElement.textContent = detail;
-      status.append(titleElement, detailElement);
+      status.innerHTML = `<span class="status-title">${title}</span><span class="status-detail">${detail}</span>`;
     }
 
     function buildHierarchy(items) {
@@ -222,134 +307,84 @@
 
     async function loadVariables(forceRefresh = false) {
       if (!plc.value) return;
-      if (browseMode.value === 'db' && !db.value.trim()) {
-        setStatus('error', 'Нужен Data Block', 'Введите имя DB для режима поиска определенного Data Block.');
-        return;
-      }
-      setStatus('loading', 'Загрузка', forceRefresh ? 'Сканирование OPC UA на ПЛК и сохранение в БД...' : 'Чтение дерева переменных из базы данных...');
+      setStatus('loading', 'Loading...', forceRefresh ? 'Scanning OPC UA...' : 'Reading from database...');
       load.disabled = true;
       refresh.disabled = true;
       try {
         const params = new URLSearchParams();
-        if (browseMode.value === 'db' && db.value.trim()) params.set('db', db.value.trim());
-        if (name.value.trim()) params.set('name', name.value.trim());
-        if (includeSystem.checked) params.set('include_system', 'true');
+        if (dbFilter.value.trim()) params.set('db', dbFilter.value.trim());
+        if (varFilter.value.trim()) params.set('name', varFilter.value.trim());
         if (forceRefresh) params.set('refresh', 'true');
         const response = await fetch(`/api/plcs/${plc.value}/opcua/variables?${params}`);
         const payload = await response.json();
-        if (!response.ok) {
-          let msg = payload.detail || 'Browse завершился ошибкой';
-          if (msg.includes('TimeoutError') || response.status === 504) {
-            msg = 'Превышено время ожидания сервера ПЛК. Попробуйте выбрать "Определенный Data Block" и указать название DB для быстрого обхода.';
-          }
-          throw new Error(msg);
-        }
-        renderHierarchy(payload, db.value);
-        setStatus('success', 'Успешно', `Загружено переменных: ${payload.length}.`);
+        if (!response.ok) throw new Error(payload.detail || 'Browse failed');
+        renderHierarchy(payload);
+        setStatus('success', 'Success', `Loaded ${payload.length} variables`);
       } catch (error) {
-        rows.innerHTML = '<li class="empty">Нет данных для отображения.</li>';
-        setStatus('error', 'Ошибка загрузки', error.message);
+        rows.innerHTML = '<li class="empty">No data</li>';
+        setStatus('error', 'Error', error.message);
       } finally { load.disabled = false; refresh.disabled = false; }
     }
 
-    function renderHierarchy(items, dbFilter = '') {
+    function renderHierarchy(items) {
       if (!items.length) {
-        rows.innerHTML = '<li class="empty">Переменные не найдены</li>';
+        rows.innerHTML = '<li class="empty">No variables found</li>';
         return;
       }
-
-      // Фильтруем по Data Block если нужно
-      let filtered = items;
-      if (dbFilter.trim()) {
-        const dbLower = dbFilter.trim().toLowerCase();
-        filtered = items.filter(item => {
-          const path = item.browse_path ? item.browse_path.split('.') : [];
-          return path.some(part => part.toLowerCase().includes(dbLower));
-        });
-      }
-
-      const tree = buildHierarchy(filtered);
-
+      const tree = buildHierarchy(items);
       function countVars(node) {
         if (Array.isArray(node)) return node.length;
         return Object.values(node).reduce((sum, n) => sum + countVars(n), 0);
       }
-
       function renderNode(key, node, depth) {
         const li = document.createElement('li');
-        li.className = 'tree-item';
-
         if (Array.isArray(node)) {
-          // Это переменные
-          const varItem = node[0];
           li.className = 'tree-item var-item';
-          li.dataset.nodeId = varItem.node_id;
-          li.dataset.item = JSON.stringify(varItem);
+          const item = node[0];
           li.innerHTML = `
-            <input class="var-checkbox select" type="checkbox" aria-label="Выбрать">
-            <span class="var-name" title="${escapeHtml(varItem.variable_name)}">${escapeHtml(varItem.variable_name)}</span>
-            <span class="var-nodeid" title="${escapeHtml(varItem.node_id)}">${escapeHtml(varItem.node_id)}</span>
-            <span class="var-datatype">${escapeHtml(varItem.data_type)}</span>
+            <input class="var-checkbox select" type="checkbox">
+            <span class="var-name">${item.variable_name}</span>
+            <span class="var-datatype">${item.data_type}</span>
+            <span class="var-nodeid" title="${item.node_id}">${item.node_id}</span>
             <div class="var-settings">
-              <input class="archive" type="checkbox" title="Архив">
-              <input class="grafana" type="checkbox" title="Grafana">
-              <input class="alarm" type="checkbox" title="Авария">
+              <label><input type="checkbox" class="archive" title="Archive"> A</label>
+              <label><input type="checkbox" class="grafana" title="Grafana"> G</label>
+              <label><input type="checkbox" class="alarm" title="Alarm"> L</label>
             </div>
           `;
+          li.dataset.item = JSON.stringify(item[0]);
         } else {
-          const subKeys = Object.keys(node).sort();
+          li.className = 'tree-item';
           const count = countVars(node);
           const toggle = document.createElement('div');
           toggle.className = 'db-item expanded';
           toggle.style.paddingLeft = (12 + depth * 12) + 'px';
           toggle.textContent = `${key} (${count})`;
-
           const folder = document.createElement('ul');
           folder.className = 'db-items tree visible';
-          folder.replaceChildren(...subKeys.map(k => renderNode(k, node[k], depth + 1)));
-
+          folder.replaceChildren(...Object.keys(node).sort().map(k => renderNode(k, node[k], depth + 1)));
           toggle.addEventListener('click', () => {
             toggle.classList.toggle('expanded');
             toggle.classList.toggle('collapsed');
             folder.classList.toggle('visible');
           });
-
           li.append(toggle, folder);
         }
         return li;
       }
-
-      const rootKeys = Object.keys(tree).sort();
-      rows.replaceChildren(...rootKeys.map(k => renderNode(k, tree[k], 0)));
-    }
-
-    function escapeHtml(value) { return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char])); }
-
-    async function saveSelected() {
-      const tags = [...rows.querySelectorAll('.var-item[data-node-id]')].filter(row => row.querySelector('.select').checked).map(row => {
-        const item = JSON.parse(row.dataset.item);
-        return { name: item.variable_name, node_id: item.node_id, tag_type: item.data_type === 'Boolean' ? 'DIGITAL' : 'ANALOG', is_archived: row.querySelector('.archive').checked, is_grafana_plotted: row.querySelector('.grafana').checked, is_alarm_enabled: row.querySelector('.alarm').checked };
-      });
-      if (!tags.length) { setStatus('error', 'Нечего сохранять', 'Сначала выберите хотя бы один тег.'); return; }
-      save.disabled = true;
-      try {
-        const response = await fetch(`/api/plcs/${plc.value}/tags`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({tags}) });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.detail || 'Не удалось сохранить теги');
-        setStatus('success', 'Сохранено', `Тегов добавлено или обновлено: ${payload.saved}.`);
-      } catch (error) { setStatus('error', 'Ошибка сохранения', error.message); } finally { save.disabled = false; }
+      rows.replaceChildren(...Object.keys(tree).sort().map(k => renderNode(k, tree[k], 0)));
     }
 
     function toggleAllDbs(expand = true) {
-      [...rows.querySelectorAll('.db-item')].forEach(dbItem => {
-        const list = dbItem.nextElementSibling;
+      [...rows.querySelectorAll('.db-item')].forEach(item => {
+        const list = item.nextElementSibling;
         if (expand) {
-          dbItem.classList.add('expanded');
-          dbItem.classList.remove('collapsed');
+          item.classList.add('expanded');
+          item.classList.remove('collapsed');
           list.classList.add('visible');
         } else {
-          dbItem.classList.remove('expanded');
-          dbItem.classList.add('collapsed');
+          item.classList.remove('expanded');
+          item.classList.add('collapsed');
           list.classList.remove('visible');
         }
       });
@@ -357,20 +392,12 @@
 
     load.addEventListener('click', () => loadVariables(false));
     refresh.addEventListener('click', () => loadVariables(true));
-    save.addEventListener('click', saveSelected);
     expandAll.addEventListener('click', () => toggleAllDbs(true));
     collapseAll.addEventListener('click', () => toggleAllDbs(false));
-    browseMode.addEventListener('change', () => {
-      db.placeholder = browseMode.value === 'db' ? 'Имя Data Block (обязательное)' : 'Фильтр по Data Block';
-    });
-    includeSystem.addEventListener('change', () => loadVariables(false));
-    [db, name].forEach(input => input.addEventListener('keydown', event => { if (event.key === 'Enter') loadVariables(false); }));
-    db.addEventListener('input', () => {
-      const items = [...rows.querySelectorAll('.var-item')].map(li => JSON.parse(li.dataset.item));
-      if (items.length > 0) renderHierarchy(items, db.value);
-    });
     plc.addEventListener('change', () => loadVariables(false));
+    [dbFilter, varFilter].forEach(input => input.addEventListener('keydown', e => { if (e.key === 'Enter') loadVariables(false); }));
 
+    // Theme toggle
     function initTheme() {
       const saved = localStorage.getItem('theme');
       const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -389,9 +416,10 @@
       localStorage.setItem('theme', next);
       updateThemeButton();
     });
-
     initTheme();
-    loadPlcs().catch(error => setStatus('error', 'Ошибка API', error.message));
+
+    // Load initial data
+    loadPlcs().catch(error => setStatus('error', 'API Error', error.message));
   </script>
 </body>
 </html>
