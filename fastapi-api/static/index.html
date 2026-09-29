@@ -586,14 +586,20 @@
       allVariables = items;
       const dbMap = {};
 
-      // Group variables by first level of browse_path (Data Block name)
+      // Group variables by Data Block name (from DataBlocksInstance only)
+      // browse_path format: "UB+MB_PLC1.DataBlocksInstance.ClampSignal_FB_DB_1...."
       items.forEach(item => {
-        const browsePath = item.browse_path || '';
-        const pathParts = browsePath.split('.');
-        const dataBlockName = pathParts[0] || item.variable_name || 'Unknown';
+        if (item.db_name === 'DataBlocksInstance') {
+          const browsePath = item.browse_path || '';
+          const pathParts = browsePath.split('.');
+          // pathParts[2] is the Data Block name (ClampSignal_FB_DB_1, ClampSignal_MB060_FIX02_L_V1_iDB, etc.)
+          const dataBlockName = pathParts[2];
 
-        if (!dbMap[dataBlockName]) dbMap[dataBlockName] = [];
-        dbMap[dataBlockName].push(item);
+          if (dataBlockName) {
+            if (!dbMap[dataBlockName]) dbMap[dataBlockName] = [];
+            dbMap[dataBlockName].push(item);
+          }
+        }
       });
 
       // Render DB list in left panel
@@ -617,10 +623,12 @@
 
     function renderVariablesForDB(dbName) {
       const filtered = allVariables.filter(v => {
-        // Filter by first level of browse_path (Data Block name)
+        // Filter by Data Block name from DataBlocksInstance
+        if (v.db_name !== 'DataBlocksInstance') return false;
+
         const browsePath = v.browse_path || '';
         const pathParts = browsePath.split('.');
-        const dataBlockName = pathParts[0] || v.variable_name || 'Unknown';
+        const dataBlockName = pathParts[2]; // The Data Block name
 
         if (dataBlockName !== dbName) return false;
         if (!varFilter.value.trim()) return true;
