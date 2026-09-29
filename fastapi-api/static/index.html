@@ -72,11 +72,7 @@
     html, body { margin: 0; padding: 0; background: var(--bg-secondary); color: var(--fg-primary); }
     body { display: flex; flex-direction: column; min-height: 100vh; }
 
-    /* Компактный заголовок */
-    header { background: var(--header-bg); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    h1 { margin: 0; font-size: 18px; font-weight: 600; }
-    .header-right { display: flex; gap: 12px; align-items: center; }
-    .theme-toggle { background: none; color: white; border: none; padding: 0; cursor: pointer; font-size: 18px; margin-right: 12px; }
+    .theme-toggle { background: none; color: var(--fg-secondary); border: none; padding: 0; cursor: pointer; font-size: 16px; margin: 0 8px; display: flex; align-items: center; }
     .theme-toggle:hover { opacity: 0.8; }
 
     /* Навигационные табы */
@@ -157,17 +153,13 @@
   </style>
 </head>
 <body>
-  <header>
-    <h1>🔷 PLC Monitoring System</h1>
-    <button id="theme-toggle" class="theme-toggle" title="Переключить тему">🌙</button>
-  </header>
-
   <nav class="tabs">
     <button class="tab active" data-tab="browser">📊 PLC Variables</button>
     <button class="tab" data-tab="saved">💾 Saved Variables</button>
     <button class="tab" data-tab="charts">📈 Charts</button>
     <button class="tab" data-tab="notifications">🔔 Notifications</button>
-    <a href="reference.html" style="color: var(--fg-secondary); text-decoration: none; font-size: 13px; padding: 12px 20px; border-bottom: 3px solid transparent; display: flex; align-items: center; margin-left: auto;">📖 Reference</a>
+    <button id="theme-toggle" class="theme-toggle" title="Переключить тему">🌙</button>
+    <a href="reference.html" style="color: var(--fg-secondary); text-decoration: none; font-size: 13px; padding: 12px 20px; border-bottom: 3px solid transparent; display: flex; align-items: center;">📖 Reference</a>
   </nav>
 
   <main>
