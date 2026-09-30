@@ -424,27 +424,30 @@ class PlcOpcClient:
 
                 # Получаем переменные внутри Global Data Block
                 try:
-                    references = await node.get_references(
-                        refs=ua.ObjectIds.HierarchicalReferences,
-                        direction=ua.BrowseDirection.Forward,
-                    )
-
-                    for ref in references:
-                        if ref.NodeClass == ua.NodeClass.Variable:
-                            var_nodeid = ref.NodeId.to_string()
+                    stack: list[tuple[Any, list[str]]] = [(node, [])]
+                    while stack:
+                        cur_node, sub_path = stack.pop()
+                        if len(sub_path) > 8:
+                            continue
+                        references = await cur_node.get_references(
+                            refs=ua.ObjectIds.HierarchicalReferences,
+                            direction=ua.BrowseDirection.Forward,
+                        )
+                        for ref in references:
                             var_name = ref.BrowseName.Name or ""
-
-                            result.append({
-                                "db_name": db_name,
-                                "variable_name": var_name,
-                                "node_id": var_nodeid,
-                                "namespace_index": ref.NodeId.NamespaceIndex,
-                                "node_class": "Variable",
-                                "data_type": "Unknown",
-                                "browse_path": f"DataBlocksGlobal.{db_name}.{var_name}",
-                                "is_system": False,
-                            })
-                            log.debug(f"  └─ Переменная: {var_name}")
+                            if ref.NodeClass == ua.NodeClass.Variable:
+                                result.append({
+                                    "db_name": db_name,
+                                    "variable_name": var_name,
+                                    "node_id": ref.NodeId.to_string(),
+                                    "namespace_index": ref.NodeId.NamespaceIndex,
+                                    "node_class": "Variable",
+                                    "data_type": "Unknown",
+                                    "browse_path": ".".join(["DataBlocksGlobal", db_name, *sub_path, var_name]),
+                                    "is_system": False,
+                                })
+                            elif ref.NodeClass == ua.NodeClass.Object and ref.NodeId.NamespaceIndex == 3:
+                                stack.append((client.get_node(ref.NodeId), [*sub_path, var_name]))
                 except Exception as e:
                     log.warning(f"Не удалось получить переменные из {db_name}: {e}")
 
