@@ -484,6 +484,60 @@ class PlcOpcClient:
             out.extend(await asyncio.gather(*(one(r) for r in refs[i:i + 50])))
         return out
 
+    async def read_values(self, node_ids: list[str]) -> dict[str, dict[str, Any]]:
+        """Пакетное чтение текущих значений узлов одним запросом (для живого просмотра в интерфейсе)."""
+        out: dict[str, dict[str, Any]] = {}
+        valid: list[tuple[str, ua.NodeId]] = []
+        for raw in node_ids:
+            try:
+                valid.append((raw, ua.NodeId.from_string(raw)))
+            except Exception:
+                out[raw] = {"ok": False, "v": None, "t": "", "s": "BadNodeIdInvalid"}
+        if not valid:
+            return out
+        async with self._lock:
+            if not await self._ensure_connected_unlocked():
+                raise ConnectionError("OPC UA connection is unavailable")
+            client = self._client
+            if client is None:
+                raise ConnectionError("OPC UA client is unavailable")
+            params = ua.ReadParameters()
+            params.NodesToRead = [
+                ua.ReadValueId(NodeId=nid, AttributeId=ua.AttributeIds.Value) for _, nid in valid
+            ]
+            try:
+                results = await asyncio.wait_for(client.uaclient.read(params), timeout=5.0)
+            except (asyncio.TimeoutError, ConnectionError, OSError, UaError) as exc:
+                await self._disconnect_unlocked()
+                raise ConnectionError("OPC UA read failed") from exc
+        for (raw, _), dv in zip(valid, results, strict=False):
+            status = getattr(dv, "StatusCode", None)
+            variant = getattr(dv, "Value", None)
+            good = bool(status.is_good()) if status is not None else False
+            out[raw] = {
+                "ok": good,
+                "v": _to_jsonable(getattr(variant, "Value", None)) if good else None,
+                "t": variant.VariantType.name if good and variant is not None else "",
+                "s": "" if good else (status.name if status is not None else "Bad"),
+            }
+        return out
+
+    async def read_node_info(self, node_id: str) -> dict[str, str]:
+        """Тип данных узла и тип тега для БД: Boolean -> DIGITAL, остальное -> ANALOG."""
+        async with self._lock:
+            if not await self._ensure_connected_unlocked():
+                raise ConnectionError("OPC UA connection is unavailable")
+            client = self._client
+            if client is None:
+                raise ConnectionError("OPC UA client is unavailable")
+            variant_type = await asyncio.wait_for(
+                client.get_node(node_id).read_data_type_as_variant_type(), timeout=10.0
+            )
+            return {
+                "data_type": variant_type.name,
+                "tag_type": "DIGITAL" if variant_type == ua.VariantType.Boolean else "ANALOG",
+            }
+
     async def browse_children(self, node_id: str) -> list[dict[str, Any]]:
         """Прямые дочерние узлы (для раскрытия структурных тегов); имя, тип и признак вложенности."""
         async with self._lock:
@@ -534,6 +588,21 @@ class PlcOpcClient:
 # ==============================================================================
 # 3. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ КОНВЕРТАЦИИ ДАННЫХ
 # ==============================================================================
+def _to_jsonable(value: Any) -> Any:
+    """Приведение значения OPC UA к JSON-совместимому виду."""
+    if value is None or isinstance(value, (bool, int, str)):
+        return value
+    if isinstance(value, float):
+        return value if value == value and value not in (float("inf"), float("-inf")) else None
+    if isinstance(value, (bytes, bytearray)):
+        return bytes(value).hex()
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, (list, tuple)):
+        return [_to_jsonable(x) for x in value[:20]]
+    return str(value)
+
+
 def _to_reading(tag: Tag, dv: Any, fallback_ts: datetime) -> TagReading:
     """Преобразование сырого DataValue от OPC UA в доменную модель TagReading."""
     status = getattr(dv, "StatusCode", None)

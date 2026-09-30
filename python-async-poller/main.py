@@ -399,7 +399,36 @@ async def _async_main() -> None:
             log.exception("Чтение дочерних узлов завершилось ошибкой")
             return web.json_response({"detail": f"{exc.__class__.__name__}: {exc}"}, status=502)
 
+    async def node_info_handler(request: web.Request) -> web.Response:
+        node_id = request.query.get("node_id")
+        if not node_id:
+            return web.json_response({"detail": "node_id is required"}, status=400)
+        client = service._clients.get(int(request.match_info["plc_id"]))
+        if client is None:
+            return web.json_response({"detail": "PLC is not active"}, status=404)
+        try:
+            return web.json_response(await client.read_node_info(node_id))
+        except Exception as exc:
+            log.exception("Чтение типа узла завершилось ошибкой")
+            return web.json_response({"detail": f"{exc.__class__.__name__}: {exc}"}, status=502)
+
+    async def values_handler(request: web.Request) -> web.Response:
+        try:
+            body = await request.json()
+            node_ids = [str(n) for n in body.get("node_ids", [])][:200]
+        except Exception:
+            return web.json_response({"detail": "Invalid JSON body"}, status=400)
+        client = service._clients.get(int(request.match_info["plc_id"]))
+        if client is None:
+            return web.json_response({"detail": "PLC is not active"}, status=404)
+        try:
+            return web.json_response({"values": await client.read_values(node_ids)})
+        except Exception as exc:
+            return web.json_response({"detail": f"{exc.__class__.__name__}: {exc}"}, status=502)
+
     browse_app = web.Application()
+    browse_app.router.add_post("/internal/plcs/{plc_id}/opcua/values", values_handler)
+    browse_app.router.add_get("/internal/plcs/{plc_id}/opcua/node-info", node_info_handler)
     browse_app.router.add_get("/internal/plcs/{plc_id}/opcua/variables", browse_handler)
     browse_app.router.add_get("/internal/plcs/{plc_id}/opcua/children", children_handler)
     browse_runner = web.AppRunner(browse_app)

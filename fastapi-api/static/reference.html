@@ -81,7 +81,15 @@
     ul { line-height: 1.8; color: var(--fg-primary); }
     li { margin: 6px 0; }
     @media (max-width: 800px) { main { padding: 0 12px; } }
-    /* ===== Flat Dark ===== */
+    /* Навигация как на главной странице */
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+    .tabs { background: var(--bg-primary); border-bottom: 1px solid var(--line); box-shadow: 0 2px 10px rgba(0,0,0,.25); display: flex; align-items: stretch; }
+    .tab { padding: 12px 18px; font-size: 13px; font-weight: 500; color: var(--fg-tertiary); text-decoration: none; white-space: nowrap; display: flex; align-items: center; border-bottom: 2px solid transparent; transition: color .12s, background .12s; }
+    .tab:hover { background: rgba(76,154,255,.10); color: var(--fg-primary); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tabs-divider { flex: 1; border-right: 1px solid var(--line); }
+    .tabs-tools { display: flex; margin-left: auto; }
+    .tabs-tools .theme-toggle { background: none; box-shadow: none; padding: 0 12px; margin: 0 8px; font-size: 16px; }    /* ===== Flat Dark ===== */
     html, body { background: var(--bg-page); color: var(--fg-primary); }
     header { background: var(--header-bg); color: var(--fg-primary); border-bottom: 1px solid var(--line); box-shadow: 0 2px 10px rgba(0,0,0,.25); }
     .nav-link { color: var(--fg-tertiary); }
@@ -104,13 +112,17 @@
     * { scrollbar-width: thin; scrollbar-color: rgba(125,135,148,.4) transparent; }  </style>
 </head>
 <body>
-  <header>
-    <h1>Справка — PLC Monitoring</h1>
-    <nav class="header-nav">
-      <button id="theme-toggle" class="theme-toggle" title="Переключить тему">🌙</button>
-      <a href="index.html" class="nav-link">← Назад к браузеру</a>
-    </nav>
-  </header>
+  <nav class="tabs">
+    <a class="tab" href="index.html#browser" title="Просмотр всех переменных ПЛК с возможностью поиска и фильтрации">📊 Переменные ПЛК</a>
+    <a class="tab" href="index.html#saved" title="Переменные сохранённые в базе данных для дальнейшего анализа и мониторинга">💾 Переменные БД</a>
+    <a class="tab" href="index.html#charts" title="Графики и визуализация исторических данных переменных">📈 Графики</a>
+    <a class="tab" href="index.html#notifications" title="Параметры подключения к ПЛК и настройки оповещений">🔔 Оповещения</a>
+    <div class="tabs-divider"></div>
+    <div class="tabs-tools">
+      <button id="theme-toggle" class="theme-toggle" title="Переключить между тёмной и светлой темой (сохраняется автоматически)">🌙</button>
+      <a class="tab active" href="reference.html" title="Справочная информация о системе, архитектуре и развёртывании">📖 Справка</a>
+    </div>
+  </nav>
   <main>
 
     <!-- ========== АРХИТЕКТУРА ========== -->
@@ -379,6 +391,8 @@ pause</div>
       <p><small>Сборка: <strong>Иерархический браузер переменных + поиск по Data Block (Instance & Global) + кэширование БД</strong></small></p>
       <p><small>Global Data Blocks: <strong>Автоматическое обнаружение (Namespace 3), кэширование, поиск и фильтрация по 1100+ переменным</strong></small></p>
       <p><small>Структурные теги (массивы и структуры, как в WinCC): <strong>раскрываются по клику ▷, вложенные элементы подгружаются с ПЛК через API <code>/api/plcs/{id}/opcua/children</code></strong></small></p>
+      <p><small>Галочка у переменной сразу сохраняет её в БД (таблица <code>plc_tags</code>, тип DIGITAL/ANALOG определяется по типу данных ПЛК), снятие галочки отключает тег; A/G/L — архив, Grafana, авария. Кнопки «Обновить с ПЛК» и «Из БД» находятся в панели Data Blocks, там же дата и время последнего сканирования</small></p>
+      <p><small>Колонка «Значение» показывает текущие значения переменных из ПЛК в реальном времени: раз в секунду читаются только видимые на экране строки (до 80), пакетным запросом через <code>POST /api/plcs/{id}/opcua/values</code>; значок LIVE в заголовке области «Переменные» показывает состояние обновления, при чтении также определяется тип данных</small></p>
       <p><small>Переменные блока показываются плоским нумерованным списком; в OPC UA видны только переменные с флагом «Accessible from HMI/OPC UA» в TIA Portal</small></p>
     </section>
 

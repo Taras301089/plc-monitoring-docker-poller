@@ -35,8 +35,8 @@ class OpcuaVariable:
 
 
 class SelectedTag(BaseModel):
-    name: str = Field(min_length=1, max_length=255)
-    node_id: str = Field(min_length=1, max_length=1024)
+    name: str = Field(min_length=1, max_length=150)
+    node_id: str = Field(min_length=1, max_length=255)
     tag_type: str = Field(pattern="^(ANALOG|DIGITAL)$")
     is_archived: bool = False
     is_grafana_plotted: bool = False
@@ -161,6 +161,76 @@ async def delete_plc(plc_id: int) -> dict[str, str]:
     if result == "DELETE 0":
         raise HTTPException(status_code=404, detail="ПЛК не найден")
     return {"status": "ok", "message": "ПЛК удалён"}
+
+
+@app.get("/api/plcs/{plc_id}/opcua/meta")
+async def plc_scan_meta(plc_id: int) -> dict[str, Any]:
+    pool = await get_pool(app)
+    row = await pool.fetchrow(
+        """
+        SELECT max(updated_at) AS last_scan_at, count(*) AS total
+        FROM plc_discovered_nodes
+        WHERE plc_id = $1 AND is_system = FALSE
+        """,
+        plc_id,
+    )
+    ts = row["last_scan_at"]
+    return {"last_scan_at": ts.isoformat() if ts else None, "total": row["total"]}
+
+
+class ReadValuesRequest(BaseModel):
+    node_ids: list[str] = Field(default_factory=list, max_length=200)
+
+
+@app.post("/api/plcs/{plc_id}/opcua/values")
+async def plc_read_values(plc_id: int, request: ReadValuesRequest) -> Any:
+    url = f"{POLLER_URL}/internal/plcs/{plc_id}/opcua/values"
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(8.0, connect=5.0)) as client:
+            response = await client.post(url, json={"node_ids": request.node_ids})
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=f"Poller unavailable: {exc}") from exc
+    if response.status_code >= 400:
+        raise HTTPException(status_code=response.status_code, detail=response.json().get("detail", "Poller failed"))
+    return response.json()
+
+
+@app.get("/api/plcs/{plc_id}/opcua/node-info")
+async def plc_node_info(plc_id: int, node_id: str = Query(min_length=1)) -> Any:
+    url = f"{POLLER_URL}/internal/plcs/{plc_id}/opcua/node-info"
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(20.0, connect=10.0)) as client:
+            response = await client.get(url, params={"node_id": node_id})
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=f"Poller unavailable: {exc}") from exc
+    if response.status_code >= 400:
+        raise HTTPException(status_code=response.status_code, detail=response.json().get("detail", "Poller failed"))
+    return response.json()
+
+
+@app.get("/api/plcs/{plc_id}/tags")
+async def list_plc_tags(plc_id: int) -> list[dict[str, Any]]:
+    pool = await get_pool(app)
+    rows = await pool.fetch(
+        """
+        SELECT name, node_id, tag_type, is_archived, is_grafana_plotted, is_alarm_enabled
+        FROM plc_tags
+        WHERE plc_id = $1 AND is_active = TRUE
+        """,
+        plc_id,
+    )
+    return [dict(row) for row in rows]
+
+
+@app.delete("/api/plcs/{plc_id}/tags")
+async def deactivate_plc_tag(plc_id: int, node_id: str = Query(min_length=1)) -> dict[str, str]:
+    pool = await get_pool(app)
+    await pool.execute(
+        "UPDATE plc_tags SET is_active = FALSE WHERE plc_id = $1 AND node_id = $2",
+        plc_id,
+        node_id,
+    )
+    return {"status": "ok"}
 
 
 @app.get("/api/plcs/{plc_id}/opcua/children")
