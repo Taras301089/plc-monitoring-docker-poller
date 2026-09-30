@@ -235,20 +235,46 @@
       padding: 0;
     }
     .db-list-item {
-      padding: 8px 10px;
+      display: flex;
       border-bottom: 1px solid #e0e0e0;
       cursor: pointer;
       font-size: 11px;
       color: var(--fg-primary);
+      height: 24px;
+      align-items: center;
+    }
+    .db-list-item-number {
+      flex: 0 0 28px;
+      text-align: center;
+      background: var(--bg-secondary);
+      border-right: 1px solid #e0e0e0;
+      user-select: none;
+      color: var(--fg-secondary);
+      font-size: 10px;
+      font-weight: 500;
+      line-height: 24px;
+    }
+    .db-list-item-name {
+      flex: 1;
+      padding: 0 8px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      line-height: 24px;
     }
     .db-list-item:hover {
       background: var(--bg-tertiary);
     }
     .db-list-item.selected {
       background: var(--button-primary);
+      color: white;
+    }
+    .db-list-item.selected .db-list-item-number {
+      background: var(--button-primary);
+      border-right-color: var(--button-primary);
+      color: white;
+    }
+    .db-list-item.selected .db-list-item-name {
       color: white;
       font-weight: 600;
     }
@@ -355,10 +381,8 @@
           <div class="panel-header">📊 Data Blocks</div>
           <div style="padding: 8px; display: flex; flex-direction: column; gap: 8px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
             <input id="db-search" placeholder="Поиск по блокам" style="width: 100%; padding: 6px; border: 1px solid var(--border-color); border-radius: 3px; background: var(--bg-primary); color: var(--fg-primary); font-size: 12px; box-sizing: border-box;" title="Поиск Data Block по названию">
-            <div style="display: flex; gap: 4px; justify-content: flex-end;">
-              <button id="sort-asc" style="padding: 4px 8px; font-size: 11px; background: var(--button-tertiary); border-color: var(--button-tertiary); color: white; flex: 1;" title="Сортировка от А к Я">▲ А-Я</button>
-              <button id="sort-desc" style="padding: 4px 8px; font-size: 11px; background: var(--button-tertiary); border-color: var(--button-tertiary); color: white; flex: 1;" title="Сортировка от Я к А">▼ Я-А</button>
-              <button id="toggle-numbers" style="padding: 4px 8px; font-size: 11px; background: var(--button-tertiary); border-color: var(--button-tertiary); color: white; flex: 1;" title="Показать/скрыть номера">№</button>
+            <div style="display: flex; gap: 4px;">
+              <button id="sort-toggle" style="padding: 4px 8px; font-size: 11px; background: var(--button-tertiary); border-color: var(--button-tertiary); color: white; flex: 1;" title="Сортировка: нажмите чтобы переключить между А-Я и Я-А">↕ Сортировка</button>
             </div>
           </div>
           <ul class="db-list" id="db-list"></ul>
@@ -759,13 +783,10 @@
 
     const dbList = document.querySelector('#db-list');
     const dbSearch = document.querySelector('#db-search');
-    const sortAsc = document.querySelector('#sort-asc');
-    const sortDesc = document.querySelector('#sort-desc');
-    const toggleNumbers = document.querySelector('#toggle-numbers');
+    const sortToggle = document.querySelector('#sort-toggle');
 
     // State for Data Blocks display
     let dbSortOrder = 'asc'; // 'asc' or 'desc'
-    let showDBNumbers = true; // Show/hide numbers
     let currentDBMap = {}; // Store db map for filtering
 
     // Re-render DB list with current filters and sort
@@ -790,9 +811,20 @@
       dbNames.forEach((dbName, index) => {
         const li = document.createElement('li');
         li.className = 'db-list-item';
-        const displayNumber = showDBNumbers ? `${index + 1}. ` : '';
-        li.textContent = `${displayNumber}${dbName} (${dbMap[dbName].length})`;
         li.dataset.dbName = dbName;
+
+        const numDiv = document.createElement('div');
+        numDiv.className = 'db-list-item-number';
+        numDiv.textContent = index + 1;
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'db-list-item-name';
+        nameDiv.textContent = `${dbName} (${dbMap[dbName].length})`;
+        nameDiv.title = dbName;
+
+        li.appendChild(numDiv);
+        li.appendChild(nameDiv);
+
         li.addEventListener('click', () => {
           document.querySelectorAll('.db-list-item').forEach(x => x.classList.remove('selected'));
           li.classList.add('selected');
@@ -815,24 +847,10 @@
       renderDBList(currentDBMap);
     });
 
-    // Data Block sort
-    sortAsc.addEventListener('click', () => {
-      dbSortOrder = 'asc';
-      renderDBList(currentDBMap);
-      sortAsc.style.background = 'var(--button-primary)';
-      sortDesc.style.background = 'var(--button-tertiary)';
-    });
-    sortDesc.addEventListener('click', () => {
-      dbSortOrder = 'desc';
-      renderDBList(currentDBMap);
-      sortDesc.style.background = 'var(--button-primary)';
-      sortAsc.style.background = 'var(--button-tertiary)';
-    });
-
-    // Toggle numbers
-    toggleNumbers.addEventListener('click', () => {
-      showDBNumbers = !showDBNumbers;
-      toggleNumbers.style.background = showDBNumbers ? 'var(--button-primary)' : 'var(--button-tertiary)';
+    // Data Block sort - toggle between asc/desc
+    sortToggle.addEventListener('click', () => {
+      dbSortOrder = dbSortOrder === 'asc' ? 'desc' : 'asc';
+      sortToggle.textContent = dbSortOrder === 'asc' ? '↕ Сортировка (А-Я)' : '↕ Сортировка (Я-А)';
       renderDBList(currentDBMap);
     });
 
