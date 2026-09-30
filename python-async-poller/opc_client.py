@@ -155,7 +155,8 @@ class PlcOpcClient:
     async def browse_variables(
         self, include_system: bool = False, db_filter: str | None = None
     ) -> list[dict[str, Any]]:
-        """Оптимизированный обход OPC UA с использованием пакетного запроса ссылок."""
+        """Оптимизированный обход OPC UA с использованием пакетного запроса ссылок.
+        Добавлено прямое получение Global Data Blocks по NodeID из Namespace 3."""
         async with self._lock:
             if not await self._ensure_connected_unlocked():
                 raise ConnectionError("OPC UA connection is unavailable")
@@ -167,6 +168,7 @@ class PlcOpcClient:
             db_value = db_filter.casefold() if db_filter else None
             visited: set[str] = set()
 
+            # Сначала - обход Instance Data Blocks через дерево
             # Пакетный обход узлов уровнем за уровнем
             queue: list[tuple[Any, list[str]]] = [(client.get_objects_node(), [])]
 
@@ -206,6 +208,10 @@ class PlcOpcClient:
                         current_path = [*path, browse_name]
                         node_class = reference.NodeClass
 
+                        # DEBUG: логируем ВСЕ узлы на уровне 1-2 независимо от типа
+                        if len(current_path) <= 2:
+                            log.error(f"🔹 ALL_Node L{len(current_path)+1} type={node_class.name}: {' > '.join(current_path)}")
+
                         if (
                             not include_system
                             and len(current_path) == 2
@@ -218,6 +224,12 @@ class PlcOpcClient:
                         )
 
                         if node_class == ua.NodeClass.Variable:
+                            # DEBUG: логируем ВСЕ переменные внутри DataBlocksGlobal
+                            if len(current_path) > 1 and current_path[1] == "DataBlocksGlobal":
+                                log.error(f"💾 DataBlocksGlobal VARIABLE: {' > '.join(current_path + [browse_name])}")
+                            # логируем переменные содержащие "user"
+                            if "user" in browse_name.lower():
+                                log.error(f"⭐ НАЙДЕНА 'user' переменная: {' > '.join(current_path)}")
                             if current_matched_db:
                                 db_name = current_path[1] if len(current_path) > 2 else ""
                                 is_system = (
@@ -237,13 +249,209 @@ class PlcOpcClient:
                                         "is_system": is_system,
                                     }
                                 )
-                        elif node_class in (ua.NodeClass.Object, ua.NodeClass.View):
-                            # Отсечение ветвей: если задан db_filter, спускаемся только в подходящие ветки
-                            if db_value is None or current_matched_db or len(current_path) <= 2:
+                        elif node_class == ua.NodeClass.Object:
+                            # DEBUG: логируем ВСЕ узлы на уровне 1-2 для диагностики структуры
+                            if len(current_path) <= 2:
+                                log.error(f"📍 OPC_UA_Structure Level {len(current_path)+1}: {' > '.join(current_path + [browse_name])}")
+                            # Логируем ВСЕ узлы внутри DataBlocksGlobal
+                            if len(current_path) > 1 and current_path[1] == "DataBlocksGlobal":
+                                log.error(f"🔍 DataBlocksGlobal content: {' > '.join(current_path + [browse_name])}, depth={len(current_path)}")
+                            # Дополнительно логируем узлы содержащие "Global" или "user"
+                            if "global" in browse_name.lower() or "user" in browse_name.lower():
+                                log.error(f"🎯 НАЙДЕН узел с Global/user: path={' > '.join(current_path + [browse_name])}, depth={len(current_path)}, type=Object")
+
+                            # Сохранение Data Blocks - сохраняем ВСЕ Object узлы БЕЗ ОГРАНИЧЕНИЙ
+                            # Это позволит найти блоки на любом уровне иерархии
+                            is_system = reference.NodeId.NamespaceIndex == 0
+                            result.append(
+                                {
+                                    "db_name": browse_name,
+                                    "variable_name": "",
+                                    "node_id": child_node_id,
+                                    "namespace_index": reference.NodeId.NamespaceIndex,
+                                    "node_class": "Object",
+                                    "data_type": "DataBlockObject",
+                                    "browse_path": ".".join(current_path + [browse_name]),
+                                    "is_system": is_system,
+                                }
+                            )
+                            # Продолжать спуск в другие Object/View узлы (расширен до уровня 10 для поиска вложенных структур)
+                            if db_value is None or current_matched_db or len(current_path) <= 10:
+                                child_node = client.get_node(reference.NodeId)
+                                queue.append((child_node, current_path))
+                        elif node_class == ua.NodeClass.View:
+                            # DEBUG: логируем ВСЕ View узлы
+                            log.error(f"👁️ VIEW_Node: {' > '.join(current_path + [browse_name])}, depth={len(current_path)}")
+                            # Продолжать спуск в View узлы (расширен до уровня 10 для поиска вложенных структур)
+                            if db_value is None or current_matched_db or len(current_path) <= 10:
                                 child_node = client.get_node(reference.NodeId)
                                 queue.append((child_node, current_path))
 
+            # ===== ДОПОЛНИТЕЛЬНО: Получение Global Data Blocks напрямую по NodeID (Namespace 3) =====
+            # Папка DataBlocksGlobal отображается как пустая при стандартном обходе,
+            # поэтому получаем Global Data Blocks напрямую по их NodeID
+            try:
+                global_dbs = await self._get_global_data_blocks_by_nodeid(client, db_value)
+                result.extend(global_dbs)
+                log.info(f"✅ Получено {len(global_dbs)} переменных из Global Data Blocks")
+            except Exception as e:
+                log.warning(f"⚠️ Не удалось получить Global Data Blocks по NodeID: {e}")
+
             return [item for item in result if include_system or not item["is_system"]]
+
+    async def _discover_global_data_blocks(self, client: Client) -> list[str]:
+        """Автоматическое обнаружение всех Global Data Blocks из Namespace 3.
+        Возвращает список имён найденных Global Data Blocks.
+        Оптимизировано для предотвращения бесконечных циклов в OPC UA графе."""
+        global_dbs: set[str] = set()
+
+        try:
+            # Стратегия: ищем в Objects > Server > Namespaces > Index 3 и подобных местах
+            # + также используем целевой поиск вместо полного BFS дерева
+            root = client.get_root_node()
+            visited: set[str] = set()
+            queue = [(root, 0)]  # (node, depth)
+            max_depth = 5  # Ограничиваем глубину поиска
+            max_nodes = 1000  # Максимум узлов для обработки
+
+            while queue and len(visited) < max_nodes:
+                node, depth = queue.pop(0)
+
+                try:
+                    node_id = node.nodeid.to_string()
+                    if node_id in visited:
+                        continue
+                    visited.add(node_id)
+
+                    # Пропускаем глубокий поиск если уже нашли много блоков
+                    if len(global_dbs) > 50:
+                        break
+
+                    # Получаем ссылки на дочерние узлы
+                    try:
+                        refs = await asyncio.wait_for(
+                            node.get_references(
+                                refs=ua.ObjectIds.HierarchicalReferences,
+                                direction=ua.BrowseDirection.Forward,
+                            ),
+                            timeout=3.0,
+                        )
+                    except Exception:
+                        continue
+
+                    # Проверяем namespace текущего узла ПЕРЕД добавлением children
+                    for ref in refs:
+                        if ref.NodeId.NamespaceIndex == 3:
+                            browse_name = ref.BrowseName.Name or ""
+                            if browse_name and browse_name not in {"", "Icon"}:
+                                # Исключаем Instance Data Blocks
+                                # Instance DBs обычно содержат "Instance" в описании или имеют определённые паттерны
+                                is_instance_db = False
+                                try:
+                                    # Пытаемся прочитать description узла
+                                    child_node = client.get_node(ref.NodeId)
+                                    desc = await asyncio.wait_for(child_node.read_description(), timeout=1.0)
+                                    if desc and "Instance" in str(desc):
+                                        is_instance_db = True
+                                except Exception:
+                                    pass
+
+                                if not is_instance_db:
+                                    global_dbs.add(browse_name)
+                                    log.error(f"🔹 Global Data Block найден: {browse_name}")
+
+                    # Продолжаем спуск ТОЛЬКО если ещё не достаточно глубоко
+                    # И ТОЛЬКО для узлов которые ещё не посещали
+                    if depth < max_depth:
+                        for ref in refs:
+                            ref_node_id = ref.NodeId.to_string()
+                            if ref_node_id not in visited:
+                                try:
+                                    child_node = client.get_node(ref.NodeId)
+                                    queue.append((child_node, depth + 1))
+                                except Exception:
+                                    pass
+
+                except Exception:
+                    continue
+
+            log.error(f"✅ Автоматически найдено Global Data Blocks: {sorted(list(global_dbs))}")
+            return sorted(list(global_dbs))
+
+        except Exception as e:
+            log.warning(f"⚠️ Не удалось автоматически обнаружить Global Data Blocks: {e}")
+            return []
+
+    async def _get_global_data_blocks_by_nodeid(
+        self, client: Client, db_filter: str | None
+    ) -> list[dict[str, Any]]:
+        """Получение Global Data Blocks напрямую по NodeID из Namespace 3.
+        Используется потому что при стандартном обходе дерева DataBlocksGlobal отображается как пустая."""
+        result: list[dict[str, Any]] = []
+        db_value = db_filter.casefold() if db_filter else None
+
+        # Автоматическое получение Global Data Blocks вместо жёстко закодированного списка
+        known_global_dbs = await self._discover_global_data_blocks(client)
+        if not known_global_dbs:
+            log.warning("⚠️ Global Data Blocks не найдены")
+            return result
+
+        for db_name in known_global_dbs:
+            # Пропускаем если не совпадает с фильтром
+            if db_value and db_value not in db_name.casefold():
+                continue
+
+            try:
+                # NodeID для Global Data Block в формате: ns=3;s="ИмяБлока"
+                nodeid_str = f'ns=3;s="{db_name}"'
+                node = client.get_node(nodeid_str)
+
+                # Пытаемся получить сам объект
+                browse_name = await node.read_browse_name()
+                log.info(f"✅ Найден Global Data Block: {db_name} (NodeID: {nodeid_str})")
+
+                # Добавляем сам Data Block как Object
+                result.append({
+                    "db_name": db_name,
+                    "variable_name": "",
+                    "node_id": nodeid_str,
+                    "namespace_index": 3,
+                    "node_class": "Object",
+                    "data_type": "DataBlockObject",
+                    "browse_path": f"DataBlocksGlobal.{db_name}",
+                    "is_system": False,
+                })
+
+                # Получаем переменные внутри Global Data Block
+                try:
+                    references = await node.get_references(
+                        refs=ua.ObjectIds.HierarchicalReferences,
+                        direction=ua.BrowseDirection.Forward,
+                    )
+
+                    for ref in references:
+                        if ref.NodeClass == ua.NodeClass.Variable:
+                            var_nodeid = ref.NodeId.to_string()
+                            var_name = ref.BrowseName.Name or ""
+
+                            result.append({
+                                "db_name": db_name,
+                                "variable_name": var_name,
+                                "node_id": var_nodeid,
+                                "namespace_index": ref.NodeId.NamespaceIndex,
+                                "node_class": "Variable",
+                                "data_type": "Unknown",
+                                "browse_path": f"{db_name}.{var_name}",
+                                "is_system": False,
+                            })
+                            log.debug(f"  └─ Переменная: {var_name}")
+                except Exception as e:
+                    log.warning(f"Не удалось получить переменные из {db_name}: {e}")
+
+            except Exception as e:
+                log.debug(f"⚠️ Global Data Block '{db_name}' не найден: {e}")
+
+        return result
 
     async def _ensure_connected_unlocked(self) -> bool:
         if self._needs_reconnect:

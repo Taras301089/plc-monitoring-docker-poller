@@ -379,11 +379,9 @@
         <!-- Left Panel: Data Blocks List -->
         <div class="db-list-panel">
           <div class="panel-header">📊 Data Blocks</div>
-          <div style="padding: 8px; display: flex; flex-direction: column; gap: 8px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
-            <input id="db-search" placeholder="Поиск по блокам" style="width: 100%; padding: 6px; border: 1px solid var(--border-color); border-radius: 3px; background: var(--bg-primary); color: var(--fg-primary); font-size: 12px; box-sizing: border-box;" title="Поиск Data Block по названию">
-            <div style="display: flex; gap: 4px;">
-              <button id="sort-toggle" style="padding: 4px 8px; font-size: 11px; background: var(--button-tertiary); border-color: var(--button-tertiary); color: white; flex: 1;" title="Сортировка: нажмите чтобы переключить между А-Я и Я-А">↕ Сортировка</button>
-            </div>
+          <div style="padding: 8px; display: flex; gap: 8px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); align-items: center;">
+            <input id="db-search" placeholder="Поиск по блокам" style="flex: 1; padding: 6px; border: 1px solid var(--border-color); border-radius: 3px; background: var(--bg-primary); color: var(--fg-primary); font-size: 12px; box-sizing: border-box;" title="Поиск Data Block по названию">
+            <button id="sort-toggle" style="padding: 6px 8px; font-size: 14px; width: 32px; height: 32px; background: var(--button-tertiary); border-color: var(--button-tertiary); color: white; border-radius: 3px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;" title="Сортировка: нажмите чтобы переключить между А-Я и Я-А">↕</button>
           </div>
           <ul class="db-list" id="db-list"></ul>
         </div>
@@ -850,7 +848,7 @@
     // Data Block sort - toggle between asc/desc
     sortToggle.addEventListener('click', () => {
       dbSortOrder = dbSortOrder === 'asc' ? 'desc' : 'asc';
-      sortToggle.textContent = dbSortOrder === 'asc' ? '↕ Сортировка (А-Я)' : '↕ Сортировка (Я-А)';
+      sortToggle.title = dbSortOrder === 'asc' ? 'Сортировка: А-Я (по возрастанию)' : 'Сортировка: Я-А (по убыванию)';
       renderDBList(currentDBMap);
     });
 

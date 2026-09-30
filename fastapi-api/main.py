@@ -208,7 +208,7 @@ async def browse_plc_variables(
         params["name"] = name
     url = f"{POLLER_URL}/internal/plcs/{plc_id}/opcua/variables"
     try:
-        limits = httpx.Timeout(timeout=10.0, connect=10.0)
+        limits = httpx.Timeout(timeout=60.0, connect=10.0)
         async with httpx.AsyncClient(timeout=limits) as client:
             response = await client.get(url, params=params)
             if response.status_code == 202:
