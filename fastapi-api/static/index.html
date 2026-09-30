@@ -140,14 +140,13 @@
     .db-items { display: none; }
     .db-items.visible { display: block; }
     .var-item {
-      display: flex; align-items: center; gap: 3px; padding: 6px 8px 6px 20px;
+      display: flex; align-items: center; gap: 3px; padding: 0 8px 0 0;
       background: var(--bg-primary);
-      border-bottom: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
       border-left: 3px solid transparent;
-      font-size: 10px; min-height: 24px; line-height: 14px;
-      transition: all 0.15s ease;
-      margin: 2px 2px 0 2px;
-      border-radius: 2px;
+      font-size: 11px; height: 20px; min-height: 20px; line-height: 16px;
+      margin: 0;
+      border-radius: 0;
     }
     .var-item:hover {
       background: var(--bg-secondary);
@@ -155,7 +154,7 @@
       box-shadow: inset 0 0 4px rgba(0,0,0,0.1);
     }
     .var-checkbox { width: 14px; height: 14px; accent-color: var(--button-primary); cursor: pointer; margin: 0; flex-shrink: 0; }
-    .var-num { flex: 0 0 64px; white-space: nowrap; color: var(--fg-secondary); font-size: 10px; text-align: right; padding-right: 6px; border-right: 1px solid var(--border-color); user-select: none; }
+    .var-num { flex: 0 0 64px; white-space: nowrap; line-height: 20px; align-self: stretch; color: var(--fg-secondary); font-size: 10px; text-align: right; padding-right: 6px; border-right: 1px solid var(--border-color); user-select: none; }
     .var-name { flex: 0 0 200px; color: var(--fg-primary); font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
     .var-datatype { flex: 0 0 70px; color: var(--fg-secondary); font-family: monospace; font-size: 9px; overflow: hidden; text-overflow: ellipsis; }
     .var-nodeid { flex: 1; color: #666666; font-family: monospace; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
