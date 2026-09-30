@@ -155,7 +155,7 @@
       box-shadow: inset 0 0 4px rgba(0,0,0,0.1);
     }
     .var-checkbox { width: 14px; height: 14px; accent-color: var(--button-primary); cursor: pointer; margin: 0; flex-shrink: 0; }
-    .var-num { flex: 0 0 28px; color: var(--fg-secondary); font-size: 10px; text-align: right; padding-right: 6px; border-right: 1px solid var(--border-color); user-select: none; }
+    .var-num { flex: 0 0 64px; white-space: nowrap; color: var(--fg-secondary); font-size: 10px; text-align: right; padding-right: 6px; border-right: 1px solid var(--border-color); user-select: none; }
     .var-name { flex: 0 0 200px; color: var(--fg-primary); font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
     .var-datatype { flex: 0 0 70px; color: var(--fg-secondary); font-family: monospace; font-size: 9px; overflow: hidden; text-overflow: ellipsis; }
     .var-nodeid { flex: 1; color: #666666; font-family: monospace; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -304,6 +304,9 @@
       padding: 0;
     }
     .variables-panel #rows {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
       list-style: none;
       margin: 0;
       padding: 0;
@@ -752,9 +755,11 @@
               const children = await r.json();
               if (!r.ok) throw new Error(children.detail || 'Ошибка чтения структуры');
               let anchor = li;
-              children.forEach(c => {
-                const label = c.node_id.endsWith(`[${c.variable_name}]`) ? `[${c.variable_name}]` : c.variable_name;
-                const kid = makeRow({ ...c, db_name: item.db_name, browse_path: `${item.browse_path}.${c.variable_name}` }, label, depth + 1, '');
+              children.forEach((c, ci) => {
+                // OPC UA нумерует элементы массива с 0, в TIA Portal массивы начинаются с 1
+                const isElem = c.node_id.endsWith(`[${c.variable_name}]`) && /^\d+$/.test(c.variable_name);
+                const label = isElem ? `[${Number(c.variable_name) + 1}]` : c.variable_name;
+                const kid = makeRow({ ...c, db_name: item.db_name, browse_path: `${item.browse_path}.${c.variable_name}` }, label, depth + 1, `${num}.${ci + 1}`);
                 anchor.after(kid);
                 anchor = kid;
                 kids.push(kid);
