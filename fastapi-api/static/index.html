@@ -353,6 +353,14 @@
         <!-- Left Panel: Data Blocks List -->
         <div class="db-list-panel">
           <div class="panel-header">📊 Data Blocks</div>
+          <div style="padding: 8px; display: flex; flex-direction: column; gap: 8px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
+            <input id="db-search" placeholder="Поиск по блокам" style="width: 100%; padding: 6px; border: 1px solid var(--border-color); border-radius: 3px; background: var(--bg-primary); color: var(--fg-primary); font-size: 12px; box-sizing: border-box;" title="Поиск Data Block по названию">
+            <div style="display: flex; gap: 4px; justify-content: flex-end;">
+              <button id="sort-asc" style="padding: 4px 8px; font-size: 11px; background: var(--button-tertiary); border-color: var(--button-tertiary); color: white; flex: 1;" title="Сортировка от А к Я">▲ А-Я</button>
+              <button id="sort-desc" style="padding: 4px 8px; font-size: 11px; background: var(--button-tertiary); border-color: var(--button-tertiary); color: white; flex: 1;" title="Сортировка от Я к А">▼ Я-А</button>
+              <button id="toggle-numbers" style="padding: 4px 8px; font-size: 11px; background: var(--button-tertiary); border-color: var(--button-tertiary); color: white; flex: 1;" title="Показать/скрыть номера">№</button>
+            </div>
+          </div>
           <ul class="db-list" id="db-list"></ul>
         </div>
 
@@ -646,24 +654,8 @@
         }
       });
 
-      // Render DB list in left panel
-      const dbList = document.querySelector('#db-list');
-      dbList.innerHTML = '';
-      const sortedDBs = Object.keys(dbMap).sort();
-      sortedDBs.forEach((dbName, index) => {
-        const li = document.createElement('li');
-        li.className = 'db-list-item';
-        li.textContent = `${index + 1}. ${dbName} (${dbMap[dbName].length})`;
-        li.dataset.dbName = dbName;
-        li.addEventListener('click', () => {
-          document.querySelectorAll('.db-list-item').forEach(x => x.classList.remove('selected'));
-          li.classList.add('selected');
-          selectedDB = dbName;
-          renderVariablesForDB(dbName);
-          document.querySelector('#selected-db-name').textContent = dbName;
-        });
-        dbList.appendChild(li);
-      });
+      // Render DB list using new function with filter/sort support
+      renderDBList(dbMap);
     }
 
     function renderVariablesForDB(dbName) {
@@ -766,12 +758,83 @@
     }
 
     const dbList = document.querySelector('#db-list');
+    const dbSearch = document.querySelector('#db-search');
+    const sortAsc = document.querySelector('#sort-asc');
+    const sortDesc = document.querySelector('#sort-desc');
+    const toggleNumbers = document.querySelector('#toggle-numbers');
+
+    // State for Data Blocks display
+    let dbSortOrder = 'asc'; // 'asc' or 'desc'
+    let showDBNumbers = true; // Show/hide numbers
+    let currentDBMap = {}; // Store db map for filtering
+
+    // Re-render DB list with current filters and sort
+    function renderDBList(dbMap) {
+      currentDBMap = dbMap;
+      let dbNames = Object.keys(dbMap);
+
+      // Filter by search
+      const searchTerm = dbSearch.value.toLowerCase();
+      if (searchTerm) {
+        dbNames = dbNames.filter(name => name.toLowerCase().includes(searchTerm));
+      }
+
+      // Sort
+      dbNames.sort();
+      if (dbSortOrder === 'desc') {
+        dbNames.reverse();
+      }
+
+      // Render
+      dbList.innerHTML = '';
+      dbNames.forEach((dbName, index) => {
+        const li = document.createElement('li');
+        li.className = 'db-list-item';
+        const displayNumber = showDBNumbers ? `${index + 1}. ` : '';
+        li.textContent = `${displayNumber}${dbName} (${dbMap[dbName].length})`;
+        li.dataset.dbName = dbName;
+        li.addEventListener('click', () => {
+          document.querySelectorAll('.db-list-item').forEach(x => x.classList.remove('selected'));
+          li.classList.add('selected');
+          selectedDB = dbName;
+          renderVariablesForDB(dbName);
+          document.querySelector('#selected-db-name').textContent = dbName;
+        });
+        dbList.appendChild(li);
+      });
+    }
 
     load.addEventListener('click', () => loadVariables(false));
     refresh.addEventListener('click', () => loadVariables(true));
     expandAll.addEventListener('click', () => toggleAllDbs(true));
     collapseAll.addEventListener('click', () => toggleAllDbs(false));
     plc.addEventListener('change', () => loadVariables(false));
+
+    // Data Block search
+    dbSearch.addEventListener('input', () => {
+      renderDBList(currentDBMap);
+    });
+
+    // Data Block sort
+    sortAsc.addEventListener('click', () => {
+      dbSortOrder = 'asc';
+      renderDBList(currentDBMap);
+      sortAsc.style.background = 'var(--button-primary)';
+      sortDesc.style.background = 'var(--button-tertiary)';
+    });
+    sortDesc.addEventListener('click', () => {
+      dbSortOrder = 'desc';
+      renderDBList(currentDBMap);
+      sortDesc.style.background = 'var(--button-primary)';
+      sortAsc.style.background = 'var(--button-tertiary)';
+    });
+
+    // Toggle numbers
+    toggleNumbers.addEventListener('click', () => {
+      showDBNumbers = !showDBNumbers;
+      toggleNumbers.style.background = showDBNumbers ? 'var(--button-primary)' : 'var(--button-tertiary)';
+      renderDBList(currentDBMap);
+    });
 
     // Filter for variables in selected DB
     varFilter.addEventListener('input', () => {
