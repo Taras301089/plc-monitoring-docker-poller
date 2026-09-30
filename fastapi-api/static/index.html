@@ -118,15 +118,42 @@
     .tree-wrap { max-height: calc(100vh - 240px); overflow: auto; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); font-family: 'Courier New', monospace; }
     .tree { list-style: none; padding: 0; margin: 0; background: var(--bg-primary); }
     .tree-item { margin: 0; }
-    .db-item { display: flex; align-items: center; gap: 2px; padding: 0 6px; background: var(--bg-secondary); border-bottom: 1px solid #e0e0e0; cursor: pointer; user-select: none; font-weight: 600; font-size: 11px; color: var(--fg-primary); min-height: 16px; line-height: 16px; }
-    .db-item:hover { background: var(--bg-tertiary); }
-    .db-item.collapsed::before { content: '►'; display: inline-block; width: 10px; color: var(--fg-secondary); font-size: 10px; text-align: center; }
-    .db-item.expanded::before { content: '▼'; display: inline-block; width: 10px; color: var(--fg-secondary); font-size: 10px; text-align: center; }
-    .db-item.expanded { background: var(--bg-tertiary); }
+    .db-item {
+      display: flex; align-items: center; gap: 2px; padding: 6px 8px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      border-left: 4px solid var(--button-primary);
+      cursor: pointer; user-select: none; font-weight: 600; font-size: 11px;
+      color: var(--fg-primary); min-height: 20px; line-height: 16px;
+      transition: all 0.15s ease;
+      margin: 0 2px 2px 2px;
+      border-radius: 2px;
+    }
+    .db-item:hover {
+      background: var(--bg-tertiary);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+      transform: translateX(2px);
+    }
+    .db-item.collapsed::before { content: '▶'; display: inline-block; width: 10px; color: var(--fg-secondary); font-size: 10px; text-align: center; }
+    .db-item.expanded::before { content: '▼'; display: inline-block; width: 10px; color: var(--button-primary); font-size: 10px; text-align: center; font-weight: bold; }
+    .db-item.expanded { background: var(--bg-tertiary); border-left-color: var(--button-primary); }
     .db-items { display: none; }
     .db-items.visible { display: block; }
-    .var-item { display: flex; align-items: center; gap: 3px; padding: 0 6px 0 20px; background: var(--bg-primary); border-bottom: 1px solid #f0f0f0; font-size: 10px; min-height: 14px; line-height: 14px; }
-    .var-item:hover { background: var(--bg-secondary); }
+    .var-item {
+      display: flex; align-items: center; gap: 3px; padding: 6px 8px 6px 20px;
+      background: var(--bg-primary);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      border-left: 3px solid transparent;
+      font-size: 10px; min-height: 24px; line-height: 14px;
+      transition: all 0.15s ease;
+      margin: 2px 2px 0 2px;
+      border-radius: 2px;
+    }
+    .var-item:hover {
+      background: var(--bg-secondary);
+      border-left-color: var(--button-primary);
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.1);
+    }
     .var-checkbox { width: 14px; height: 14px; accent-color: var(--button-primary); cursor: pointer; margin: 0; flex-shrink: 0; }
     .var-name { flex: 0 0 140px; color: var(--fg-primary); font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
     .var-datatype { flex: 0 0 70px; color: var(--fg-secondary); font-family: monospace; font-size: 9px; overflow: hidden; text-overflow: ellipsis; }
@@ -576,10 +603,30 @@
     let allVariables = []; // Store all loaded variables for filtering
     let selectedDB = null; // Currently selected DB
 
+    // Extract Data Block name from browse_path, handling names with dots (e.g., IDB_ST010_A8.11_DoorOpen)
+    function extractDataBlockName(browsePath) {
+      if (!browsePath) return '';
+      const parts = browsePath.split('.');
+      const dbInstanceIdx = parts.indexOf('DataBlocksInstance');
+      if (dbInstanceIdx === -1 || dbInstanceIdx >= parts.length - 1) return '';
+
+      // Structural folder keywords that mark the end of Data Block name
+      const structuralFolders = new Set(['Inputs', 'Outputs', 'Static', 'Alarm', 'Alarms', 'CONFIGURATION', 'Dynamic']);
+
+      // Collect all parts after DataBlocksInstance until we hit a structural folder
+      let dataBlockParts = [];
+      for (let i = dbInstanceIdx + 1; i < parts.length; i++) {
+        if (structuralFolders.has(parts[i])) break;
+        dataBlockParts.push(parts[i]);
+      }
+
+      return dataBlockParts.join('.');
+    }
+
     function renderHierarchy(items) {
       if (!items.length) {
         rows.innerHTML = '<li class="empty">Переменные не найдены</li>';
-        dbList.innerHTML = '<li class="empty" style="padding: 10px; text-align: center; color: var(--fg-secondary);">Нет Data Blocks</li>';
+        document.querySelector('#db-list').innerHTML = '<li class="empty" style="padding: 10px; text-align: center; color: var(--fg-secondary);">Нет Data Blocks</li>';
         return;
       }
 
@@ -587,13 +634,10 @@
       const dbMap = {};
 
       // Group variables by Data Block name (from DataBlocksInstance only)
-      // browse_path format: "UB+MB_PLC1.DataBlocksInstance.ClampSignal_FB_DB_1...."
       items.forEach(item => {
         if (item.db_name === 'DataBlocksInstance') {
           const browsePath = item.browse_path || '';
-          const pathParts = browsePath.split('.');
-          // pathParts[2] is the Data Block name (ClampSignal_FB_DB_1, ClampSignal_MB060_FIX02_L_V1_iDB, etc.)
-          const dataBlockName = pathParts[2];
+          const dataBlockName = extractDataBlockName(browsePath);
 
           if (dataBlockName) {
             if (!dbMap[dataBlockName]) dbMap[dataBlockName] = [];
@@ -628,8 +672,7 @@
         if (v.db_name !== 'DataBlocksInstance') return false;
 
         const browsePath = v.browse_path || '';
-        const pathParts = browsePath.split('.');
-        const dataBlockName = pathParts[2]; // The Data Block name
+        const dataBlockName = extractDataBlockName(browsePath);
 
         if (dataBlockName !== dbName) return false;
         if (!varFilter.value.trim()) return true;
