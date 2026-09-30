@@ -433,6 +433,9 @@ class PlcOpcClient:
                             refs=ua.ObjectIds.HierarchicalReferences,
                             direction=ua.BrowseDirection.Forward,
                         )
+                        var_refs = [r for r in references if r.NodeClass == ua.NodeClass.Variable]
+                        has_kids = await self._has_children_batch(client, var_refs)
+                        kids_by_id = {r.NodeId.to_string(): k for r, k in zip(var_refs, has_kids)}
                         for ref in references:
                             var_name = ref.BrowseName.Name or ""
                             if ref.NodeClass == ua.NodeClass.Variable:
@@ -442,7 +445,7 @@ class PlcOpcClient:
                                     "node_id": ref.NodeId.to_string(),
                                     "namespace_index": ref.NodeId.NamespaceIndex,
                                     "node_class": "Variable",
-                                    "data_type": "Unknown",
+                                    "data_type": "Structure tag" if kids_by_id.get(ref.NodeId.to_string()) else "Unknown",
                                     "browse_path": ".".join(["DataBlocksGlobal", db_name, *sub_path, var_name]),
                                     "is_system": False,
                                 })
@@ -455,6 +458,54 @@ class PlcOpcClient:
                 log.debug(f"⚠️ Global Data Block '{db_name}' не найден: {e}")
 
         return result
+
+    async def _has_children_batch(self, client: Client, refs: list[Any]) -> list[bool]:
+        """Для каждой ссылки проверяет, есть ли у узла дочерние Variable/Object (структура/массив)."""
+        async def one(ref: Any) -> bool:
+            try:
+                kids = await asyncio.wait_for(
+                    client.get_node(ref.NodeId).get_references(
+                        refs=ua.ObjectIds.HierarchicalReferences,
+                        direction=ua.BrowseDirection.Forward,
+                    ),
+                    timeout=5.0,
+                )
+                return any(k.NodeClass in (ua.NodeClass.Variable, ua.NodeClass.Object) for k in kids)
+            except Exception:
+                return False
+
+        out: list[bool] = []
+        for i in range(0, len(refs), 50):
+            out.extend(await asyncio.gather(*(one(r) for r in refs[i:i + 50])))
+        return out
+
+    async def browse_children(self, node_id: str) -> list[dict[str, Any]]:
+        """Прямые дочерние узлы (для раскрытия структурных тегов); имя, тип и признак вложенности."""
+        async with self._lock:
+            if not await self._ensure_connected_unlocked():
+                raise ConnectionError("OPC UA connection is unavailable")
+            client = self._client
+            if client is None:
+                raise ConnectionError("OPC UA client is unavailable")
+            refs = await asyncio.wait_for(
+                client.get_node(node_id).get_references(
+                    refs=ua.ObjectIds.HierarchicalReferences,
+                    direction=ua.BrowseDirection.Forward,
+                ),
+                timeout=10.0,
+            )
+            refs = [r for r in refs if r.NodeClass in (ua.NodeClass.Variable, ua.NodeClass.Object)]
+            kids = await self._has_children_batch(client, refs)
+            return [
+                {
+                    "variable_name": r.BrowseName.Name or "",
+                    "node_id": r.NodeId.to_string(),
+                    "namespace_index": r.NodeId.NamespaceIndex,
+                    "node_class": r.NodeClass.name,
+                    "data_type": "Structure tag" if k else "Unknown",
+                }
+                for r, k in zip(refs, kids)
+            ]
 
     async def _ensure_connected_unlocked(self) -> bool:
         if self._needs_reconnect:

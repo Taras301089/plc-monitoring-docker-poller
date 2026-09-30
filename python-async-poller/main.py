@@ -386,8 +386,22 @@ async def _async_main() -> None:
             log.exception("Browse OPC UA завершился ошибкой")
             return web.json_response({"detail": f"OPC UA browse failed: {exc.__class__.__name__}: {exc}"}, status=502)
 
+    async def children_handler(request: web.Request) -> web.Response:
+        node_id = request.query.get("node_id")
+        if not node_id:
+            return web.json_response({"detail": "node_id is required"}, status=400)
+        client = service._clients.get(int(request.match_info["plc_id"]))
+        if client is None:
+            return web.json_response({"detail": "PLC is not active"}, status=404)
+        try:
+            return web.json_response(await client.browse_children(node_id))
+        except Exception as exc:
+            log.exception("Чтение дочерних узлов завершилось ошибкой")
+            return web.json_response({"detail": f"{exc.__class__.__name__}: {exc}"}, status=502)
+
     browse_app = web.Application()
     browse_app.router.add_get("/internal/plcs/{plc_id}/opcua/variables", browse_handler)
+    browse_app.router.add_get("/internal/plcs/{plc_id}/opcua/children", children_handler)
     browse_runner = web.AppRunner(browse_app)
     await browse_runner.setup()
     await web.TCPSite(browse_runner, "0.0.0.0", 8080).start()

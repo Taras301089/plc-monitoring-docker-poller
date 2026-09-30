@@ -163,6 +163,19 @@ async def delete_plc(plc_id: int) -> dict[str, str]:
     return {"status": "ok", "message": "ПЛК удалён"}
 
 
+@app.get("/api/plcs/{plc_id}/opcua/children")
+async def browse_plc_children(plc_id: int, node_id: str = Query(min_length=1)) -> Any:
+    url = f"{POLLER_URL}/internal/plcs/{plc_id}/opcua/children"
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0)) as client:
+            response = await client.get(url, params={"node_id": node_id})
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=f"Poller unavailable: {exc}") from exc
+    if response.status_code >= 400:
+        raise HTTPException(status_code=response.status_code, detail=response.json().get("detail", "Poller failed"))
+    return response.json()
+
+
 @app.get("/api/plcs/{plc_id}/opcua/variables")
 async def browse_plc_variables(
     plc_id: int,

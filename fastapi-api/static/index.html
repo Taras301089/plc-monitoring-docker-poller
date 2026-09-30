@@ -717,15 +717,17 @@
         if (i === -1) return item.variable_name;
         return p.slice(i + dbName.length + 1).split('.').filter(s => s !== 'Inputs' && s !== 'Static').join('.') || item.variable_name;
       };
-      const sorted = filtered.slice().sort((a, b) => relName(a).localeCompare(relName(b)));
-      rows.replaceChildren(...sorted.map((item, idx) => {
+      const sorted = filtered.slice().sort((a, b) => relName(a).localeCompare(relName(b), undefined, { numeric: true }));
+      const makeRow = (item, name, depth, num) => {
         const li = document.createElement('li');
         li.className = 'tree-item var-item';
         li.dataset.item = JSON.stringify(item);
+        li.dataset.depth = depth;
+        const isStruct = item.data_type === 'Structure tag';
         li.innerHTML = `
-          <span class="var-num">${idx + 1}</span>
+          <span class="var-num">${num}</span>
           <input class="var-checkbox select" type="checkbox" title="Выбрать переменную для сохранения в БД">
-          <span class="var-name" title="${relName(item)}">${relName(item)}</span>
+          <span class="var-name" style="padding-left:${depth * 16}px" title="${name}"><span class="struct-toggle" title="${isStruct ? 'Раскрыть структурный тег: загрузить вложенные элементы с ПЛК' : ''}">${isStruct ? '▷' : ''}</span> ${name}</span>
           <span class="var-datatype" title="Тип данных переменной">${item.data_type}</span>
           <span class="var-nodeid" title="${item.node_id}">${item.node_id}</span>
           <div class="var-settings">
@@ -734,8 +736,39 @@
             <label title="Включить аварийное оповещение по переменной"><input type="checkbox" class="alarm"> L</label>
           </div>
         `;
+        if (isStruct) {
+          const toggle = li.querySelector('.struct-toggle');
+          toggle.style.cursor = 'pointer';
+          let opened = false, kids = [];
+          toggle.addEventListener('click', async () => {
+            if (opened) {
+              while (li.nextElementSibling && Number(li.nextElementSibling.dataset.depth) > depth) li.nextElementSibling.remove();
+              kids = []; opened = false; toggle.textContent = '▷';
+              return;
+            }
+            toggle.textContent = '…';
+            try {
+              const r = await fetch(`/api/plcs/${plc.value}/opcua/children?node_id=${encodeURIComponent(item.node_id)}`);
+              const children = await r.json();
+              if (!r.ok) throw new Error(children.detail || 'Ошибка чтения структуры');
+              let anchor = li;
+              children.forEach(c => {
+                const label = c.node_id.endsWith(`[${c.variable_name}]`) ? `[${c.variable_name}]` : c.variable_name;
+                const kid = makeRow({ ...c, db_name: item.db_name, browse_path: `${item.browse_path}.${c.variable_name}` }, label, depth + 1, '');
+                anchor.after(kid);
+                anchor = kid;
+                kids.push(kid);
+              });
+              opened = true; toggle.textContent = '▽';
+            } catch (e) {
+              toggle.textContent = '▷';
+              setStatus('error', 'Ошибка', e.message);
+            }
+          });
+        }
         return li;
-      }));
+      };
+      rows.replaceChildren(...sorted.map((item, idx) => makeRow(item, relName(item), 0, idx + 1)));
     }
     const dbList = document.querySelector('#db-list');
     const dbSearch = document.querySelector('#db-search');
