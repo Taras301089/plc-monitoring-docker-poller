@@ -726,7 +726,7 @@
         li.className = 'tree-item var-item';
         li.dataset.item = JSON.stringify(item);
         li.dataset.depth = depth;
-        const isStruct = item.data_type === 'Structure tag';
+        const isStruct = item.data_type === 'Structure tag' || item.data_type === 'Array';
         li.innerHTML = `
           <span class="var-num">${num}</span>
           <input class="var-checkbox select" type="checkbox" title="Выбрать переменную для сохранения в БД">
@@ -773,8 +773,28 @@
         }
         return li;
       };
-      rows.replaceChildren(...sorted.map((item, idx) => makeRow(item, relName(item), 0, idx + 1)));
+      // Как в WinCC: массив верхнего уровня не показывается, его элементы Имя[1]..Имя[N] идут сразу списком
+      const token = ++variablesRenderToken;
+      (async () => {
+        const entries = (await Promise.all(sorted.map(async item => {
+          if (item.data_type !== 'Array') return [{ item, label: relName(item) }];
+          try {
+            const r = await fetch(`/api/plcs/${plc.value}/opcua/children?node_id=${encodeURIComponent(item.node_id)}`);
+            const children = await r.json();
+            if (!r.ok) throw new Error(children.detail);
+            return children.map(c => ({
+              item: { ...c, db_name: item.db_name, browse_path: `${item.browse_path}.${c.variable_name}` },
+              label: `${relName(item)}[${Number(c.variable_name) + 1}]`,
+            }));
+          } catch (e) {
+            return [{ item, label: relName(item) }];
+          }
+        }))).flat();
+        if (token !== variablesRenderToken) return;
+        rows.replaceChildren(...entries.map((e, idx) => makeRow(e.item, e.label, 0, idx + 1)));
+      })();
     }
+    let variablesRenderToken = 0;
     const dbList = document.querySelector('#db-list');
     const dbSearch = document.querySelector('#db-search');
     const sortToggle = document.querySelector('#sort-toggle');

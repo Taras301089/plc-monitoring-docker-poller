@@ -445,7 +445,7 @@ class PlcOpcClient:
                                     "node_id": ref.NodeId.to_string(),
                                     "namespace_index": ref.NodeId.NamespaceIndex,
                                     "node_class": "Variable",
-                                    "data_type": "Structure tag" if kids_by_id.get(ref.NodeId.to_string()) else "Unknown",
+                                    "data_type": kids_by_id.get(ref.NodeId.to_string()) or "Unknown",
                                     "browse_path": ".".join(["DataBlocksGlobal", db_name, *sub_path, var_name]),
                                     "is_system": False,
                                 })
@@ -459,9 +459,9 @@ class PlcOpcClient:
 
         return result
 
-    async def _has_children_batch(self, client: Client, refs: list[Any]) -> list[bool]:
-        """Для каждой ссылки проверяет, есть ли у узла дочерние Variable/Object (структура/массив)."""
-        async def one(ref: Any) -> bool:
+    async def _has_children_batch(self, client: Client, refs: list[Any]) -> list[str]:
+        """Тип узла по его детям: 'Array' (элементы [n]), 'Structure tag' (поля) или '' (лист)."""
+        async def one(ref: Any) -> str:
             try:
                 kids = await asyncio.wait_for(
                     client.get_node(ref.NodeId).get_references(
@@ -470,11 +470,16 @@ class PlcOpcClient:
                     ),
                     timeout=5.0,
                 )
-                return any(k.NodeClass in (ua.NodeClass.Variable, ua.NodeClass.Object) for k in kids)
+                kids = [k for k in kids if k.NodeClass in (ua.NodeClass.Variable, ua.NodeClass.Object)]
+                if not kids:
+                    return ""
+                if all(k.NodeId.to_string().endswith(f"[{k.BrowseName.Name}]") for k in kids):
+                    return "Array"
+                return "Structure tag"
             except Exception:
-                return False
+                return ""
 
-        out: list[bool] = []
+        out: list[str] = []
         for i in range(0, len(refs), 50):
             out.extend(await asyncio.gather(*(one(r) for r in refs[i:i + 50])))
         return out
@@ -502,7 +507,7 @@ class PlcOpcClient:
                     "node_id": r.NodeId.to_string(),
                     "namespace_index": r.NodeId.NamespaceIndex,
                     "node_class": r.NodeClass.name,
-                    "data_type": "Structure tag" if k else "Unknown",
+                    "data_type": k or "Unknown",
                 }
                 for r, k in zip(refs, kids)
             ]
