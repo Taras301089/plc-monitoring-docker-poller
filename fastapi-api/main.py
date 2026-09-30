@@ -207,6 +207,7 @@ async def browse_plc_variables(
     if name:
         params["name"] = name
     url = f"{POLLER_URL}/internal/plcs/{plc_id}/opcua/variables"
+    variables: list[dict[str, Any]] | None = None
     try:
         limits = httpx.Timeout(timeout=60.0, connect=10.0)
         async with httpx.AsyncClient(timeout=limits) as client:
@@ -222,19 +223,57 @@ async def browse_plc_variables(
                     if job_response.status_code == 202:
                         job_payload = job_response.json()
                         if job_payload.get("status") == "done":
-                            return job_payload.get("variables", [])
+                            variables = job_payload.get("variables", [])
+                            break
                         continue
                     response = job_response
                     break
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=502, detail=f"Poller Browse API unavailable: {exc}") from exc
-    if response.status_code >= 400:
-        detail = response.json().get("detail", "Poller Browse failed")
-        raise HTTPException(status_code=response.status_code, detail=detail)
-    payload = response.json()
-    if isinstance(payload, dict) and "variables" in payload:
-        return payload["variables"]
-    return payload
+    if variables is None:
+        if response.status_code >= 400:
+            detail = response.json().get("detail", "Poller Browse failed")
+            raise HTTPException(status_code=response.status_code, detail=detail)
+        payload = response.json()
+        variables = payload.get("variables", []) if isinstance(payload, dict) else payload
+
+    # Сохраняем полученные переменные в БД для кэширования (пакетная вставка)
+    if variables and not db and not name:
+        try:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await conn.execute("DELETE FROM plc_discovered_nodes WHERE plc_id = $1", plc_id)
+                    # Пакетная вставка вместо цикла для производительности
+                    rows = [
+                        (
+                            plc_id,
+                            var.get("db_name", ""),
+                            var.get("variable_name", ""),
+                            var.get("node_id", ""),
+                            var.get("namespace_index", 0),
+                            var.get("node_class", ""),
+                            var.get("data_type", ""),
+                            var.get("browse_path", ""),
+                            var.get("is_system", False),
+                        )
+                        for var in variables
+                    ]
+                    await conn.executemany(
+                        """
+                        INSERT INTO plc_discovered_nodes
+                            (plc_id, db_name, variable_name, node_id, namespace_index,
+                             node_class, data_type, browse_path, is_system)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                        ON CONFLICT (plc_id, node_id) DO NOTHING
+                        """,
+                        rows
+                    )
+        except Exception as e:
+            import traceback
+            print(f"Warning: Failed to cache variables: {e}")
+            traceback.print_exc()
+
+    return variables
 
 
 

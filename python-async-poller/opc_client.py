@@ -441,7 +441,7 @@ class PlcOpcClient:
                                 "namespace_index": ref.NodeId.NamespaceIndex,
                                 "node_class": "Variable",
                                 "data_type": "Unknown",
-                                "browse_path": f"{db_name}.{var_name}",
+                                "browse_path": f"DataBlocksGlobal.{db_name}.{var_name}",
                                 "is_system": False,
                             })
                             log.debug(f"  └─ Переменная: {var_name}")

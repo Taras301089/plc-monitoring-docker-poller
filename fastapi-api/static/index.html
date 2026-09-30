@@ -592,7 +592,7 @@
       items.forEach(item => {
         const fullPath = item.browse_path ? item.browse_path.split('.') : [item.variable_name];
         // Filter out "Inputs" and "Static" levels
-        const path = fullPath.filter(p => p !== 'Inputs' && p !== 'Static');
+        const path = fullPath.filter(p => p !== 'Inputs' && p !== 'Static' && p !== 'DataBlocksGlobal');
 
         let current = tree;
         for (let i = 0; i < path.length - 1; i++) {
@@ -634,23 +634,42 @@
     let selectedDB = null; // Currently selected DB
 
     // Extract Data Block name from browse_path, handling names with dots (e.g., IDB_ST010_A8.11_DoorOpen)
-    function extractDataBlockName(browsePath) {
-      if (!browsePath) return '';
-      const parts = browsePath.split('.');
-      const dbInstanceIdx = parts.indexOf('DataBlocksInstance');
-      if (dbInstanceIdx === -1 || dbInstanceIdx >= parts.length - 1) return '';
+    // Variables of Instance DBs (db_name=DataBlocksInstance) and Global DBs (browse_path=DataBlocksGlobal.<DB>.<var>)
+    function isDataBlockItem(item) {
+      if (!item.variable_name) return false;
+      return item.db_name === 'DataBlocksInstance' ||
+             (item.browse_path || '').startsWith('DataBlocksGlobal.');
+    }
 
-      // Structural folder keywords that mark the end of Data Block name
+    function extractDataBlockName(browsePath, item) {
+      if (!browsePath) return '';
+      if (item && browsePath.startsWith('DataBlocksGlobal.')) return item.db_name || '';
+      const parts = browsePath.split('.');
       const structuralFolders = new Set(['Inputs', 'Outputs', 'Static', 'Alarm', 'Alarms', 'CONFIGURATION', 'Dynamic']);
 
-      // Collect all parts after DataBlocksInstance until we hit a structural folder
-      let dataBlockParts = [];
-      for (let i = dbInstanceIdx + 1; i < parts.length; i++) {
-        if (structuralFolders.has(parts[i])) break;
-        dataBlockParts.push(parts[i]);
+      // Try DataBlocksInstance first (Instance Data Blocks)
+      const dbInstanceIdx = parts.indexOf('DataBlocksInstance');
+      if (dbInstanceIdx !== -1 && dbInstanceIdx < parts.length - 1) {
+        let dataBlockParts = [];
+        for (let i = dbInstanceIdx + 1; i < parts.length; i++) {
+          if (structuralFolders.has(parts[i])) break;
+          dataBlockParts.push(parts[i]);
+        }
+        if (dataBlockParts.length > 0) return dataBlockParts.join('.');
       }
 
-      return dataBlockParts.join('.');
+      // Try DataBlocksGlobal (Global Data Blocks)
+      const dbGlobalIdx = parts.indexOf('DataBlocksGlobal');
+      if (dbGlobalIdx !== -1 && dbGlobalIdx < parts.length - 1) {
+        let dataBlockParts = [];
+        for (let i = dbGlobalIdx + 1; i < parts.length; i++) {
+          if (structuralFolders.has(parts[i])) break;
+          dataBlockParts.push(parts[i]);
+        }
+        if (dataBlockParts.length > 0) return dataBlockParts.join('.');
+      }
+
+      return '';
     }
 
     function renderHierarchy(items) {
@@ -663,16 +682,13 @@
       allVariables = items;
       const dbMap = {};
 
-      // Group variables by Data Block name (from DataBlocksInstance only)
+      // Group variables by Data Block name (from both Instance and Global Data Blocks)
       items.forEach(item => {
-        if (item.db_name === 'DataBlocksInstance') {
-          const browsePath = item.browse_path || '';
-          const dataBlockName = extractDataBlockName(browsePath);
-
-          if (dataBlockName) {
-            if (!dbMap[dataBlockName]) dbMap[dataBlockName] = [];
-            dbMap[dataBlockName].push(item);
-          }
+        if (!isDataBlockItem(item)) return;
+        const dataBlockName = extractDataBlockName(item.browse_path || '', item);
+        if (dataBlockName) {
+          if (!dbMap[dataBlockName]) dbMap[dataBlockName] = [];
+          dbMap[dataBlockName].push(item);
         }
       });
 
@@ -682,11 +698,10 @@
 
     function renderVariablesForDB(dbName) {
       const filtered = allVariables.filter(v => {
-        // Filter by Data Block name from DataBlocksInstance
-        if (v.db_name !== 'DataBlocksInstance') return false;
+        if (!isDataBlockItem(v)) return false;
 
         const browsePath = v.browse_path || '';
-        const dataBlockName = extractDataBlockName(browsePath);
+        const dataBlockName = extractDataBlockName(browsePath, v);
 
         if (dataBlockName !== dbName) return false;
         if (!varFilter.value.trim()) return true;
@@ -704,7 +719,7 @@
       const tree = {};
       filtered.forEach(item => {
         const fullPath = item.browse_path ? item.browse_path.split('.') : [item.variable_name];
-        const path = fullPath.filter(p => p !== 'Inputs' && p !== 'Static');
+        const path = fullPath.filter(p => p !== 'Inputs' && p !== 'Static' && p !== 'DataBlocksGlobal');
 
         let current = tree;
         for (let i = 0; i < path.length - 1; i++) {
