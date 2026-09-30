@@ -155,7 +155,8 @@
       box-shadow: inset 0 0 4px rgba(0,0,0,0.1);
     }
     .var-checkbox { width: 14px; height: 14px; accent-color: var(--button-primary); cursor: pointer; margin: 0; flex-shrink: 0; }
-    .var-name { flex: 0 0 140px; color: var(--fg-primary); font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+    .var-num { flex: 0 0 28px; color: var(--fg-secondary); font-size: 10px; text-align: right; padding-right: 6px; border-right: 1px solid var(--border-color); user-select: none; }
+    .var-name { flex: 0 0 200px; color: var(--fg-primary); font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
     .var-datatype { flex: 0 0 70px; color: var(--fg-secondary); font-family: monospace; font-size: 9px; overflow: hidden; text-overflow: ellipsis; }
     .var-nodeid { flex: 1; color: #666666; font-family: monospace; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .var-settings { display: flex; gap: 4px; flex-shrink: 0; }
@@ -390,10 +391,6 @@
         <div class="variables-panel">
           <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
             <span id="selected-db-name">Выберите Data Block</span>
-            <div style="display: flex; gap: 4px;">
-              <button id="expand-all" style="padding: 4px 8px; font-size: 11px; background: var(--button-tertiary); border-color: var(--button-tertiary); color: white;" title="Развернуть все">▼</button>
-              <button id="collapse-all" style="padding: 4px 8px; font-size: 11px; background: var(--button-tertiary); border-color: var(--button-tertiary); color: white;" title="Свернуть все">▶</button>
-            </div>
           </div>
           <input id="db-filter" placeholder="Поиск в блоке" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid var(--border-color); border-radius: 3px; background: var(--bg-primary); color: var(--fg-primary); font-size: 12px; box-sizing: border-box;" title="Поиск в выбранном Data Block">
           <ul class="tree" id="rows"><li class="empty">Выберите Data Block слева</li></ul>
@@ -424,8 +421,6 @@
     const load = document.querySelector('#load');
     const refresh = document.querySelector('#refresh');
     const save = document.querySelector('#save');
-    const expandAll = document.querySelector('#expand-all');
-    const collapseAll = document.querySelector('#collapse-all');
     const status = document.querySelector('#status');
     const rows = document.querySelector('#rows');
 
@@ -715,85 +710,33 @@
         return;
       }
 
-      // Build tree for this DB
-      const tree = {};
-      filtered.forEach(item => {
-        const fullPath = item.browse_path ? item.browse_path.split('.') : [item.variable_name];
-        const path = fullPath.filter(p => p !== 'Inputs' && p !== 'Static' && p !== 'DataBlocksGlobal');
-
-        let current = tree;
-        for (let i = 0; i < path.length - 1; i++) {
-          const key = path[i];
-          if (!current[key]) current[key] = {};
-          else if (Array.isArray(current[key])) return;
-          current = current[key];
-        }
-        const varKey = path[path.length - 1];
-        if (!current[varKey]) current[varKey] = [];
-        else if (!Array.isArray(current[varKey])) return;
-        current[varKey].push(item);
-      });
-
-      // Render variables
-      function countVars(node) {
-        if (Array.isArray(node)) return node.length;
-        return Object.values(node).reduce((sum, n) => sum + countVars(n), 0);
-      }
-
-      function renderNode(key, node, depth) {
+      // Плоский список как в WinCC: без иерархии, имя относительно Data Block
+      const relName = item => {
+        const p = item.browse_path || '';
+        const i = p.indexOf(dbName + '.');
+        if (i === -1) return item.variable_name;
+        return p.slice(i + dbName.length + 1).split('.').filter(s => s !== 'Inputs' && s !== 'Static').join('.') || item.variable_name;
+      };
+      const sorted = filtered.slice().sort((a, b) => relName(a).localeCompare(relName(b)));
+      rows.replaceChildren(...sorted.map((item, idx) => {
         const li = document.createElement('li');
-        if (Array.isArray(node)) {
-          li.className = 'tree-item var-item';
-          const item = node[0];
-          li.innerHTML = `
-            <input class="var-checkbox select" type="checkbox">
-            <span class="var-name">${item.variable_name}</span>
-            <span class="var-datatype">${item.data_type}</span>
-            <span class="var-nodeid" title="${item.node_id}">${item.node_id}</span>
-            <div class="var-settings">
-              <label><input type="checkbox" class="archive" title="Archive"> A</label>
-              <label><input type="checkbox" class="grafana" title="Grafana"> G</label>
-              <label><input type="checkbox" class="alarm" title="Alarm"> L</label>
-            </div>
-          `;
-          li.dataset.item = JSON.stringify(item[0]);
-        } else {
-          li.className = 'tree-item';
-          const count = countVars(node);
-          const toggle = document.createElement('div');
-          toggle.className = 'db-item expanded';
-          toggle.style.paddingLeft = (depth * 12) + 'px';
-          toggle.textContent = `${key} (${count})`;
-          const folder = document.createElement('ul');
-          folder.className = 'db-items tree visible';
-          folder.replaceChildren(...Object.keys(node).sort().map(k => renderNode(k, node[k], depth + 1)));
-          toggle.addEventListener('click', () => {
-            toggle.classList.toggle('expanded');
-            toggle.classList.toggle('collapsed');
-            folder.classList.toggle('visible');
-          });
-          li.append(toggle, folder);
-        }
+        li.className = 'tree-item var-item';
+        li.dataset.item = JSON.stringify(item);
+        li.innerHTML = `
+          <span class="var-num">${idx + 1}</span>
+          <input class="var-checkbox select" type="checkbox" title="Выбрать переменную для сохранения в БД">
+          <span class="var-name" title="${relName(item)}">${relName(item)}</span>
+          <span class="var-datatype" title="Тип данных переменной">${item.data_type}</span>
+          <span class="var-nodeid" title="${item.node_id}">${item.node_id}</span>
+          <div class="var-settings">
+            <label title="Архивировать значения переменной в БД"><input type="checkbox" class="archive"> A</label>
+            <label title="Показывать переменную на графиках Grafana"><input type="checkbox" class="grafana"> G</label>
+            <label title="Включить аварийное оповещение по переменной"><input type="checkbox" class="alarm"> L</label>
+          </div>
+        `;
         return li;
-      }
-      rows.replaceChildren(...Object.keys(tree).sort().map(k => renderNode(k, tree[k], 0)));
+      }));
     }
-
-    function toggleAllDbs(expand = true) {
-      [...rows.querySelectorAll('.db-item')].forEach(item => {
-        const list = item.nextElementSibling;
-        if (expand) {
-          item.classList.add('expanded');
-          item.classList.remove('collapsed');
-          list.classList.add('visible');
-        } else {
-          item.classList.remove('expanded');
-          item.classList.add('collapsed');
-          list.classList.remove('visible');
-        }
-      });
-    }
-
     const dbList = document.querySelector('#db-list');
     const dbSearch = document.querySelector('#db-search');
     const sortToggle = document.querySelector('#sort-toggle');
@@ -851,8 +794,6 @@
 
     load.addEventListener('click', () => loadVariables(false));
     refresh.addEventListener('click', () => loadVariables(true));
-    expandAll.addEventListener('click', () => toggleAllDbs(true));
-    collapseAll.addEventListener('click', () => toggleAllDbs(false));
     plc.addEventListener('change', () => loadVariables(false));
 
     // Data Block search
