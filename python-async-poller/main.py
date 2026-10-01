@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import signal
 from uuid import uuid4
@@ -13,6 +14,7 @@ from aiohttp import web
 from checker import TagChecker
 from config import load_settings
 from database import Database
+from kpi_collector import BodyEventLogger, KpiCollector
 from models import DigitalTelemetryPoint, Plc
 from opc_client import PlcOpcClient
 
@@ -426,7 +428,45 @@ async def _async_main() -> None:
         except Exception as exc:
             return web.json_response({"detail": f"{exc.__class__.__name__}: {exc}"}, status=502)
 
+    async def plan_day_handler(request: web.Request) -> web.Response:
+        """Запись плана на день: пишется только переменная plan_day из привязки экрана Finish Line."""
+        try:
+            screen_id = int(request.match_info["screen_id"])
+            value = int((await request.json())["value"])
+        except Exception:
+            return web.json_response({"detail": "Некорректный запрос"}, status=400)
+        if not 0 <= value <= 500:
+            return web.json_response({"detail": "План должен быть от 0 до 500"}, status=400)
+        row = await db.get_pool().fetchrow(
+            "SELECT plc_id, template, bindings FROM kpi_screens WHERE id = $1", screen_id
+        )
+        if row is None or row["template"] != "fl_counter":
+            return web.json_response({"detail": "Экран не найден или не поддерживает запись плана"}, status=404)
+        raw = row["bindings"]
+        bindings = json.loads(raw) if isinstance(raw, str) else dict(raw or {})
+        node_id = bindings.get("plan_day")
+        if not node_id:
+            return web.json_response({"detail": "У экрана не задана переменная плана на день"}, status=422)
+        client = service._clients.get(row["plc_id"])
+        if client is None:
+            return web.json_response({"detail": "ПЛК не подключён"}, status=404)
+        try:
+            result = await client.write_int(node_id, value)
+            interval_plan = None
+            if bindings.get("iplan"):
+                await asyncio.sleep(1.0)
+                read = await client.read_values([bindings["iplan"]])
+                item = read.get(bindings["iplan"], {})
+                interval_plan = item.get("v") if item.get("ok") else None
+            log.warning("Запись плана на день: экран %s, ПЛК %s, %s -> %s (прочитано %s)",
+                        screen_id, row["plc_id"], result["old"], value, result["readback"])
+            return web.json_response({**result, "node_id": node_id, "interval_plan": interval_plan})
+        except Exception as exc:
+            log.exception("Запись плана на день не выполнена")
+            return web.json_response({"detail": f"{exc.__class__.__name__}: {exc}"}, status=502)
+
     browse_app = web.Application()
+    browse_app.router.add_post("/internal/kpi/screens/{screen_id}/plan-day", plan_day_handler)
     browse_app.router.add_post("/internal/plcs/{plc_id}/opcua/values", values_handler)
     browse_app.router.add_get("/internal/plcs/{plc_id}/opcua/node-info", node_info_handler)
     browse_app.router.add_get("/internal/plcs/{plc_id}/opcua/variables", browse_handler)
@@ -441,9 +481,19 @@ async def _async_main() -> None:
         with suppress(NotImplementedError):
             loop.add_signal_handler(sig, service.request_stop)
 
+    kpi_tasks = [
+        asyncio.create_task(KpiCollector(db.get_pool, lambda: service._clients, service._stop).run()),
+        asyncio.create_task(BodyEventLogger(db.get_pool, lambda: service._clients, service._stop).run()),
+    ]
+
     try:
         await service.run()
     finally:
+        for task in kpi_tasks:
+            task.cancel()
+        for task in kpi_tasks:
+            with suppress(asyncio.CancelledError):
+                await task
         await service._shutdown_workers()
         await browse_runner.cleanup()
         await db.close()

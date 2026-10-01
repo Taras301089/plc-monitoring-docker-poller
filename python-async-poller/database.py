@@ -169,6 +169,10 @@ class Database:
             await self._pool.close()
             self._pool = None
 
+    def get_pool(self) -> asyncpg.Pool:
+        """Пул соединений для модулей, которым нужны собственные запросы (например, сборщик KPI)."""
+        return self._pool_or_fail()
+
     def _pool_or_fail(self) -> asyncpg.Pool:
         """Проверка наличия активного пула соединений."""
         if self._pool is None:

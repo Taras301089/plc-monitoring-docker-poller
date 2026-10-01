@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
@@ -9,10 +10,12 @@ from typing import Any
 
 import asyncpg
 import httpx
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+
+from auth import ensure_auth_schema, require_user, router as auth_router
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
@@ -54,9 +57,170 @@ async def get_pool(app: FastAPI) -> asyncpg.Pool:
     return pool
 
 
+BODY_COUNTER_ROLES = {
+    "tot": "stat_Total_Current_Day",
+    "prod": "stat_Hourly_Production",
+    "tMin": "stat_Hourly_Takt_Min",
+    "tSec": "stat_Hourly_Takt_Sec",
+    "starts": "stat_Start_Minutes",
+    "idx": "stat_Current_Index",
+    "curMin": "stat_Current_Takt_Min",
+    "curSec": "stat_Current_Takt_Sec",
+    "shMin": "stat_Shift_Takt_Min",
+    "shSec": "stat_Shift_Takt_Sec",
+}
+
+
+async def ensure_kpi_schema(pool: asyncpg.Pool) -> None:
+    """Таблицы экранов Andon/KPI; при первом запуске переносит старое расписание (ПЛК + линия) на экраны."""
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS kpi_screens (
+                    id         SERIAL PRIMARY KEY,
+                    name       TEXT    NOT NULL,
+                    plc_id     INTEGER NOT NULL REFERENCES plcs(id) ON DELETE CASCADE,
+                    template   TEXT    NOT NULL DEFAULT 'body_counter',
+                    db_name    TEXT    NOT NULL DEFAULT '',
+                    bindings   JSONB   NOT NULL DEFAULT '{}'::jsonb,
+                    sort_order INTEGER NOT NULL DEFAULT 0,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    UNIQUE (plc_id, name)
+                )
+                """
+            )
+            await conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS kpi_hourly (
+                    screen_id  INTEGER NOT NULL REFERENCES kpi_screens(id) ON DELETE CASCADE,
+                    prod_date  DATE    NOT NULL,
+                    idx        INTEGER NOT NULL,
+                    start_min  INTEGER NOT NULL,
+                    end_min    INTEGER,
+                    plan       INTEGER NOT NULL DEFAULT 0,
+                    fact       INTEGER NOT NULL DEFAULT 0,
+                    takt_sec   INTEGER,
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    PRIMARY KEY (screen_id, prod_date, idx)
+                )
+                """
+            )
+            await conn.execute("CREATE INDEX IF NOT EXISTS ix_kpi_hourly_date ON kpi_hourly (prod_date)")
+            await conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS kpi_body_events (
+                    id            BIGSERIAL PRIMARY KEY,
+                    screen_id     INTEGER NOT NULL REFERENCES kpi_screens(id) ON DELETE CASCADE,
+                    ts            TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    prod_date     DATE NOT NULL,
+                    interval_idx  INTEGER,
+                    kind          TEXT NOT NULL,
+                    model         TEXT,
+                    model_now     TEXT,
+                    model_age_sec INTEGER,
+                    delta         INTEGER NOT NULL DEFAULT 0,
+                    total_after   INTEGER
+                )
+                """
+            )
+            await conn.execute("CREATE INDEX IF NOT EXISTS ix_kpi_body_events_screen_ts ON kpi_body_events (screen_id, ts)")
+            await conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS kpi_plan_writes (
+                    id             BIGSERIAL PRIMARY KEY,
+                    ts             TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    screen_id      INTEGER REFERENCES kpi_screens(id) ON DELETE SET NULL,
+                    screen_name    TEXT NOT NULL,
+                    plc_id         INTEGER,
+                    node_id        TEXT NOT NULL,
+                    user_id        INTEGER,
+                    user_name      TEXT NOT NULL,
+                    old_value      INTEGER,
+                    new_value      INTEGER NOT NULL,
+                    readback_value INTEGER,
+                    ok             BOOLEAN NOT NULL,
+                    error          TEXT
+                )
+                """
+            )
+            await conn.execute("CREATE INDEX IF NOT EXISTS ix_kpi_plan_writes_screen_ts ON kpi_plan_writes (screen_id, ts DESC)")
+            table_exists = await conn.fetchval("SELECT to_regclass('public.kpi_schedule') IS NOT NULL")
+            if not table_exists:
+                await conn.execute(
+                    """
+                    CREATE TABLE kpi_schedule (
+                        screen_id  INTEGER NOT NULL REFERENCES kpi_screens(id) ON DELETE CASCADE,
+                        idx        INTEGER NOT NULL,
+                        end_min    INTEGER NOT NULL,
+                        plan       INTEGER NOT NULL DEFAULT 0,
+                        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                        PRIMARY KEY (screen_id, idx)
+                    )
+                    """
+                )
+                return
+            has_line = await conn.fetchval(
+                "SELECT EXISTS (SELECT 1 FROM information_schema.columns "
+                "WHERE table_schema = 'public' AND table_name = 'kpi_schedule' AND column_name = 'line')"
+            )
+            if not has_line:
+                return
+            await conn.execute(
+                "ALTER TABLE kpi_schedule ADD COLUMN IF NOT EXISTS screen_id INTEGER "
+                "REFERENCES kpi_screens(id) ON DELETE CASCADE"
+            )
+            pairs = await conn.fetch("SELECT DISTINCT plc_id, line FROM kpi_schedule ORDER BY plc_id, line")
+            names = list(BODY_COUNTER_ROLES.values())
+            for n, pair in enumerate(pairs):
+                plc_id, line = pair["plc_id"], pair["line"]
+                db_name = await conn.fetchval(
+                    "SELECT db_name FROM plc_discovered_nodes WHERE plc_id = $1 AND node_class = 'Object' "
+                    "AND db_name ILIKE $2 ORDER BY db_name LIMIT 1",
+                    plc_id,
+                    f"{line}\\_counting%hours%",
+                )
+                bindings: dict[str, str] = {}
+                if db_name:
+                    rows = await conn.fetch(
+                        "SELECT variable_name, node_id FROM plc_discovered_nodes WHERE plc_id = $1 "
+                        "AND position($2 in browse_path) > 0 AND node_class = 'Variable' AND variable_name = ANY($3::text[])",
+                        plc_id,
+                        db_name,
+                        names,
+                    )
+                    by_name = {r["variable_name"]: r["node_id"] for r in rows}
+                    bindings = {role: by_name[v] for role, v in BODY_COUNTER_ROLES.items() if v in by_name}
+                screen_id = await conn.fetchval(
+                    """
+                    INSERT INTO kpi_screens (name, plc_id, template, db_name, bindings, sort_order)
+                    VALUES ($1, $2, 'body_counter', $3, $4::jsonb, $5)
+                    ON CONFLICT (plc_id, name) DO UPDATE SET name = EXCLUDED.name
+                    RETURNING id
+                    """,
+                    line,
+                    plc_id,
+                    db_name or "",
+                    json.dumps(bindings),
+                    n,
+                )
+                await conn.execute(
+                    "UPDATE kpi_schedule SET screen_id = $1 WHERE plc_id = $2 AND line = $3",
+                    screen_id,
+                    plc_id,
+                    line,
+                )
+            await conn.execute("ALTER TABLE kpi_schedule DROP CONSTRAINT IF EXISTS kpi_schedule_pkey")
+            await conn.execute("ALTER TABLE kpi_schedule DROP COLUMN plc_id, DROP COLUMN line")
+            await conn.execute("ALTER TABLE kpi_schedule ALTER COLUMN screen_id SET NOT NULL")
+            await conn.execute("ALTER TABLE kpi_schedule ADD PRIMARY KEY (screen_id, idx)")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
+    await ensure_kpi_schema(app.state.pool)
+    await ensure_auth_schema(app.state.pool)
     try:
         yield
     finally:
@@ -64,6 +228,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="PLC Monitoring API", version="0.1.0", lifespan=lifespan)
+app.include_router(auth_router)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
@@ -176,6 +341,199 @@ async def plc_scan_meta(plc_id: int) -> dict[str, Any]:
     )
     ts = row["last_scan_at"]
     return {"last_scan_at": ts.isoformat() if ts else None, "total": row["total"]}
+
+
+class KpiItem(BaseModel):
+    idx: int = Field(ge=1, le=48)
+    end_min: int = Field(ge=0, le=2880)
+    plan: int = Field(ge=0, le=100000)
+
+
+class KpiScheduleRequest(BaseModel):
+    line: str = Field(min_length=1, max_length=100)
+    items: list[KpiItem] = Field(default_factory=list, max_length=48)
+
+
+class KpiScreenBody(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    plc_id: int
+    template: str = Field(default="body_counter", pattern="^[a-z_]{1,40}$")
+    db_name: str = Field(default="", max_length=300)
+    bindings: dict[str, str] = Field(default_factory=dict, max_length=60)
+    sort_order: int = Field(default=0, ge=0, le=10000)
+
+
+def _screen_dict(row: asyncpg.Record) -> dict[str, Any]:
+    d = dict(row)
+    b = d.get("bindings")
+    d["bindings"] = json.loads(b) if isinstance(b, str) else (b or {})
+    d.pop("created_at", None)
+    return d
+
+
+_SCREEN_SELECT = (
+    "SELECT s.id, s.name, s.plc_id, p.name AS plc_name, s.template, s.db_name, s.bindings, s.sort_order "
+    "FROM kpi_screens s JOIN plcs p ON p.id = s.plc_id"
+)
+
+
+@app.get("/api/kpi/screens")
+async def list_kpi_screens() -> list[dict[str, Any]]:
+    pool = await get_pool(app)
+    rows = await pool.fetch(f"{_SCREEN_SELECT} ORDER BY s.sort_order, s.id")
+    return [_screen_dict(r) for r in rows]
+
+
+async def _write_screen(pool: asyncpg.Pool, body: KpiScreenBody, screen_id: int | None) -> dict[str, Any]:
+    if not await pool.fetchval("SELECT EXISTS(SELECT 1 FROM plcs WHERE id = $1)", body.plc_id):
+        raise HTTPException(status_code=404, detail="ПЛК не найден")
+    try:
+        if screen_id is None:
+            new_id = await pool.fetchval(
+                "INSERT INTO kpi_screens (name, plc_id, template, db_name, bindings, sort_order) "
+                "VALUES ($1, $2, $3, $4, $5::jsonb, $6) RETURNING id",
+                body.name, body.plc_id, body.template, body.db_name, json.dumps(body.bindings), body.sort_order,
+            )
+        else:
+            new_id = await pool.fetchval(
+                "UPDATE kpi_screens SET name = $2, plc_id = $3, template = $4, db_name = $5, "
+                "bindings = $6::jsonb, sort_order = $7 WHERE id = $1 RETURNING id",
+                screen_id, body.name, body.plc_id, body.template, body.db_name, json.dumps(body.bindings), body.sort_order,
+            )
+            if new_id is None:
+                raise HTTPException(status_code=404, detail="Экран не найден")
+    except asyncpg.UniqueViolationError as exc:
+        raise HTTPException(status_code=409, detail="Экран с таким названием на этом ПЛК уже есть") from exc
+    row = await pool.fetchrow(f"{_SCREEN_SELECT} WHERE s.id = $1", new_id)
+    return _screen_dict(row)
+
+
+@app.post("/api/kpi/screens", status_code=201)
+async def create_kpi_screen(body: KpiScreenBody) -> dict[str, Any]:
+    return await _write_screen(await get_pool(app), body, None)
+
+
+@app.put("/api/kpi/screens/{screen_id}")
+async def update_kpi_screen(screen_id: int, body: KpiScreenBody) -> dict[str, Any]:
+    return await _write_screen(await get_pool(app), body, screen_id)
+
+
+@app.delete("/api/kpi/screens/{screen_id}")
+async def delete_kpi_screen(screen_id: int) -> dict[str, str]:
+    pool = await get_pool(app)
+    result = await pool.execute("DELETE FROM kpi_screens WHERE id = $1", screen_id)
+    if result == "DELETE 0":
+        raise HTTPException(status_code=404, detail="Экран не найден")
+    return {"status": "ok"}
+
+
+class KpiScreenScheduleRequest(BaseModel):
+    items: list[KpiItem] = Field(default_factory=list, max_length=48)
+
+
+@app.get("/api/kpi/screens/{screen_id}/schedule")
+async def get_screen_schedule(screen_id: int) -> list[dict[str, Any]]:
+    pool = await get_pool(app)
+    rows = await pool.fetch(
+        "SELECT idx, end_min, plan FROM kpi_schedule WHERE screen_id = $1 ORDER BY idx", screen_id
+    )
+    return [dict(r) for r in rows]
+
+
+@app.put("/api/kpi/screens/{screen_id}/schedule")
+async def put_screen_schedule(screen_id: int, request: KpiScreenScheduleRequest) -> dict[str, int]:
+    pool = await get_pool(app)
+    if not await pool.fetchval("SELECT EXISTS(SELECT 1 FROM kpi_screens WHERE id = $1)", screen_id):
+        raise HTTPException(status_code=404, detail="Экран не найден")
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute("DELETE FROM kpi_schedule WHERE screen_id = $1", screen_id)
+            await conn.executemany(
+                "INSERT INTO kpi_schedule (screen_id, idx, end_min, plan) VALUES ($1, $2, $3, $4)",
+                [(screen_id, it.idx, it.end_min, it.plan) for it in request.items],
+            )
+    return {"saved": len(request.items)}
+
+
+# Совместимость со старым интерфейсом (ПЛК + название линии) до перехода вкладки Andon на экраны
+@app.get("/api/plcs/{plc_id}/kpi/schedule")
+async def get_kpi_schedule(plc_id: int, line: str = Query(min_length=1)) -> list[dict[str, Any]]:
+    pool = await get_pool(app)
+    rows = await pool.fetch(
+        "SELECT k.idx, k.end_min, k.plan FROM kpi_schedule k JOIN kpi_screens s ON s.id = k.screen_id "
+        "WHERE s.plc_id = $1 AND s.name = $2 ORDER BY k.idx",
+        plc_id,
+        line,
+    )
+    return [dict(r) for r in rows]
+
+
+@app.put("/api/plcs/{plc_id}/kpi/schedule")
+async def put_kpi_schedule(plc_id: int, request: KpiScheduleRequest) -> dict[str, int]:
+    pool = await get_pool(app)
+    screen_id = await pool.fetchval(
+        "SELECT id FROM kpi_screens WHERE plc_id = $1 AND name = $2", plc_id, request.line
+    )
+    if screen_id is None:
+        raise HTTPException(status_code=404, detail="Экран не найден: сначала создайте его")
+    return await put_screen_schedule(screen_id, KpiScreenScheduleRequest(items=request.items))
+
+
+class PlanDayBody(BaseModel):
+    value: int = Field(ge=0, le=500)
+
+
+@app.post("/api/kpi/screens/{screen_id}/plan-day")
+async def write_plan_day(screen_id: int, body: PlanDayBody, user: dict[str, Any] = Depends(require_user)) -> dict[str, Any]:
+    """Запись плана на день в ПЛК: только вошедшие пользователи (кроме роли «Просмотр»), каждая запись попадает в журнал."""
+    if user["role"] == "viewer":
+        raise HTTPException(status_code=403, detail="У вашей роли нет права менять план")
+    pool = await get_pool(app)
+    screen = await pool.fetchrow(
+        "SELECT id, name, plc_id, template, bindings FROM kpi_screens WHERE id = $1", screen_id
+    )
+    if screen is None or screen["template"] != "fl_counter":
+        raise HTTPException(status_code=404, detail="Экран не найден или не поддерживает запись плана")
+    raw = screen["bindings"]
+    node_id = (json.loads(raw) if isinstance(raw, str) else dict(raw or {})).get("plan_day", "")
+    ok, error, result = False, None, {}
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(20.0, connect=5.0)) as client:
+            response = await client.post(
+                f"{POLLER_URL}/internal/kpi/screens/{screen_id}/plan-day", json={"value": body.value}
+            )
+        result = response.json()
+        if response.status_code >= 400:
+            error = result.get("detail", "Ошибка записи")
+        elif result.get("readback") != body.value:
+            error = f"ПЛК вернул другое значение: {result.get('readback')}"
+        else:
+            ok = True
+    except httpx.HTTPError as exc:
+        error = f"Поллер недоступен: {exc}"
+    await pool.execute(
+        "INSERT INTO kpi_plan_writes (screen_id, screen_name, plc_id, node_id, user_id, user_name, "
+        "old_value, new_value, readback_value, ok, error) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+        screen_id, screen["name"], screen["plc_id"], node_id, user["id"], user["full_name"],
+        result.get("old") if isinstance(result.get("old"), int) else None,
+        body.value,
+        result.get("readback") if isinstance(result.get("readback"), int) else None,
+        ok, error,
+    )
+    if not ok:
+        raise HTTPException(status_code=502, detail=error or "Не удалось записать план")
+    return {"old": result.get("old"), "new": body.value, "readback": result.get("readback"), "interval_plan": result.get("interval_plan")}
+
+
+@app.get("/api/kpi/screens/{screen_id}/plan-writes")
+async def list_plan_writes(screen_id: int, limit: int = Query(default=20, ge=1, le=200)) -> list[dict[str, Any]]:
+    pool = await get_pool(app)
+    rows = await pool.fetch(
+        "SELECT ts, user_name, old_value, new_value, readback_value, ok, error FROM kpi_plan_writes "
+        "WHERE screen_id = $1 ORDER BY ts DESC LIMIT $2",
+        screen_id, limit,
+    )
+    return [{**dict(r), "ts": r["ts"].isoformat()} for r in rows]
 
 
 class ReadValuesRequest(BaseModel):

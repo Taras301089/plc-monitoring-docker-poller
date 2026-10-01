@@ -458,6 +458,83 @@
     .plc-add:hover { color: var(--ok) !important; }
     .plc-delete:hover { color: var(--danger) !important; background: color-mix(in srgb, var(--danger) 15%, transparent) !important; }
 
+    /* Andon / KPI */
+    #andon.active { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: auto; }
+    .andon-top { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; flex-wrap: wrap; }
+    .andon-lines { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
+    .andon-chip { min-height: 32px; padding: 0 14px; font-size: 12px; font-weight: 600; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line), 0 1px 2px rgba(0,0,0,.3); }
+    .andon-chip.active { background: var(--accent) !important; color: #fff; box-shadow: 0 0 0 1px var(--accent), 0 2px 8px color-mix(in srgb, var(--accent) 45%, transparent); }
+    .andon-chip small { margin-left: 8px; font: 700 11px Consolas, monospace; opacity: .85; }
+    .andon-edit { min-height: 32px; padding: 0 14px; font-size: 12px; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); }
+    .andon-body { flex: 1; min-height: 0; }
+    .andon-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 14px; align-items: start; }
+    .andon-side { display: flex; flex-direction: column; gap: 12px; }
+    .tile { background: var(--bg-primary); border-radius: 8px; padding: 12px 14px; box-shadow: var(--shadow-out); }
+    .tile label { display: block; margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-secondary); }
+    .tile b { display: block; font: 700 34px Consolas, 'Courier New', monospace; color: var(--fg-primary); text-align: center; background: var(--bg-secondary); border-radius: 6px; padding: 6px 4px; box-shadow: var(--shadow-in); }
+    .tile small { display: block; margin-top: 6px; font-size: 10px; color: var(--fg-secondary); text-align: center; }
+    .andon-clockbox { text-align: center; padding: 6px 0; }
+    .andon-date { font: 600 30px 'Segoe UI', sans-serif; color: var(--fg-primary); }
+    .andon-time { font: 700 34px Consolas, monospace; color: var(--accent); margin-top: 4px; }
+    .andon-main { min-width: 0; }
+    .andon-h { margin: 0 0 10px; font-size: 16px; font-weight: 700; padding: 10px 14px; background: var(--bg-primary); border-radius: 8px; box-shadow: var(--shadow-out); }
+    .kpi-table { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--bg-primary); border-radius: 8px; overflow: hidden; box-shadow: var(--shadow-out); }
+    .kpi-table th { padding: 8px 10px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-secondary); background: var(--bg-secondary); text-align: center; border-bottom: 1px solid var(--line); }
+    .kpi-table td { padding: 0 10px; height: 36px; text-align: center; font: 600 16px Consolas, 'Courier New', monospace; border-bottom: 1px solid var(--line); }
+    .kpi-table td.n { color: var(--fg-secondary); font-size: 12px; width: 44px; }
+    .kpi-table td.time { font-size: 16px; white-space: nowrap; }
+    .kpi-table td.dim { color: var(--fg-secondary); font-weight: 400; }
+    .kpi-table tbody tr:nth-child(even) { background: var(--zebra); }
+    .kpi-table tr.now { background: color-mix(in srgb, var(--ok) 18%, transparent) !important; box-shadow: inset 3px 0 0 var(--ok); }
+    .kpi-table tr.future td { color: var(--fg-secondary); }
+    .kpi-table td.fact { position: relative; }
+    .kpi-table td.delta { width: 64px; font-size: 14px; }
+    .kpi-table .pos { color: var(--ok); }
+    .kpi-table .neg { color: var(--danger); }
+    .kpi-table tfoot td { background: var(--bg-secondary); font-weight: 700; height: 40px; border-bottom: 0; }
+    .kpi-table tfoot td.lbl { font: 700 14px 'Segoe UI', sans-serif; text-transform: uppercase; letter-spacing: .05em; }
+    .kpi-modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); }
+    .kpi-modal-box { width: min(560px, 94vw); max-height: 90vh; overflow: auto; background: var(--bg-primary); border-radius: 10px; box-shadow: 0 0 0 1px var(--line), 0 20px 50px rgba(0,0,0,.6); padding: 16px; }
+    .kpi-modal-box h3 { margin: 0 0 4px; font-size: 16px; }
+    .kpi-modal-box p { margin: 0 0 12px; font-size: 12px; color: var(--fg-secondary); }
+    .kpi-modal-box table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    .kpi-modal-box th { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--fg-secondary); text-align: center; padding: 4px; }
+    .kpi-modal-box td { padding: 3px 4px; text-align: center; font-size: 13px; }
+    .kpi-modal-box input { width: 100%; min-height: 28px; text-align: center; padding: 0 6px; font-size: 13px; }
+    .kpi-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    @keyframes blinkConfirm {
+      0%, 100% { background: var(--ok); color: #0b1f17; box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 70%, transparent); }
+      50% { background: var(--warn); color: #2b1d00; box-shadow: 0 0 0 7px color-mix(in srgb, var(--warn) 0%, transparent), 0 0 14px color-mix(in srgb, var(--warn) 80%, transparent); }
+    }
+    .blink-confirm { animation: blinkConfirm .9s ease-in-out infinite; font-weight: 700; }
+    .blink-confirm:disabled { animation: none; }
+    .kpi-table td.plan-cell { position: relative; }
+    .kpi-table td.plan-edit { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 5px; }
+    .kpi-table td.plan-edit::after { content: ' ✎'; font-size: .6em; color: var(--accent); }
+    .kpi-table td.plan-edit:hover { background: var(--hover); }
+
+    /* Andon: крупный режим для производства — заполняет высоту окна, ширина ограничена */
+    #andon.active { overflow: hidden; }
+    .andon-layout { height: 100%; max-width: 1600px; margin: 0 auto; grid-template-columns: minmax(320px, 32%) minmax(0, 1fr); align-items: stretch; }
+    .andon-side { justify-content: flex-start; container-type: inline-size; }
+    .andon-main { display: flex; flex-direction: column; min-height: 0; }
+    .andon-h { flex: none; font-size: clamp(16px, 2.6vh, 32px); padding: 1.2vh 14px; }
+    .kpi-wrap { flex: 1; min-height: 0; }
+    .kpi-table { height: 100%; table-layout: fixed; }
+    .kpi-table th { font-size: clamp(10px, 1.5vh, 17px); padding: 0 6px; height: 1px; }
+    .kpi-table td { font-size: clamp(13px, min(2.9vh, 1.9vw), 40px); }
+    .kpi-table td.n { font-size: clamp(10px, min(1.7vh, 1.2vw), 20px); width: auto; }
+    .kpi-table td.time { font-size: clamp(13px, min(2.9vh, 1.75vw), 38px); }
+    .kpi-table td.delta { width: auto; font-size: clamp(12px, min(2.6vh, 1.7vw), 36px); }
+    .kpi-table tfoot td { height: 1px; }
+    .kpi-table tfoot td.lbl { font-size: clamp(13px, 2.2vh, 28px); }
+    .tile b { font-size: clamp(30px, 15.5cqw, 110px); }
+    .tile label { font-size: clamp(10px, 1.5vh, 16px); }
+    .andon-clockbox { padding-top: 3vh; }
+    .andon-date { font-size: clamp(24px, 15.5cqw, 110px); line-height: 1.1; }
+    .andon-time { font-size: clamp(30px, 19.5cqw, 150px); letter-spacing: 0; line-height: 1.1; margin-top: 1vh; white-space: nowrap; }
+    @media (max-width: 900px) { .andon-layout { grid-template-columns: 1fr; height: auto; } .kpi-table { height: auto; } }
+
     /* Значения в реальном времени */
     .variables-panel .var-value { font-family: Consolas, 'Courier New', monospace; font-size: 11px; color: var(--vt-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .variables-panel .var-value.bool { justify-self: start; padding: 0 8px; border-radius: 9px; font-size: 10px; font-weight: 700; line-height: 15px; letter-spacing: .04em; }
@@ -543,6 +620,7 @@
     #refresh { background: var(--button-secondary) !important; }
     #save { background: var(--button-primary); }
   </style>
+  <link rel="stylesheet" href="/static/auth.css">
 </head>
 <body>
   <nav class="tabs">
@@ -550,8 +628,11 @@
     <button class="tab" data-tab="saved" title="Переменные сохранённые в базе данных для дальнейшего анализа и мониторинга">💾 Переменные БД</button>
     <button class="tab" data-tab="charts" title="Графики и визуализация исторических данных переменных">📈 Графики</button>
     <button class="tab" data-tab="notifications" title="Параметры подключения к ПЛК и настройки оповещений">🔔 Оповещения</button>
+    <button class="tab" data-tab="andon" title="Dashboard. Информационная панель Andon / KPI: почасовые счётчики кузовов, такт-тайм и показатели производства в реальном времени">📺 Andon / KPI</button>
+    <button class="tab" data-tab="users" id="tab-users" hidden title="Пользователи системы: создание учётных записей, роли, сброс паролей (только для администратора)">👥 Пользователи</button>
     <div class="tabs-divider"></div>
     <div class="tabs-tools">
+      <div id="auth-box" class="auth-wrap"></div>
       <button id="theme-toggle" class="theme-toggle" title="Переключить между тёмной и светлой темой (сохраняется автоматически)">🌙</button>
       <a href="reference.html" class="tab" style="text-decoration: none; display: flex; align-items: center;" title="Справочная информация о системе, архитектуре и развёртывании">📖 Справка</a>
     </div>
@@ -653,6 +734,19 @@
     <!-- TAB 3: Charts -->
     <div id="charts" class="tab-content">
       <p style="color: var(--fg-secondary); font-size: 13px;">Графики будут показаны здесь</p>
+    </div>
+
+    <!-- TAB 6: Users (admin) -->
+    <div id="users" class="tab-content"></div>
+
+    <!-- TAB 5: Andon / KPI Dashboard -->
+    <div id="andon" class="tab-content">
+      <div class="andon-top">
+        <div class="andon-lines" id="andon-lines" role="tablist" title="Производственные линии выбранного ПЛК: нажмите, чтобы открыть показатели линии"></div>
+        <span id="andon-badge" class="live-badge off" title="Данные читаются из ПЛК раз в секунду, пока открыта эта вкладка">● пауза</span>
+        <button type="button" id="andon-edit" class="andon-edit" title="Настроить время окончания часовых интервалов смены и плановое количество кузовов по интервалам для выбранной линии">⚙ Смена и план</button>
+      </div>
+      <div id="andon-body" class="andon-body"><div class="empty">Выберите ПЛК на вкладке «Переменные ПЛК»</div></div>
     </div>
 
     <!-- TAB 4: Alerts & Notifications -->
@@ -1330,6 +1424,434 @@
     }
     setInterval(liveTick, 1000);
 
+    // ===== Andon / KPI: экраны из БД (kpi_screens), не зависят от ПЛК на первой вкладке =====
+    const andonBody = document.querySelector('#andon-body');
+    const andonBadge = document.querySelector('#andon-badge');
+    const andonChips = document.querySelector('#andon-lines');
+    let andonScreens = [];     // [{ id, name, plc_id, plc_name, bindings }]
+    let andonScreenId = null;  // выбранный экран
+    let andonLoadedAt = 0;
+    let andonLoading = false;
+    let andonBusy = false;
+    let andonBuilt = '';
+    let andonLast = null;      // { starts, n } выбранного экрана
+    let andonMsg = '';
+    const andonCfg = {};       // screenId -> [{idx,end_min,plan}]
+    let andonCfgVer = 0;
+    const pad2 = n => String(n).padStart(2, '0');
+    const hhmm = m => `${pad2(Math.floor(m / 60) % 24)}:${pad2(m % 60)}`;
+    const mmss = (m, s) => (m >= 60 ? `${Math.floor(m / 60)}:${pad2(m % 60)}:${pad2(s)}` : `${m}:${pad2(s)}`);
+    try { const saved = Number(localStorage.getItem('andonScreen')); if (saved) andonScreenId = saved; } catch { /* нет доступа к localStorage */ }
+
+    async function loadKpiCfg(screenId, force = false) {
+      if (andonCfg[screenId] && !force) return;
+      try {
+        const r = await fetch(`/api/kpi/screens/${screenId}/schedule`);
+        andonCfg[screenId] = r.ok ? await r.json() : [];
+      } catch { andonCfg[screenId] = []; }
+      andonCfgVer++;
+    }
+
+    // Окончание интервала по умолчанию — начало следующего (для последнего +30 мин), план 0
+    function intervalCfg(screenId, i, starts) {
+      const c = (andonCfg[screenId] || []).find(x => x.idx === i + 1);
+      const end = c ? c.end_min : (starts[i + 1] !== undefined ? starts[i + 1] : (starts[i] || 0) + 30);
+      return { end, plan: c ? c.plan : 0 };
+    }
+
+    function selectedScreen() { return andonScreens.find(s => s.id === andonScreenId) || null; }
+
+    function showAndonMessage(text) {
+      if (andonMsg === text) return;
+      andonMsg = text;
+      andonBuilt = '';
+      andonBody.innerHTML = `<div class="empty">${text}</div>`;
+    }
+
+    function renderAndonChips() {
+      andonChips.replaceChildren(...andonScreens.map(s => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'andon-chip' + (s.id === andonScreenId ? ' active' : '');
+        b.dataset.screen = String(s.id);
+        b.title = `Экран «${s.name}» (ПЛК ${s.plc_name}): часовой план и фактический выпуск кузовов, такт-тайм`;
+        b.innerHTML = `${s.name}${s.template === 'fl_counter' ? '' : ' KPI'}<small data-k="chipTot"></small>`;
+        b.addEventListener('click', () => {
+          andonScreenId = s.id; andonBuilt = ''; andonLast = null; andonMsg = '';
+          try { localStorage.setItem('andonScreen', String(s.id)); } catch { /* не критично */ }
+          renderAndonChips();
+          loadKpiCfg(s.id);
+        });
+        return b;
+      }));
+    }
+
+    async function loadAndonScreens() {
+      if (andonLoading) return;
+      andonLoading = true;
+      try {
+        const r = await fetch('/api/kpi/screens');
+        if (!r.ok) throw new Error('screens');
+        const list = (await r.json()).filter(s => s.template === 'body_counter' || s.template === 'fl_counter');
+        const sig = arr => JSON.stringify(arr.map(s => [s.id, s.name, s.plc_id, s.bindings]));
+        const changed = sig(list) !== sig(andonScreens);
+        andonScreens = list;
+        if (!list.some(s => s.id === andonScreenId)) andonScreenId = list[0] ? list[0].id : null;
+        if (changed) {
+          andonBuilt = ''; andonMsg = '';
+          renderAndonChips();
+          if (andonScreenId) loadKpiCfg(andonScreenId);
+        }
+        andonLoadedAt = Date.now();
+      } catch { /* повторим на следующем тике */ } finally { andonLoading = false; }
+    }
+
+    function buildKpiLayout(screen, n) {
+      andonBody.innerHTML = `
+        <div class="andon-layout">
+          <aside class="andon-side">
+            <div class="tile" title="Время, прошедшее с момента последнего кузова: текущий такт-тайм между кузовами">
+              <label>Текущий такт-тайм между кузовами</label><b data-k="curTakt">—</b><small>мин:сек (при длинном простое: ч:мин:сек)</small>
+            </div>
+            <div class="andon-clockbox" title="Текущие дата и время"><div class="andon-date" data-k="date"></div><div class="andon-time" data-k="time"></div></div>
+          </aside>
+          <div class="andon-main">
+            <h2 class="andon-h">Ключевые производственные показатели линии ${screen.name}</h2>
+            <div class="kpi-wrap"><table class="kpi-table">
+              <colgroup><col style="width:5%"><col style="width:22%"><col style="width:10%"><col style="width:12%"><col style="width:18%"><col style="width:10%"><col style="width:23%"></colgroup>
+              <thead><tr>
+                <th title="Номер часового интервала смены">№</th>
+                <th title="Время начала и окончания интервала: начало берётся из ПЛК, окончание из настроек смены">Время</th>
+                <th title="Длительность интервала в минутах">Мин.</th>
+                <th title="Плановое количество кузовов за интервал (задаётся в настройках «Смена и план»)">План</th>
+                <th title="Фактическое количество кузовов, прошедших линию за интервал">Кол-во кузовов</th>
+                <th title="Отклонение факта от плана: зелёный — выполнено, красный — отставание">±</th>
+                <th title="Такт-тайм за интервал: сколько минут:секунд в среднем уходит на один кузов">Такт-тайм за период</th>
+              </tr></thead>
+              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td data-k="takt"></td></tr>`).join('')}</tbody>
+              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого</td><td data-k="planSum"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td><td data-k="shTakt"></td></tr></tfoot>
+            </table></div>
+          </div>
+        </div>`;
+    }
+
+    function paintKpi(screen, v) {
+      const b = screen.bindings;
+      const val = k => (b[k] && v[b[k]] && v[b[k]].ok ? v[b[k]].v : null);
+      const prod = val('prod') || [], starts = val('starts') || [], idx = val('idx') || 0;
+      const tMin = val('tMin') || [], tSec = val('tSec') || [];
+      const n = prod.length;
+      const built = `${screen.id}|${n}|${andonCfgVer}`;
+      if (andonBuilt !== built) { buildKpiLayout(screen, n); andonBuilt = built; andonMsg = ''; }
+      const q = k => andonBody.querySelector(`[data-k="${k}"]`);
+      const set = (el, text) => { if (el && el.textContent !== text) el.textContent = text; };
+      set(q('curTakt'), val('curMin') === null ? '—' : mmss(val('curMin'), val('curSec') || 0));
+      let planSum = 0, deltaSum = 0, hasDelta = false;
+      andonBody.querySelectorAll('tbody tr').forEach(tr => {
+        const i = Number(tr.dataset.i);
+        const cfg = intervalCfg(screen.id, i, starts);
+        const fact = prod[i] || 0;
+        const state = idx ? (i + 1 < idx ? 'past' : i + 1 === idx ? 'now' : 'future') : 'past';
+        tr.className = state === 'now' ? 'now' : state === 'future' ? 'future' : '';
+        const c = k => tr.querySelector(`[data-k="${k}"]`);
+        set(c('time'), `${hhmm(starts[i] ?? 0)}-${hhmm(cfg.end)}`);
+        set(c('min'), String(Math.max(0, cfg.end - (starts[i] ?? 0))));
+        set(c('plan'), String(cfg.plan));
+        set(c('fact'), String(fact));
+        const dc = c('delta');
+        if (idx && i + 1 < idx && (cfg.plan || fact)) {
+          const d = fact - cfg.plan;
+          deltaSum += d; hasDelta = true;
+          set(dc, d > 0 ? `+${d}` : String(d));
+          dc.className = 'delta ' + (d >= 0 ? 'pos' : 'neg');
+        } else { set(dc, ''); dc.className = 'delta'; }
+        const takt = c('takt');
+        set(takt, fact > 0 ? mmss(tMin[i] || 0, tSec[i] || 0) : '—');
+        takt.className = fact > 0 ? '' : 'dim';
+        planSum += cfg.plan;
+      });
+      const tot = val('tot');
+      set(q('planSum'), String(planSum));
+      set(q('tot'), tot === null ? '—' : String(tot));
+      const ds = q('deltaSum');
+      if (hasDelta) {
+        set(ds, deltaSum > 0 ? `+${deltaSum}` : String(deltaSum));
+        ds.className = 'delta ' + (deltaSum >= 0 ? 'pos' : 'neg');
+      } else set(ds, '');
+      set(q('shTakt'), val('shMin') === null ? '—' : mmss(val('shMin'), val('shSec') || 0));
+      andonLast = { starts, n };
+    }
+
+    // ----- Finish Line: таблица как на экранах SCADA (план из ПЛК, счётчики по моделям) -----
+    const FL_MODELS = ['A01', 'P01', 'CS55', 'A13T'];
+
+    function buildFlLayout(screen, n) {
+      andonBody.innerHTML = `
+        <div class="andon-layout">
+          <aside class="andon-side">
+            <div class="tile" title="Время, прошедшее с момента последнего кузова: текущий такт-тайм между кузовами">
+              <label>Текущий такт-тайм между кузовами</label><b data-k="curTakt">—</b><small>мин:сек (при длинном простое: ч:мин:сек)</small>
+            </div>
+            <div class="andon-clockbox" title="Текущие дата и время"><div class="andon-date" data-k="date"></div><div class="andon-time" data-k="time"></div></div>
+          </aside>
+          <div class="andon-main">
+            <h2 class="andon-h">Ключевые производственные показатели ${screen.name}</h2>
+            <div class="kpi-wrap"><table class="kpi-table">
+              <colgroup><col style="width:4%"><col style="width:17%"><col style="width:8%"><col style="width:7%"><col style="width:7%"><col style="width:6%">${FL_MODELS.map(() => '<col style="width:8%">').join('')}<col style="width:19%"></colgroup>
+              <thead><tr>
+                <th title="Номер часового интервала смены">№</th>
+                <th title="Время начала и окончания интервала: начало берётся из ПЛК, окончание из настроек">Время</th>
+                <th title="Длительность интервала в минутах">Мин.</th>
+                <th title="Плановое количество кузовов за интервал: рассчитывает ПЛК из плана на день">План</th>
+                <th title="Фактическое количество кузовов, прошедших Finish Line за интервал">Факт</th>
+                <th title="Отклонение факта от плана (по ПЛК) для завершённых интервалов: красный — отставание">±</th>
+                ${FL_MODELS.map(m => `<th title="Количество кузовов модели ${m} за интервал">${m}</th>`).join('')}
+                <th title="Такт-тайм за интервал: сколько минут:секунд в среднем уходит на один кузов">Такт-тайм за период</th>
+              </tr></thead>
+              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td>${FL_MODELS.map(m => `<td data-k="m_${m}"></td>`).join('')}<td data-k="takt"></td></tr>`).join('')}</tbody>
+              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td class="plan-cell" data-k="planSum" title="План на день (DayPlan из ПЛК)"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td>${FL_MODELS.map(m => `<td data-k="mt_${m}"></td>`).join('')}<td data-k="shTakt"></td></tr></tfoot>
+            </table></div>
+          </div>
+        </div>`;
+      andonBody.querySelector('.plan-cell').addEventListener('click', () => openPlanDialog(screen));
+      loadPlanLast(screen);
+    }
+
+    // ----- запись плана на день в ПЛК (только вошедшие пользователи, кроме роли «Просмотр») -----
+    const planLast = {};   // screenId -> подпись последнего изменения плана
+    const canEditPlan = () => { const st = window.authState && window.authState(); return !!(st && st.user && st.user.role !== 'viewer'); };
+
+    async function loadPlanLast(screen) {
+      try {
+        const r = await fetch(`/api/kpi/screens/${screen.id}/plan-writes?limit=10`);
+        const list = await r.json();
+        const w = Array.isArray(list) ? list.find(x => x.ok) : null;
+        planLast[screen.id] = w
+          ? `Последнее изменение плана: ${w.user_name}, ${new Date(w.ts).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} (${w.old_value ?? '—'} → ${w.new_value})`
+          : 'План ещё не менялся с этого сайта';
+      } catch { /* подсказка не критична */ }
+    }
+
+    function openPlanDialog(screen) {
+      const st = window.authState && window.authState();
+      if (!st || !st.user) { showToast('Войдите в систему, чтобы изменить план'); return; }
+      if (st.user.role === 'viewer') { showToast('У вашей роли нет права менять план'); return; }
+      const cell = andonBody.querySelector('[data-k="planSum"]');
+      const current = Number(cell ? cell.textContent : 0) || 0;
+      const modal = document.createElement('div');
+      modal.className = 'kpi-modal';
+      modal.innerHTML = `
+        <div class="kpi-modal-box auth-modal" role="dialog" aria-label="План на день">
+          <h3>План на день — ${screen.name}</h3>
+          <p class="hint" data-k="note">Число запишется в ПЛК (переменная DayPlan). ПЛК сам распределит план по часовым интервалам. Допустимо от 0 до 500.</p>
+          <form>
+            <label>План на день, кузовов</label>
+            <input name="value" type="number" min="0" max="500" step="1" value="${current}" title="Плановое количество кузовов на день для этой линии Finish Line">
+            <div class="auth-err" hidden></div>
+            <div class="kpi-modal-actions">
+              <button type="button" data-act="cancel" style="background: var(--bg-tertiary); color: var(--fg-primary);" title="Закрыть окно без записи в ПЛК">Отмена</button>
+              <button type="submit" data-act="go" title="Записать план в ПЛК; потребуется ещё одно подтверждение">Записать в ПЛК</button>
+            </div>
+          </form>
+        </div>`;
+      const closeModal = () => { if (modal.parentNode) document.body.removeChild(modal); };
+      modal.addEventListener('mousedown', e => { if (e.target === modal) closeModal(); });
+      modal.querySelector('[data-act="cancel"]').addEventListener('click', closeModal);
+      const f = modal.querySelector('form'), err = modal.querySelector('.auth-err'), go = modal.querySelector('[data-act="go"]');
+      let confirmed = null;
+      f.value.addEventListener('input', () => { confirmed = null; go.textContent = 'Записать в ПЛК'; go.classList.remove('blink-confirm'); });
+      f.addEventListener('submit', async e => {
+        e.preventDefault();
+        err.hidden = true;
+        const v = Number(f.value.value);
+        if (!Number.isInteger(v) || v < 0 || v > 500) { err.textContent = 'Введите целое число от 0 до 500'; err.hidden = false; return; }
+        if (confirmed !== v) {
+          confirmed = v;
+          modal.querySelector('[data-k="note"]').textContent = `Записать план ${v} в ПЛК? План на день изменится на экранах и в SCADA, прежнее значение: ${current}. Запись попадёт в журнал с вашей фамилией.`;
+          go.textContent = `Да, записать ${v}`;
+          go.classList.add('blink-confirm');
+          return;
+        }
+        go.disabled = true;
+        try {
+          const r = await fetch(`/api/kpi/screens/${screen.id}/plan-day`, {
+            method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: v }),
+          });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Не удалось записать план');
+          closeModal();
+          showToast(`План на день записан в ПЛК: ${data.old ?? '—'} → ${data.new} (проверено чтением)`);
+          loadPlanLast(screen);
+        } catch (ex) {
+          err.textContent = ex.message; err.hidden = false;
+          confirmed = null; go.textContent = 'Записать в ПЛК'; go.classList.remove('blink-confirm'); go.disabled = false;
+        }
+      });
+      document.body.appendChild(modal);
+      f.value.focus(); f.value.select();
+    }
+
+    function paintFl(screen, v) {
+      const b = screen.bindings;
+      const val = k => (b[k] && v[b[k]] && v[b[k]].ok ? v[b[k]].v : null);
+      const prod = val('prod') || [], starts = val('starts') || [], idx = val('idx') || 0;
+      const iplan = val('iplan') || [], diff = val('diff') || [];
+      const tMin = val('tMin') || [], tSec = val('tSec') || [];
+      const mArr = Object.fromEntries(FL_MODELS.map(m => [m, val('m_' + m) || []]));
+      const n = prod.length;
+      const built = `fl|${screen.id}|${n}|${andonCfgVer}`;
+      if (andonBuilt !== built) { buildFlLayout(screen, n); andonBuilt = built; andonMsg = ''; }
+      const q = k => andonBody.querySelector(`[data-k="${k}"]`);
+      const set = (el, text) => { if (el && el.textContent !== text) el.textContent = text; };
+      set(q('curTakt'), val('curMin') === null ? '—' : mmss(val('curMin'), val('curSec') || 0));
+      let planSum = 0, deltaSum = 0, hasDelta = false;
+      andonBody.querySelectorAll('tbody tr').forEach(tr => {
+        const i = Number(tr.dataset.i);
+        const cfg = intervalCfg(screen.id, i, starts);
+        const plan = iplan[i] || 0, fact = prod[i] || 0;
+        const state = idx ? (i + 1 < idx ? 'past' : i + 1 === idx ? 'now' : 'future') : 'past';
+        tr.className = state === 'now' ? 'now' : state === 'future' ? 'future' : '';
+        const c = k => tr.querySelector(`[data-k="${k}"]`);
+        set(c('time'), `${hhmm(starts[i] ?? 0)}-${hhmm(cfg.end)}`);
+        set(c('min'), String(Math.max(0, cfg.end - (starts[i] ?? 0))));
+        set(c('plan'), String(plan));
+        set(c('fact'), String(fact));
+        const dc = c('delta');
+        if (idx && i + 1 < idx && (plan || fact)) {
+          const d = diff[i] !== undefined ? diff[i] : fact - plan;
+          deltaSum += d; hasDelta = true;
+          set(dc, d > 0 ? `+${d}` : String(d));
+          dc.className = 'delta ' + (d >= 0 ? 'pos' : 'neg');
+        } else { set(dc, ''); dc.className = 'delta'; }
+        FL_MODELS.forEach(m => set(c('m_' + m), String(mArr[m][i] || 0)));
+        const takt = c('takt');
+        set(takt, fact > 0 ? mmss(tMin[i] || 0, tSec[i] || 0) : '—');
+        takt.className = fact > 0 ? '' : 'dim';
+        planSum += plan;
+      });
+      const planDay = val('plan_day');
+      const pc = q('planSum');
+      set(pc, String(planDay !== null ? planDay : planSum));
+      const editable = canEditPlan() && b.plan_day;
+      pc.classList.toggle('plan-edit', !!editable);
+      pc.title = (editable ? 'Нажмите, чтобы изменить план на день (запишется в ПЛК). ' : 'План на день из ПЛК. Чтобы изменить, войдите в систему (роль кроме «Просмотр»). ') + (planLast[screen.id] || '');
+      set(q('tot'), val('tot') === null ? '—' : String(val('tot')));
+      FL_MODELS.forEach(m => set(q('mt_' + m), String(mArr[m].reduce((s, x) => s + (x || 0), 0))));
+      const ds = q('deltaSum');
+      if (hasDelta) {
+        set(ds, deltaSum > 0 ? `+${deltaSum}` : String(deltaSum));
+        ds.className = 'delta ' + (deltaSum >= 0 ? 'pos' : 'neg');
+      } else set(ds, '');
+      set(q('shTakt'), val('shMin') === null ? '—' : mmss(val('shMin'), val('shSec') || 0));
+      andonLast = { starts, n };
+    }
+
+    function setAndonBadge(state, text) { andonBadge.className = `live-badge ${state}`; andonBadge.textContent = text; }
+
+    async function andonTick() {
+      const panel = document.querySelector('#andon');
+      if (!panel.classList.contains('active') || document.hidden) return;
+      const now = new Date();
+      const dEl = andonBody.querySelector('[data-k="date"]'), tEl = andonBody.querySelector('[data-k="time"]');
+      if (dEl) dEl.textContent = now.toLocaleDateString('ru-RU');
+      if (tEl) tEl.textContent = now.toLocaleTimeString('ru-RU');
+      if (!andonLoadedAt || Date.now() - andonLoadedAt > 30000) await loadAndonScreens();
+      const sel = selectedScreen();
+      if (!sel) {
+        setAndonBadge('off', '● нет данных');
+        showAndonMessage('Экраны Andon / KPI ещё не созданы.');
+        return;
+      }
+      if (!sel.bindings.tot || !sel.bindings.prod) {
+        setAndonBadge('off', '● нет тегов');
+        showAndonMessage(`У экрана «${sel.name}» не заданы теги счётчика (выпуск по часам и итог за день).`);
+        return;
+      }
+      if (andonBusy) return;
+      andonBusy = true;
+      try {
+        // Каждый ПЛК опрашиваем отдельным запросом: у выбранного экрана все теги, у остальных только итог для кнопки
+        const byPlc = new Map();
+        andonScreens.forEach(s => {
+          const ids = s.id === sel.id ? Object.values(s.bindings) : (s.bindings.tot ? [s.bindings.tot] : []);
+          if (!ids.length) return;
+          if (!byPlc.has(s.plc_id)) byPlc.set(s.plc_id, new Set());
+          ids.forEach(id => byPlc.get(s.plc_id).add(id));
+        });
+        const results = new Map();
+        await Promise.all([...byPlc].map(async ([pid, set]) => {
+          try {
+            const resp = await fetch(`/api/plcs/${pid}/opcua/values`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ node_ids: [...set] }),
+            });
+            const data = await resp.json();
+            if (resp.ok) results.set(pid, data.values);
+          } catch { /* ПЛК недоступен: покажем «нет связи» ниже */ }
+        }));
+        andonScreens.forEach(s => {
+          const chip = andonChips.querySelector(`[data-screen="${s.id}"] [data-k="chipTot"]`);
+          const tv = results.get(s.plc_id) && s.bindings.tot ? results.get(s.plc_id)[s.bindings.tot] : null;
+          if (chip) chip.textContent = tv && tv.ok ? String(tv.v) : '';
+        });
+        const v = results.get(sel.plc_id);
+        if (v) {
+          if (andonScreenId !== sel.id) return;
+          if (sel.template === 'fl_counter') paintFl(sel, v); else paintKpi(sel, v);
+          setAndonBadge('on', '● LIVE');
+        } else setAndonBadge('err', '● нет связи');
+      } finally { andonBusy = false; }
+    }
+    setInterval(andonTick, 1000);
+
+    // Настройка смены и плана выбранного экрана
+    document.querySelector('#andon-edit').addEventListener('click', () => {
+      const screen = selectedScreen();
+      if (!screen || !andonLast) { showToast('Сначала дождитесь загрузки данных экрана'); return; }
+      const starts = andonLast.starts, n = andonLast.n;
+      const isFl = screen.template === 'fl_counter';
+      const modal = document.createElement('div');
+      modal.className = 'kpi-modal';
+      modal.innerHTML = `
+        <div class="kpi-modal-box" role="dialog" aria-label="Смена и план">
+          <h3>${isFl ? 'Время интервалов' : 'Смена и план'} — ${isFl ? screen.name : 'линия ' + screen.name}</h3>
+          <p>Начало интервалов берётся из ПЛК. Укажите время окончания каждого интервала (перерывы между интервалами допускаются)${isFl ? '. План по интервалам рассчитывает ПЛК из плана на день.' : ' и плановое количество кузовов.'}</p>
+          <table><thead><tr><th>№</th><th title="Начало интервала из ПЛК">Начало</th><th title="Время окончания интервала">Окончание</th><th title="Длительность интервала">Мин.</th>${isFl ? '' : '<th title="Плановое количество кузовов за интервал">План</th>'}</tr></thead>
+          <tbody>${Array.from({ length: n }, (_, i) => {
+            const c = intervalCfg(screen.id, i, starts);
+            return `<tr><td>${i + 1}</td><td>${hhmm(starts[i] ?? 0)}</td><td><input type="time" data-end="${i}" value="${hhmm(c.end)}" title="Время окончания интервала ${i + 1}"></td><td data-min="${i}">${Math.max(0, c.end - (starts[i] ?? 0))}</td>${isFl ? '' : `<td><input type="number" min="0" max="100000" data-plan="${i}" value="${c.plan}" title="Плановое количество кузовов за интервал ${i + 1}"></td>`}</tr>`;
+          }).join('')}</tbody></table>
+          <div class="kpi-modal-actions">
+            <button type="button" data-act="cancel" style="background: var(--bg-tertiary); color: var(--fg-primary);" title="Закрыть окно без сохранения">Отмена</button>
+            <button type="button" data-act="save" title="Сохранить время окончания интервалов и план в базе данных">Сохранить</button>
+          </div>
+        </div>`;
+      const toMin = s => { const [h, m] = (s || '0:0').split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+      modal.querySelectorAll('[data-end]').forEach(inp => inp.addEventListener('input', () => {
+        const i = Number(inp.dataset.end);
+        modal.querySelector(`[data-min="${i}"]`).textContent = String(Math.max(0, toMin(inp.value) - (starts[i] ?? 0)));
+      }));
+      const closeModal = () => document.body.removeChild(modal);
+      modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+      modal.querySelector('[data-act="cancel"]').addEventListener('click', closeModal);
+      modal.querySelector('[data-act="save"]').addEventListener('click', async () => {
+        const items = Array.from({ length: n }, (_, i) => ({
+          idx: i + 1,
+          end_min: toMin(modal.querySelector(`[data-end="${i}"]`).value),
+          plan: isFl ? 0 : Math.max(0, parseInt(modal.querySelector(`[data-plan="${i}"]`).value, 10) || 0),
+        }));
+        try {
+          const r = await fetch(`/api/kpi/screens/${screen.id}/schedule`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }),
+          });
+          if (!r.ok) throw new Error((await r.json()).detail || 'Не удалось сохранить');
+          await loadKpiCfg(screen.id, true);
+          showToast(`Смена и план экрана «${screen.name}» сохранены`);
+          closeModal();
+        } catch (e) { setStatus('error', 'Ошибка', e.message); }
+      });
+      document.body.appendChild(modal);
+    });
+
     // Theme toggle
     function initTheme() {
       const saved = localStorage.getItem('theme');
@@ -1354,5 +1876,6 @@
     // Load initial data
     loadPlcs().catch(error => setStatus('error', 'API Error', error.message));
   </script>
+  <script src="/static/auth.js"></script>
 </body>
 </html>

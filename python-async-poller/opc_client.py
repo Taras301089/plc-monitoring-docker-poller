@@ -522,6 +522,23 @@ class PlcOpcClient:
             }
         return out
 
+    async def write_int(self, node_id: str, value: int) -> dict[str, Any]:
+        """Запись целого числа в одну переменную ПЛК с чтением значения до и после (для плана на день)."""
+        async with self._lock:
+            if not await self._ensure_connected_unlocked():
+                raise ConnectionError("OPC UA connection is unavailable")
+            client = self._client
+            if client is None:
+                raise ConnectionError("OPC UA client is unavailable")
+            node = client.get_node(node_id)
+            variant_type = await asyncio.wait_for(node.read_data_type_as_variant_type(), timeout=10.0)
+            if variant_type not in (ua.VariantType.Int16, ua.VariantType.UInt16, ua.VariantType.Int32):
+                raise ValueError(f"Тип переменной {variant_type.name} не подходит для записи плана")
+            old = await asyncio.wait_for(node.read_value(), timeout=10.0)
+            await asyncio.wait_for(node.write_value(ua.DataValue(ua.Variant(int(value), variant_type))), timeout=10.0)
+            new = await asyncio.wait_for(node.read_value(), timeout=10.0)
+        return {"old": _to_jsonable(old), "readback": _to_jsonable(new)}
+
     async def read_node_info(self, node_id: str) -> dict[str, str]:
         """Тип данных узла и тип тега для БД: Boolean -> DIGITAL, остальное -> ANALOG."""
         async with self._lock:
