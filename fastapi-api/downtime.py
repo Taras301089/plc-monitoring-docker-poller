@@ -126,12 +126,23 @@ async def list_downtimes(screen_id: int, request: Request, day: date | None = Qu
             screen_id, day,
         )
     }
+    # последний комментарий каждой строки: его текст показывается на экране Andon в колонке «Причина»
+    last_comment = {
+        r["item_id"]: {"text": r["text"], "user_name": r["user_name"], "is_oto": r["is_oto"]}
+        for r in await pool.fetch(
+            "SELECT DISTINCT ON (c.item_id) c.item_id, c.text, c.user_name, c.is_oto FROM kpi_downtime_comments c "
+            "JOIN kpi_downtimes d ON d.id = c.downtime_id "
+            "WHERE d.screen_id = $1 AND d.prod_date = $2 AND c.item_id IS NOT NULL AND c.deleted_at IS NULL "
+            "ORDER BY c.item_id, c.created_at DESC, c.id DESC",
+            screen_id, day,
+        )
+    }
     by_dt: dict[int, list[dict[str, Any]]] = {}
     for it in items:
         by_dt.setdefault(it["downtime_id"], []).append(
             {**{k: it[k] for k in ("id", "area_id", "station_id", "reason_id", "note", "created_by", "created_by_name", "updated_by_name")},
              "minutes": _num(it["minutes"]), "created_at": it["created_at"], "updated_at": it["updated_at"],
-             "comments": item_comments.get(it["id"], 0)}
+             "comments": item_comments.get(it["id"], 0), "last_comment": last_comment.get(it["id"])}
         )
     out = []
     for r in rows:
