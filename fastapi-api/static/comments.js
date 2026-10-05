@@ -6,7 +6,7 @@
   const MODERATORS = ['admin', 'chief', 'area_head'];
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const fmtTs = ts => new Date(ts).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const fmtTs = ts => plantClock.fmt(ts);
   const toast = t => (typeof showToast === 'function' ? showToast(t) : alert(t));
   const me = () => { const st = window.authState && window.authState(); return st && st.user ? st.user : null; };
   const canWrite = () => { const u = me(); return !!u && u.role !== 'viewer'; };

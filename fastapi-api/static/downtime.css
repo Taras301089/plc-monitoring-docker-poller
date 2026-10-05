@@ -102,3 +102,50 @@
 .bp-box { width: min(720px, 96vw); }
 .bp-table input[type="number"], .bp-table input[type="time"] { width: 100%; min-height: 26px; padding: 0 4px; text-align: center; font-size: 13px; }
 .bp-table input:disabled { opacity: .4; }
+
+/* Андон: колонка «Причина» рядом с простоем */
+.kpi-table td.why { text-align: left; font-size: clamp(11px, min(2vh, 1.2vw), 26px); line-height: 1.2; overflow: hidden; }
+.kpi-table td.why > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kpi-table td.why .why-main { font-weight: 600; color: var(--fg-primary); }
+.kpi-table td.why .why-more { display: inline-block; margin-top: 2px; padding: 0 7px; border-radius: 9px; font-size: .8em; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.kpi-table td.why .why-none { color: var(--fg-secondary); font-size: .85em; }
+.kpi-table th:last-child { text-align: left; }
+.kpi-table td.why .why-row { display: flex; align-items: center; gap: 6px; }
+.kpi-table td.why .why-row .why-main { display: block; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kpi-table td.why .why-row .why-more { flex: none; margin-top: 0; }
+.kpi-table td.why .why-note { color: var(--fg-secondary); font-size: .88em; font-style: italic; }
+.kpi-table td.why .why-more { display: inline-block; margin: 0 0 0 6px; padding: 0 7px; border-radius: 9px; font-size: .85em; font-style: normal; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); }
+
+/* Индикатор производства рядом с брендом: идёт работа, перерыв или обед */
+.andon-state { display: inline-block; vertical-align: middle; margin-left: 4px; padding: 3px 12px; border-radius: 12px; font: 700 clamp(11px, 1.9vh, 22px) 'Segoe UI', sans-serif; white-space: nowrap; letter-spacing: 0; }
+.andon-state[hidden] { display: none; }
+.andon-state.work { background: color-mix(in srgb, var(--ok) 20%, transparent); color: var(--ok); box-shadow: inset 3px 0 0 var(--ok); }
+.andon-state.break { background: color-mix(in srgb, var(--warn) 22%, transparent); color: var(--warn); }
+.andon-state.off { background: var(--bg-tertiary); color: var(--fg-secondary); box-shadow: inset 3px 0 0 var(--line); }
+.tile.paused b { color: var(--warn); }
+
+/* Узкое окно: кнопка простоя не выходит за колонку, у причины есть отступ слева */
+.kpi-table td.dt { padding-left: 4px; padding-right: 4px; overflow: hidden; }
+.kpi-table td.dt .dt-btn { max-width: 100%; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis; }
+.kpi-table td.why { padding-left: 16px; padding-right: 8px; }
+@media (max-width: 1300px) {
+  .kpi-table td.dt .dt-btn { padding: 0 .4em; font-size: .72em; }
+  .kpi-table td.dt .dt-go, .kpi-table td.dt .dt-cm { display: none; }
+}
+.kpi-table td.why .why-comment { color: var(--accent); font-size: .9em; }
+
+/* Навигация по дням и выгрузка в Excel в верхней строке Andon */
+.andon-day { display: flex; align-items: center; gap: 4px; }
+.andon-day[hidden] { display: none; }
+.andon-day button { min-height: 32px; padding: 0 10px; font-size: 12px; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); white-space: nowrap; }
+.andon-day button:disabled { opacity: .35; cursor: default; }
+.andon-day input[type="date"] { min-height: 32px; padding: 0 6px; font-size: 12px; width: 128px; }
+body.andon-archive .kpi-table .plan-cell { pointer-events: none; }
+body.andon-archive .andon-day input[type="date"] { box-shadow: inset 0 0 0 1px var(--warn); }
+/* надпись кнопки простоя не крупнее, чем помещается в её колонку (около 10% ширины окна) */
+.kpi-table td.dt .dt-btn { font-size: min(.8em, 1.3vw); }
+@media (max-width: 1300px) { .kpi-table td.dt .dt-btn { font-size: min(.72em, 1.3vw); } }
+
+/* Карандаш у плана на день: не переносится на вторую строку, а стоит в углу ячейки */
+.kpi-table td.plan-edit { white-space: nowrap; }
+.kpi-table td.plan-edit::after { content: '✎'; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); font-size: .4em; line-height: 1; }

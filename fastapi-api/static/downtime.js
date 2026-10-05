@@ -3,7 +3,8 @@
   'use strict';
 
   const REFRESH_MS = 15000;
-  const cache = {};     // screenId -> { at, data, loading }
+  const cache = {};     // «экран|день» -> { at, data, loading }
+  const ck = id => id + '|' + (window.dtDay || '');   // window.dtDay: выбранный прошлый день (архив), пусто — текущий
   let dict = null;
   let dictAt = 0;
 
@@ -14,7 +15,7 @@
     const st = window.authState && window.authState();
     return !!(st && st.user && st.user.role !== 'viewer');
   };
-  const fmtTs = ts => new Date(ts).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const fmtTs = ts => plantClock.fmt(ts);
   // Две отдельные строки: кто внёс строку описания и кто последним её менял (если менял)
   const authorLine = r => {
     let s = `<div title="Кто первым создал эту строку описания и когда">Внёс: <b>${esc(r.created_by_name || '—')}</b>, ${fmtTs(r.created_at)}</div>`;
@@ -26,13 +27,15 @@
   const toast = t => (typeof showToast === 'function' ? showToast(t) : alert(t));
 
   async function load(screenId, force = false) {
-    const c = cache[screenId] || (cache[screenId] = { at: 0, data: null, loading: false });
+    const k = ck(screenId);
+    const c = cache[k] || (cache[k] = { at: 0, data: null, loading: false });
     if (c.loading || (!force && Date.now() - c.at < REFRESH_MS)) return;
     c.loading = true;
     try {
-      const r = await fetch(`/api/kpi/screens/${screenId}/downtimes`);
+      // без ответа дольше 10 секунд запрос прерываем, иначе загрузка могла бы зависнуть навсегда
+      const r = await fetch(`/api/kpi/screens/${screenId}/downtimes${window.dtDay ? '?date=' + window.dtDay : ''}`, { signal: AbortSignal.timeout(10000) });
       if (r.ok) { c.data = await r.json(); c.at = Date.now(); }
-    } catch { /* повторим позже */ } finally { c.loading = false; }
+    } catch { /* повторим позже, пока показываем последние известные данные */ } finally { c.loading = false; }
   }
 
   async function loadDict() {
@@ -47,8 +50,10 @@
   // Вызывается после каждой отрисовки таблицы экрана: заполняет колонку «Простой»
   window.dtApply = (screen, root) => {
     load(screen.id);
-    const c = cache[screen.id];
-    const list = (c && c.data && c.data.downtimes) || [];
+    const c = cache[ck(screen.id)];
+    // пока данные простоев не получены (обрыв связи, перезапуск сервера), ячейки не трогаем
+    if (!c || !c.data) return;
+    const list = c.data.downtimes || [];
     root.querySelectorAll('tbody tr[data-i]').forEach(tr => {
       const td = tr.querySelector('[data-k="dt"]');
       if (!td) return;
@@ -65,20 +70,67 @@
             + (d.comments ? `. Комментариев: ${d.comments}` : '');
           // частично описанный простой: «всего/не описано», например 50/25; иначе просто минуты
           const label = state === 'part' ? `${fmt(d.minutes)}/${fmt(left)}` : `${fmt(d.minutes)} мин`;
-          td.innerHTML = `<button type="button" class="dt-btn ${state}" title="${esc(title)}">${label}${d.comments ? ` <span class="dt-cm">💬${d.comments}</span>` : ''}<span class="dt-go" aria-hidden="true">›</span></button>`;
+          // число комментариев в кнопке не показываем: сами комментарии выводятся в колонке «Причина»
+          td.innerHTML = `<button type="button" class="dt-btn ${state}" title="${esc(title)}">${label}<span class="dt-go" aria-hidden="true">›</span></button>`;
           td.querySelector('button').addEventListener('click', () => openPanel(screen, d.idx, tr));
           td.dataset.sig = sig;
         }
       } else if (td.dataset.sig) { td.textContent = ''; td.dataset.sig = ''; }
+      fillWhy(tr, d && (d.minutes > 0 || d.comments > 0) ? d : null);
     });
+    // названия станций и причин берём из справочника: когда загрузится, перерисовываем колонку
+    if (!dict) loadDict().then(() => window.dtApply(screen, root)).catch(() => {});
   };
+
+  // Колонка «Причина»: до трёх строк (причина, описание, следующая причина...), остальное сворачивается в «+N»
+  function fillWhy(tr, d) {
+    const td = tr.querySelector('[data-k="why"]');
+    if (!td) return;
+    let html = '', title = '';
+    if (d && dict) {
+      const its = d.items || [];
+      if (!its.length) {
+        html = '<span class="why-none">не описан</span>';
+        title = 'Простой ещё не описан: нажмите на простой, чтобы указать станцию и причину';
+      } else {
+        const name = it => {
+          let st = null;
+          for (const a of dict.areas) { const s = a.stations.find(x => x.id === it.station_id); if (s) { st = s; break; } }
+          const area = dict.areas.find(a => a.id === it.area_id);
+          const reason = (dict.reasons.find(r => r.id === it.reason_id) || {}).name || '—';
+          return { place: (st && st.name) || (area && area.name) || '', reason, min: it.minutes };
+        };
+        // причины по убыванию минут; у каждой строка «станция · причина» (минуты, если причин несколько) и под ней описание
+        const all = its.map(it => ({ ...name(it), note: (it.note || '').trim(), comment: it.last_comment || null })).sort((a, b) => b.min - a.min);
+        const left = Math.max(0, d.minutes - d.described);
+        // при малом числе интервалов строки высокие и помещается четыре строки текста, иначе три
+        const MAX_LINES = tr.parentElement.children.length <= 10 ? 4 : 3;
+        const lines = [];
+        let shown = 0;
+        for (const x of all) {
+          if (lines.length >= MAX_LINES) break;
+          lines.push({ c: 'why-main', t: `${x.place ? x.place + ' · ' : ''}${x.reason}${all.length > 1 ? ' · ' + fmt(x.min) + ' мин' : ''}` });
+          shown++;
+          if (x.note && lines.length < MAX_LINES) lines.push({ c: 'why-note', t: x.note });
+          if (x.comment && lines.length < MAX_LINES) lines.push({ c: 'why-comment', t: `💬 ${x.comment.user_name}: ${x.comment.text}` });
+        }
+        if (left > 0.5 && lines.length < MAX_LINES) lines.push({ c: 'why-none', t: `не описано ${fmt(left)} мин` });
+        const hidden = all.length - shown;
+        html = lines.map((l, i) => `<span class="${l.c}">${esc(l.t)}${i === lines.length - 1 && hidden > 0 ? ` <span class="why-more">+${hidden}</span>` : ''}</span>`).join('');
+        title = all.map(x => `${x.place ? x.place + ' · ' : ''}${x.reason}: ${fmt(x.min)} мин${x.note ? ' — ' + x.note : ''}${x.comment ? `\n   💬 ${x.comment.user_name}: ${x.comment.text}` : ''}`).join('\n')
+          + (left > 0.5 ? `\nНе описано ${fmt(left)} мин` : '');
+      }
+    }
+    if (td.dataset.sig !== html) { td.innerHTML = html; td.dataset.sig = html; }
+    td.title = title;
+  }
 
   async function openPanel(screen, idx, tr) {
     await load(screen.id, true);
-    const d = ((cache[screen.id].data || {}).downtimes || []).find(x => x.idx === idx);
+    const d = ((cache[ck(screen.id)].data || {}).downtimes || []).find(x => x.idx === idx);
     if (!d) return;
     const time = tr.querySelector('[data-k="time"]');
-    showPanel(screen, d, time ? time.textContent : '', cache[screen.id].data.scope);
+    showPanel(screen, d, time ? time.textContent : '', cache[ck(screen.id)].data.scope);
   }
 
   // Открыть простой из уведомления: выбираем его экран и показываем панель
