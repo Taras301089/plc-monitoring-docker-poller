@@ -146,6 +146,9 @@ body.andon-archive .andon-day input[type="date"] { box-shadow: inset 0 0 0 1px v
 .kpi-table td.dt .dt-btn { font-size: min(.8em, 1.3vw); }
 @media (max-width: 1300px) { .kpi-table td.dt .dt-btn { font-size: min(.72em, 1.3vw); } }
 
-/* Карандаш у плана на день: не переносится на вторую строку, а стоит в углу ячейки */
-.kpi-table td.plan-edit { white-space: nowrap; }
-.kpi-table td.plan-edit::after { content: '✎'; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); font-size: .4em; line-height: 1; }
+/* Карандаш у плана на день: не переносится на вторую строку, не растягивает ячейку */
+.kpi-table td.plan-edit { position: relative; padding-right: 24px; }
+.kpi-table td.plan-edit::after { content: '✎'; position: absolute; right: 2px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: normal; color: var(--fg-secondary); line-height: 1; pointer-events: none; }
+
+/* Больше отступа между такт-тайма и простоя */
+.kpi-table td[data-k="takt"] { padding-right: 16px; }
