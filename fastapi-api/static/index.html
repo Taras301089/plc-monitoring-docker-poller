@@ -465,6 +465,20 @@
     .andon-chip { min-height: 32px; padding: 0 14px; font-size: 12px; font-weight: 600; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line), 0 1px 2px rgba(0,0,0,.3); }
     .andon-chip.active { background: var(--accent) !important; color: #fff; box-shadow: 0 0 0 1px var(--accent), 0 2px 8px color-mix(in srgb, var(--accent) 45%, transparent); }
     .andon-chip small { margin-left: 8px; font: 700 11px Consolas, monospace; opacity: .85; }
+    .tab-caret { font-size: 10px; opacity: .7; margin-left: 2px; }
+    .andon-menu { position: fixed; z-index: 70; min-width: 180px; padding: 6px; background: var(--bg-primary); border-radius: 0 0 8px 8px; box-shadow: 0 0 0 1px var(--line), 0 12px 32px rgba(0,0,0,.5); }
+    .andon-menu[hidden] { display: none; }
+    .am-group { position: relative; }
+    .am-head, .am-leaf { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 14px; min-height: 34px; margin: 1px 0; padding: 0 12px; font-size: 13px; font-weight: 600; text-align: left; background: transparent !important; color: var(--fg-primary); box-shadow: none; border-radius: 4px; white-space: nowrap; }
+    .am-leaf { font-weight: 500; }
+    .am-head i { font-style: normal; opacity: .6; }
+    .am-group:hover > .am-head, .am-group.open > .am-head, .am-leaf:hover { background: var(--hover) !important; filter: none; }
+    .am-group.current > .am-head { color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+    .am-sub { display: none; position: absolute; left: 100%; top: -6px; min-width: 200px; padding: 6px; background: var(--bg-primary); border-radius: 8px; box-shadow: 0 0 0 1px var(--line), 0 12px 32px rgba(0,0,0,.5); }
+    .am-group.open > .am-sub { display: block; }
+    .am-leaf.active { background: color-mix(in srgb, var(--accent) 22%, transparent) !important; color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+    .am-leaf small { font: 700 11px Consolas, monospace; opacity: .85; }
+    .andon-edit.locked { opacity: .55; }
     .andon-edit { min-height: 32px; padding: 0 14px; font-size: 12px; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); }
     .andon-body { flex: 1; min-height: 0; }
     .andon-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 14px; align-items: start; }
@@ -604,6 +618,8 @@
     .scan-meta.stale { color: var(--warn); }
     .scan-meta.stale b { color: var(--warn); }
     .status[hidden] { display: none; }
+    .area-plc .status { margin: 0 0 0 auto; flex: none; min-height: 32px; padding: 4px 12px; font-size: 12px; max-width: 46%; }
+    .area-plc .status .status-detail { font-size: 12px; }
     .browser-header { padding: 0; border: 0; }
     #toast {
       position: fixed; right: 18px; bottom: 18px; z-index: 50; max-width: 420px; padding: 9px 14px; font-size: 12px;
@@ -621,6 +637,7 @@
     #save { background: var(--button-primary); }
   </style>
   <link rel="stylesheet" href="/static/auth.css">
+  <link rel="stylesheet" href="/static/downtime.css">
 </head>
 <body>
   <nav class="tabs">
@@ -628,7 +645,9 @@
     <button class="tab" data-tab="saved" title="Переменные сохранённые в базе данных для дальнейшего анализа и мониторинга">💾 Переменные БД</button>
     <button class="tab" data-tab="charts" title="Графики и визуализация исторических данных переменных">📈 Графики</button>
     <button class="tab" data-tab="notifications" title="Параметры подключения к ПЛК и настройки оповещений">🔔 Оповещения</button>
-    <button class="tab" data-tab="andon" title="Dashboard. Информационная панель Andon / KPI: почасовые счётчики кузовов, такт-тайм и показатели производства в реальном времени">📺 Andon / KPI</button>
+    <button class="tab" data-tab="andon" title="Dashboard. Информационная панель Andon / KPI: почасовые счётчики кузовов, такт-тайм и показатели производства в реальном времени. Наведите, чтобы выбрать бренд и участок">📺 Andon / KPI <span class="tab-caret">▾</span></button>
+    <button class="tab" data-tab="downtimes" id="tab-downtimes" title="Все простои за период одним списком: по одной строке на каждую причину, с описаниями и комментариями">⏱ Простои</button>
+    <button class="tab" data-tab="dictionary" id="tab-dictionary" hidden title="Справочники простоев: причины, участки и станции для описания простоев (редактируют администратор и начальники)">📚 Справочники</button>
     <button class="tab" data-tab="users" id="tab-users" hidden title="Пользователи системы: создание учётных записей, роли, сброс паролей (только для администратора)">👥 Пользователи</button>
     <div class="tabs-divider"></div>
     <div class="tabs-tools">
@@ -649,14 +668,18 @@
         <div class="area-plc-body">
       <div class="plc-picker" id="plc-dd">
         <select id="plc" style="display:none" aria-hidden="true" tabindex="-1"></select>
-        <button type="button" id="plc-dd-trigger" class="plc-dd-trigger" aria-haspopup="listbox" aria-expanded="false" title="Выберите ПЛК для просмотра переменных. В списке у каждого ПЛК есть кнопки «изменить» и «удалить»">
+        <button type="button" id="plc-dd-trigger" class="plc-dd-trigger" aria-haspopup="listbox" aria-expanded="false" title="Выберите ПЛК для просмотра переменных. Добавлять, изменять и удалять ПЛК может только администратор">
           <span class="plc-dd-current">Нет ПЛК</span>
           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <ul class="plc-dd-list" id="plc-dd-list" role="listbox" hidden></ul>
       </div>
-          <button id="refresh" title="Обновить с ПЛК: заново просканировать OPC UA и обновить список блоков данных и переменных (может занять время)">⟳ Обновить с ПЛК</button>
+          <button id="refresh" title="Обновить с ПЛК: заново просканировать OPC UA и обновить список блоков данных и переменных (может занять время). Доступно только администратору" hidden>⟳ Обновить с ПЛК</button>
           <div id="scan-meta" class="scan-meta" title="Когда список переменных последний раз считывался с ПЛК">Список ещё не загружен</div>
+          <div class="status" id="status" role="status" hidden>
+            <span class="status-title"></span>
+            <span class="status-detail"></span>
+          </div>
         </div>
       </section>
 
@@ -686,13 +709,6 @@
         </div>
       </div>
 
-      <!-- Variables Browser - Two Panel Layout -->
-      <div class="browser-header">
-        <div class="status" id="status" role="status" style="margin-bottom: 8px;" hidden>
-          <span class="status-title"></span>
-          <span class="status-detail"></span>
-        </div>
-      </div>
       <!-- Two Panel Layout -->
       <div class="two-panel-layout">
         <!-- Left Panel: Data Blocks List -->
@@ -739,10 +755,16 @@
     <!-- TAB 6: Users (admin) -->
     <div id="users" class="tab-content"></div>
 
+    <!-- TAB: Справочники простоев (админ и начальники) -->
+    <div id="dictionary" class="tab-content"></div>
+
+    <!-- TAB: Все простои списком -->
+    <div id="downtimes" class="tab-content"></div>
+
     <!-- TAB 5: Andon / KPI Dashboard -->
     <div id="andon" class="tab-content">
       <div class="andon-top">
-        <div class="andon-lines" id="andon-lines" role="tablist" title="Производственные линии выбранного ПЛК: нажмите, чтобы открыть показатели линии"></div>
+        <div class="andon-lines" id="andon-lines" title="Выбор экрана Andon / KPI: бренд и участок или линия Finish Line"></div>
         <span id="andon-badge" class="live-badge off" title="Данные читаются из ПЛК раз в секунду, пока открыта эта вкладка">● пауза</span>
         <button type="button" id="andon-edit" class="andon-edit" title="Настроить время окончания часовых интервалов смены и плановое количество кузовов по интервалам для выбранной линии">⚙ Смена и план</button>
       </div>
@@ -755,6 +777,7 @@
     </div>
   </main>
 
+  <script src="/static/plant-time.js"></script>
   <script>
     const plc = document.querySelector('#plc');
     const varFilter = document.querySelector('#db-filter');
@@ -770,8 +793,20 @@
         tab.classList.add('active');
         document.getElementById(tab.dataset.tab).classList.add('active');
         history.replaceState(null, '', '#' + tab.dataset.tab);
+        if (window.saveLastView) window.saveLastView();
       });
     });
+    // Открыть последний экран пользователя (вкладку и экран Andon) после входа
+    window.applyLastView = view => {
+      if (!view) return;
+      if (typeof view.screen === 'number') {
+        andonScreenId = view.screen;
+        andonBuilt = '';
+        try { localStorage.setItem('andonScreen', String(view.screen)); } catch { /* не критично */ }
+      }
+      const tab = document.querySelector(`.tab[data-tab="${view.tab}"]`);
+      if (tab && !tab.hidden) tab.click();
+    };
     // Возврат со страницы справки на нужную вкладку (index.html#saved и т.п.)
     if (location.hash) document.querySelector(`.tab[data-tab="${location.hash.slice(1)}"]`)?.click();
 
@@ -807,17 +842,41 @@
         const li = document.createElement('li');
         li.className = 'plc-dd-row' + (String(item.id) === plc.value ? ' selected' : '');
         li.setAttribute('role', 'option');
+        const admin = isAdminUser();
         li.innerHTML = `
           <span class="plc-dot ${item.is_active ? 'on' : 'off'}" title="${item.is_active ? 'На связи' : 'Отключён'}"></span>
           <span class="plc-dd-name">${item.name} - ${item.ip_address || 'N/A'}</span>
-          <button type="button" class="plc-icon-btn plc-edit" title="Редактировать ПЛК «${item.name}»: изменить имя, IP-адрес и порт OPC UA">${iconEdit}</button>
-          <button type="button" class="plc-icon-btn plc-delete" title="Удалить ПЛК «${item.name}» из системы вместе с его списком переменных">${iconDelete}</button>`;
+          ${admin ? `<button type="button" class="plc-icon-btn plc-edit" title="Редактировать ПЛК «${item.name}»: изменить имя, IP-адрес и порт OPC UA">${iconEdit}</button>
+          <button type="button" class="plc-icon-btn plc-delete" title="Удалить ПЛК «${item.name}» из системы вместе с его списком переменных">${iconDelete}</button>` : ''}`;
         li.addEventListener('click', () => selectPlc(item.id));
-        li.querySelector('.plc-edit').addEventListener('click', e => { e.stopPropagation(); setPlcDdOpen(false); openEditPlc(item.id); });
-        li.querySelector('.plc-delete').addEventListener('click', e => { e.stopPropagation(); setPlcDdOpen(false); deletePlc(item.id); });
+        if (admin) {
+          li.querySelector('.plc-edit').addEventListener('click', e => { e.stopPropagation(); setPlcDdOpen(false); openEditPlc(item.id); });
+          li.querySelector('.plc-delete').addEventListener('click', e => { e.stopPropagation(); setPlcDdOpen(false); deletePlc(item.id); });
+        }
         return li;
       }));
+      document.getElementById('toggle-add-plc').hidden = !isAdminUser();
+      if (!isAdminUser()) {
+        document.getElementById('add-plc-form').style.display = 'none';
+        document.getElementById('edit-plc-form').style.display = 'none';
+      }
     }
+
+    // Добавлять, изменять и удалять ПЛК может только администратор
+    function isAdminUser() {
+      const st = window.authState && window.authState();
+      return !!(st && st.user && st.user.role === 'admin');
+    }
+    window.onAuthChanged = () => {
+      renderPlcDropdown();
+      refresh.hidden = !isAdminUser();
+      const edit = document.querySelector('#andon-edit');
+      edit.classList.toggle('locked', !canEditPlan());
+      edit.title = canEditPlan()
+        ? 'Настроить время окончания часовых интервалов смены и плановое количество кузовов по интервалам для выбранной линии'
+        : 'Менять смену и план могут вошедшие пользователи (роль, кроме «Просмотр»). Нажмите, чтобы узнать подробности';
+      if (selectedDB && currentDBMap[selectedDB]) renderVariablesForDB(selectedDB);
+    };
 
     // Показать/скрыть форму добавления ПЛК (кнопка «+» рядом с названием области)
     document.getElementById('toggle-add-plc').addEventListener('click', () => {
@@ -1065,13 +1124,16 @@
     // Variables of Instance DBs (db_name=DataBlocksInstance) and Global DBs (browse_path=DataBlocksGlobal.<DB>.<var>)
     function isDataBlockItem(item) {
       if (!item.variable_name) return false;
+      // Global DB бывают в двух форматах пути: «DataBlocksGlobal.<блок>…» и «<ПЛК>.DataBlocksGlobal.<блок>…» (обход дерева)
       return item.db_name === 'DataBlocksInstance' ||
-             (item.browse_path || '').startsWith('DataBlocksGlobal.');
+             /(^|\.)DataBlocksGlobal\./.test(item.browse_path || '');
     }
 
     function extractDataBlockName(browsePath, item) {
       if (!browsePath) return '';
       if (item && browsePath.startsWith('DataBlocksGlobal.')) return item.db_name || '';
+      const gm = /^[^.]+\.DataBlocksGlobal\.([^.]+)\./.exec(browsePath);
+      if (gm) return gm[1];
       const parts = browsePath.split('.');
       const structuralFolders = new Set(['Inputs', 'Outputs', 'Static', 'Alarm', 'Alarms', 'CONFIGURATION', 'Dynamic']);
 
@@ -1162,15 +1224,15 @@
         const ck = flag => (saved && saved[flag] ? 'checked' : '');
         li.innerHTML = `
           <span class="var-num">${num}</span>
-          <input class="var-checkbox select" type="checkbox" ${saved ? 'checked' : ''} ${isStruct ? 'style="visibility:hidden" disabled' : ''} title="Сохранять переменную в БД: галочка включает запись значений, снятие — отключает">
+          <input class="var-checkbox select" type="checkbox" ${saved ? 'checked' : ''} ${isStruct ? 'style="visibility:hidden" disabled' : (isAdminUser() ? '' : 'disabled')} title="${isAdminUser() ? 'Сохранять переменную в БД: галочка включает запись значений, снятие — отключает' : 'Отмечать переменные для сохранения в БД может только администратор'}">
           <span class="var-name" style="padding-left:${depth * 16}px" title="${name}"><span class="struct-toggle" title="${isStruct ? 'Раскрыть структурный тег: загрузить вложенные элементы с ПЛК' : ''}">${isStruct ? '▷' : ''}</span> ${name}</span>
           <span class="var-datatype ${item.data_type === 'Array' ? 't-array' : isStruct ? 't-struct' : ''}" title="Тип данных переменной">${item.data_type}</span>
           <span class="var-value" title="${isStruct ? '' : 'Текущее значение в ПЛК (обновляется в реальном времени)'}">${isStruct ? '' : '…'}</span>
           <span class="var-nodeid" title="${item.node_id}">${item.node_id}</span>
           <div class="var-settings" ${isStruct ? 'style="visibility:hidden"' : ''}>
-            <label title="Архивировать значения переменной в БД"><input type="checkbox" class="archive" ${ck('is_archived')}> A</label>
-            <label title="Показывать переменную на графиках Grafana"><input type="checkbox" class="grafana" ${ck('is_grafana_plotted')}> G</label>
-            <label title="Включить аварийное оповещение по переменной"><input type="checkbox" class="alarm" ${ck('is_alarm_enabled')}> L</label>
+            <label title="Архивировать значения переменной в БД"><input type="checkbox" class="archive" ${ck('is_archived')} ${isAdminUser() ? '' : 'disabled'}> A</label>
+            <label title="Показывать переменную на графиках Grafana"><input type="checkbox" class="grafana" ${ck('is_grafana_plotted')} ${isAdminUser() ? '' : 'disabled'}> G</label>
+            <label title="Включить аварийное оповещение по переменной"><input type="checkbox" class="alarm" ${ck('is_alarm_enabled')} ${isAdminUser() ? '' : 'disabled'}> L</label>
           </div>
         `;
         if (!isStruct) {
@@ -1179,6 +1241,7 @@
           const [archive, grafana, alarm] = flags;
           let busy = false;
           const persist = async () => {
+            if (!isAdminUser()) { sel.checked = savedTags.has(item.node_id); showToast('Сохранять переменные в БД может только администратор'); return; }
             if (busy) return;
             busy = true;
             const base = `/api/plcs/${plc.value}/tags`;
@@ -1456,7 +1519,7 @@
     function intervalCfg(screenId, i, starts) {
       const c = (andonCfg[screenId] || []).find(x => x.idx === i + 1);
       const end = c ? c.end_min : (starts[i + 1] !== undefined ? starts[i + 1] : (starts[i] || 0) + 30);
-      return { end, plan: c ? c.plan : 0 };
+      return { end, plan: c ? c.plan : 0, active: c ? c.active !== false : true };
     }
 
     function selectedScreen() { return andonScreens.find(s => s.id === andonScreenId) || null; }
@@ -1468,22 +1531,100 @@
       andonBody.innerHTML = `<div class="empty">${text}</div>`;
     }
 
+    // Меню на самой вкладке «Andon / KPI»: бренд (Chery, Changan, GWM, FL), при наведении сбоку его участки или линии.
+    // Меню одно на странице и показывается под вкладкой. Счётчик Main Line бренда и постов ФЛ берётся из ПЛК.
+    const andonTab = document.querySelector('.tab[data-tab="andon"]');
+    const andonMenu = document.createElement('div');
+    andonMenu.id = 'andon-menu'; andonMenu.className = 'andon-menu'; andonMenu.hidden = true;
+    document.body.appendChild(andonMenu);
+    let andonMenuTimer = null, andonMenuSuppress = false;
+
+    function openAndonMenu() {
+      clearTimeout(andonMenuTimer);
+      const r = andonTab.getBoundingClientRect();
+      andonMenu.style.left = r.left + 'px';
+      andonMenu.style.top = r.bottom + 'px';
+      andonMenu.hidden = false;
+    }
+    function closeAndonMenu(delay = 0) {
+      clearTimeout(andonMenuTimer);
+      andonMenuTimer = setTimeout(() => {
+        andonMenu.hidden = true;
+        andonMenu.querySelectorAll('.am-group.open').forEach(g => g.classList.remove('open'));
+      }, delay);
+    }
+    andonTab.addEventListener('mouseenter', openAndonMenu);
+    andonTab.addEventListener('mouseleave', () => closeAndonMenu(250));
+    andonTab.addEventListener('click', () => { if (!andonMenuSuppress) openAndonMenu(); });
+    andonMenu.addEventListener('mouseenter', () => clearTimeout(andonMenuTimer));
+    andonMenu.addEventListener('mouseleave', () => closeAndonMenu(250));
+    document.addEventListener('click', e => {
+      if (!andonMenu.hidden && !andonMenu.contains(e.target) && !andonTab.contains(e.target)) closeAndonMenu();
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !andonMenu.hidden) closeAndonMenu(); });
+
+    const ANDON_GROUPS = ['Chery', 'Changan', 'GWM', 'FL'];
+    const ANDON_BRAND_AREAS = ['Main Line', 'Floor subassembly', 'Body side'];
+    function andonPath(s) {
+      if (s.template === 'fl_counter') return { group: 'FL', label: s.name.replace(/^FL\s*/i, '') };
+      if (s.template === 'manual_counter') return { group: s.bindings.brand, label: s.bindings.area };
+      return { group: s.name, label: 'Main Line' };
+    }
+
     function renderAndonChips() {
-      andonChips.replaceChildren(...andonScreens.map(s => {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'andon-chip' + (s.id === andonScreenId ? ' active' : '');
-        b.dataset.screen = String(s.id);
-        b.title = `Экран «${s.name}» (ПЛК ${s.plc_name}): часовой план и фактический выпуск кузовов, такт-тайм`;
-        b.innerHTML = `${s.name}${s.template === 'fl_counter' ? '' : ' KPI'}<small data-k="chipTot"></small>`;
-        b.addEventListener('click', () => {
-          andonScreenId = s.id; andonBuilt = ''; andonLast = null; andonMsg = '';
-          try { localStorage.setItem('andonScreen', String(s.id)); } catch { /* не критично */ }
-          renderAndonChips();
-          loadKpiCfg(s.id);
+      const groups = new Map(ANDON_GROUPS.map(g => [g, []]));
+      andonScreens.forEach(s => {
+        const p = andonPath(s);
+        if (!groups.has(p.group)) groups.set(p.group, []);
+        groups.get(p.group).push({ s, label: p.label });
+      });
+      // внутри бренда: Main Line, затем подсборки в заданном порядке
+      const order = l => { const i = ANDON_BRAND_AREAS.indexOf(l); return i < 0 ? 99 : i; };
+      groups.forEach(items => items.sort((a, b) => order(a.label) - order(b.label) || a.s.id - b.s.id));
+      const wasOpen = !andonMenu.hidden;
+      andonMenu.replaceChildren();
+      for (const [group, items] of groups) {
+        if (!items.length) continue;
+        const g = document.createElement('div');
+        g.className = 'am-group' + (items.some(x => x.s.id === andonScreenId) ? ' current' : '');
+        const head = document.createElement('button');
+        head.type = 'button'; head.className = 'am-head';
+        head.title = `${group}: наведите или нажмите, чтобы выбрать участок или линию`;
+        head.innerHTML = `${group}<i>▸</i>`;
+        const sub = document.createElement('div');
+        sub.className = 'am-sub';
+        items.forEach(({ s, label }) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'am-leaf' + (s.id === andonScreenId ? ' active' : '');
+          b.dataset.screen = String(s.id);
+          b.title = s.template === 'manual_counter'
+            ? `Экран «${group} › ${label}»: план и факт по часам вводятся вручную`
+            : `Экран «${group} › ${label}» (ПЛК ${s.plc_name}): часовой план и фактический выпуск кузовов, такт-тайм`;
+          b.innerHTML = `${label}<small data-k="chipTot"></small>`;
+          b.addEventListener('click', () => {
+            andonScreenId = s.id; andonBuilt = ''; andonLast = null; andonMsg = '';
+            try { localStorage.setItem('andonScreen', String(s.id)); } catch { /* не критично */ }
+            if (window.saveLastView) window.saveLastView();
+            renderAndonChips();
+            loadKpiCfg(s.id);
+            if (!andonTab.classList.contains('active')) { andonMenuSuppress = true; andonTab.click(); andonMenuSuppress = false; }
+            closeAndonMenu();
+          });
+          sub.append(b);
         });
-        return b;
-      }));
+        const openGroup = () => { andonMenu.querySelectorAll('.am-group.open').forEach(x => x !== g && x.classList.remove('open')); g.classList.add('open'); };
+        g.addEventListener('mouseenter', openGroup);
+        head.addEventListener('click', e => { e.stopPropagation(); g.classList.contains('open') ? g.classList.remove('open') : openGroup(); });
+        g.append(head, sub);
+        andonMenu.append(g);
+      }
+      andonMenu.hidden = !wasOpen;
+      const cur = selectedScreen();
+      if (cur) {
+        const p = andonPath(cur);
+        andonTab.title = `Dashboard. Информационная панель Andon / KPI. Сейчас открыт экран: ${p.group} › ${p.label}. Наведите, чтобы выбрать другой бренд, участок или линию Finish Line`;
+      }
     }
 
     async function loadAndonScreens() {
@@ -1492,7 +1633,7 @@
       try {
         const r = await fetch('/api/kpi/screens');
         if (!r.ok) throw new Error('screens');
-        const list = (await r.json()).filter(s => s.template === 'body_counter' || s.template === 'fl_counter');
+        const list = (await r.json()).filter(s => ['body_counter', 'fl_counter', 'manual_counter'].includes(s.template));
         const sig = arr => JSON.stringify(arr.map(s => [s.id, s.name, s.plc_id, s.bindings]));
         const changed = sig(list) !== sig(andonScreens);
         andonScreens = list;
@@ -1513,12 +1654,12 @@
             <div class="tile" title="Время, прошедшее с момента последнего кузова: текущий такт-тайм между кузовами">
               <label>Текущий такт-тайм между кузовами</label><b data-k="curTakt">—</b><small>мин:сек (при длинном простое: ч:мин:сек)</small>
             </div>
-            <div class="andon-clockbox" title="Текущие дата и время"><div class="andon-date" data-k="date"></div><div class="andon-time" data-k="time"></div></div>
+            <div class="andon-clockbox" title="Дата и время сервиса на ПК (не часы телевизора или браузера)"><div class="andon-date" data-k="date"></div><div class="andon-time" data-k="time"></div></div>
           </aside>
           <div class="andon-main">
             <h2 class="andon-h">Ключевые производственные показатели линии ${screen.name}</h2>
             <div class="kpi-wrap"><table class="kpi-table">
-              <colgroup><col style="width:5%"><col style="width:22%"><col style="width:10%"><col style="width:12%"><col style="width:18%"><col style="width:10%"><col style="width:23%"></colgroup>
+              <colgroup><col style="width:5%"><col style="width:19%"><col style="width:8%"><col style="width:10%"><col style="width:16%"><col style="width:8%"><col style="width:20%"><col style="width:14%"></colgroup>
               <thead><tr>
                 <th title="Номер часового интервала смены">№</th>
                 <th title="Время начала и окончания интервала: начало берётся из ПЛК, окончание из настроек смены">Время</th>
@@ -1527,12 +1668,138 @@
                 <th title="Фактическое количество кузовов, прошедших линию за интервал">Кол-во кузовов</th>
                 <th title="Отклонение факта от плана: зелёный — выполнено, красный — отставание">±</th>
                 <th title="Такт-тайм за интервал: сколько минут:секунд в среднем уходит на один кузов">Такт-тайм за период</th>
+                <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой</th>
               </tr></thead>
-              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td data-k="takt"></td></tr>`).join('')}</tbody>
-              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого</td><td data-k="planSum"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td><td data-k="shTakt"></td></tr></tfoot>
+              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td data-k="takt"></td><td class="dt" data-k="dt"></td></tr>`).join('')}</tbody>
+              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого</td><td class="plan-cell" data-k="planSum" title="План на день"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td><td data-k="shTakt"></td><td></td></tr></tfoot>
             </table></div>
           </div>
         </div>`;
+      andonBody.querySelector('.plan-cell').addEventListener('click', () => openBrandPlanDialog(screen));
+      loadPlanLast(screen);
+    }
+
+    // ----- План на день у линий брендов: хранится на сайте и раскладывается по интервалам -----
+    // Пропорционально длительности интервалов (остатки округления — интервалам с наибольшей дробной частью),
+    // затем первый интервал на 1 меньше (раскачка смены), пятый — на 1 больше (после обеда)
+    function distributePlan(total, mins) {
+      const sum = mins.reduce((s, m) => s + m, 0);
+      if (!sum || total <= 0) return mins.map(() => 0);
+      const raw = mins.map(m => (total * m) / sum);
+      const out = raw.map(Math.floor);
+      let left = total - out.reduce((s, x) => s + x, 0);
+      raw.map((x, i) => [x - Math.floor(x), i]).sort((a, b) => b[0] - a[0] || a[1] - b[1])
+        .forEach(([, i]) => { if (left > 0) { out[i] += 1; left -= 1; } });
+      if (out.length >= 5 && out[0] > 0) { out[0] -= 1; out[4] += 1; }
+      return out;
+    }
+
+    // Одно окно «Смена и план» линии бренда (открывается кликом по «Итого»): план на день с распределением,
+    // время окончания интервалов, ручная правка плана интервала и галочки «показывать интервал на экране»
+    function openBrandPlanDialog(screen) {
+      const st = window.authState && window.authState();
+      if (!st || !st.user) { showToast('Войдите в систему, чтобы изменить смену и план'); return; }
+      if (st.user.role === 'viewer') { showToast('У вашей роли нет права менять смену и план'); return; }
+      if (!andonLast || !andonLast.starts || !andonLast.starts.length) { showToast('Сначала дождитесь загрузки данных экрана'); return; }
+      const starts = andonLast.starts, n = andonLast.n;
+      const toMin = s => { const [h, m] = (s || '0:0').split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+      const ivs = Array.from({ length: n }, (_, i) => {
+        const cfg = intervalCfg(screen.id, i, starts);
+        return { idx: i + 1, start: starts[i] ?? 0, end: cfg.end, old: cfg.plan, active: cfg.active };
+      });
+      const mins = x => Math.max(0, x.end - x.start);
+      const current = ivs.reduce((s, x) => s + x.old, 0);
+      // по умолчанию отмечены интервалы, которые показываются на экране и у которых уже был план (если плана не было — все показанные)
+      const on = ivs.map(x => x.active && (current > 0 ? x.old > 0 : true));
+      let plan = ivs.map(x => x.old);
+      const modal = document.createElement('div');
+      modal.className = 'kpi-modal';
+      modal.innerHTML = `
+        <div class="kpi-modal-box auth-modal bp-box" role="dialog" aria-label="Смена и план">
+          <h3>Смена и план — ${screen.name}</h3>
+          <p class="hint">Введите план на день: он разложится по отмеченным интервалам пропорционально их длительности, первый интервал на 1 меньше, пятый (после обеда) на 1 больше. План интервала можно поправить вручную. Начало интервала берётся из ПЛК, окончание можно изменить. Интервалы без галочки не показываются на экране.</p>
+          <form>
+            <label>План на день, кузовов</label>
+            <input name="value" type="number" min="0" max="500" step="1" value="${current}" title="Сколько кузовов линия должна сделать за день: число разложится по отмеченным интервалам">
+            <table class="bp-table"><thead><tr>
+              <th title="Показывать интервал на экране и учитывать его в распределении плана">✓</th><th>№</th>
+              <th title="Начало интервала из ПЛК">Начало</th><th title="Время окончания интервала: можно изменить">Окончание</th>
+              <th title="Длительность интервала в минутах">Мин.</th><th title="План интервала: рассчитывается из плана на день, можно поправить вручную">План</th><th title="Текущий план интервала">Было</th></tr></thead>
+            <tbody>${ivs.map((x, i) => `<tr>
+              <td><input type="checkbox" data-on="${i}"${on[i] ? ' checked' : ''} title="Показывать интервал ${x.idx} на экране и давать ему план"></td>
+              <td>${x.idx}</td><td>${hhmm(x.start)}</td>
+              <td><input type="time" data-end="${i}" value="${hhmm(x.end)}" title="Время окончания интервала ${x.idx}"></td>
+              <td data-min="${i}">${mins(x)}</td>
+              <td><input type="number" min="0" max="999" step="1" data-plan="${i}" value="${plan[i]}" title="План интервала ${x.idx}: можно поправить вручную, итог пересчитается"></td>
+              <td class="bp-old">${x.old}</td></tr>`).join('')}</tbody>
+            <tfoot><tr><td></td><td></td><td colspan="2">Итого</td><td data-k="minSum"></td><td data-k="newSum"></td><td>${current}</td></tr></tfoot></table>
+            <div class="auth-err" hidden></div>
+            <div class="kpi-modal-actions">
+              <button type="button" data-act="cancel" style="background: var(--bg-tertiary); color: var(--fg-primary);" title="Закрыть окно без изменений">Отмена</button>
+              <button type="submit" title="Сохранить план и время интервалов: они сразу появятся на экране, изменение плана попадёт в журнал с вашей фамилией">Сохранить</button>
+            </div>
+          </form>
+        </div>`;
+      const closeModal = () => { if (modal.parentNode) document.body.removeChild(modal); };
+      modal.addEventListener('mousedown', e => { if (e.target === modal) closeModal(); });
+      modal.querySelector('[data-act="cancel"]').addEventListener('click', closeModal);
+      const f = modal.querySelector('form'), err = modal.querySelector('.auth-err');
+      const q = s => modal.querySelector(s);
+      function paintRows() {
+        ivs.forEach((x, i) => {
+          const p = q(`[data-plan="${i}"]`);
+          p.disabled = !on[i];
+          p.value = on[i] ? String(plan[i]) : '0';
+          q(`[data-min="${i}"]`).textContent = String(mins(x));
+        });
+        q('[data-k="minSum"]').textContent = String(ivs.reduce((s, x, i) => s + (on[i] ? mins(x) : 0), 0));
+        q('[data-k="newSum"]').textContent = String(plan.reduce((s, p, i) => s + (on[i] ? p : 0), 0));
+      }
+      // распределение плана на день по отмеченным интервалам (перезаписывает ручные правки)
+      function redistribute() {
+        const total = Number(f.value.value) || 0;
+        const chosen = ivs.map((x, i) => (on[i] ? i : -1)).filter(i => i >= 0);
+        const part = distributePlan(total, chosen.map(i => mins(ivs[i])));
+        plan = ivs.map(() => 0);
+        chosen.forEach((i, k) => { plan[i] = part[k]; });
+        paintRows();
+      }
+      f.value.addEventListener('input', redistribute);
+      modal.querySelectorAll('[data-on]').forEach(cb => cb.addEventListener('change', () => { on[Number(cb.dataset.on)] = cb.checked; redistribute(); }));
+      modal.querySelectorAll('[data-end]').forEach(inp => inp.addEventListener('change', () => { ivs[Number(inp.dataset.end)].end = toMin(inp.value); redistribute(); }));
+      modal.querySelectorAll('[data-plan]').forEach(inp => inp.addEventListener('input', () => {
+        // ручная правка интервала: план на день становится суммой интервалов
+        plan[Number(inp.dataset.plan)] = Math.max(0, parseInt(inp.value, 10) || 0);
+        f.value.value = String(plan.reduce((s, p, i) => s + (on[i] ? p : 0), 0));
+        paintRows();
+      }));
+      f.addEventListener('submit', async e => {
+        e.preventDefault();
+        err.hidden = true;
+        const v = Number(f.value.value);
+        const bad = m => { err.textContent = m; err.hidden = false; };
+        if (!Number.isInteger(v) || v < 0 || v > 500) return bad('План на день: целое число от 0 до 500');
+        if (v > 0 && !on.some(Boolean)) return bad('Отметьте хотя бы один интервал');
+        const wrong = ivs.findIndex((x, i) => on[i] && x.end <= x.start);
+        if (wrong >= 0) return bad(`Интервал ${ivs[wrong].idx}: окончание должно быть позже начала (${hhmm(ivs[wrong].start)})`);
+        if (plan.some((p, i) => on[i] && (p < 0 || p > 999))) return bad('План интервала: от 0 до 999');
+        try {
+          const r = await fetch(`/api/kpi/screens/${screen.id}/schedule`, {
+            method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: ivs.map((x, i) => ({ idx: x.idx, end_min: x.end, plan: on[i] ? plan[i] : 0, active: on[i] })) }),
+          });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Не удалось сохранить');
+          closeModal();
+          await loadKpiCfg(screen.id, true);
+          loadPlanLast(screen);
+          const total = plan.reduce((s, p, i) => s + (on[i] ? p : 0), 0);
+          showToast(total !== current ? `Смена и план сохранены: план на день ${current} → ${total}` : 'Смена и план сохранены');
+        } catch (ex) { bad(ex.message); }
+      });
+      document.body.appendChild(modal);
+      paintRows();
+      f.value.focus(); f.value.select();
     }
 
     function paintKpi(screen, v) {
@@ -1551,6 +1818,8 @@
         const i = Number(tr.dataset.i);
         const cfg = intervalCfg(screen.id, i, starts);
         const fact = prod[i] || 0;
+        // интервал без галочки в «Плане на день» скрыт, но показывается, если в нём всё же были кузова
+        tr.hidden = !cfg.active && fact === 0;
         const state = idx ? (i + 1 < idx ? 'past' : i + 1 === idx ? 'now' : 'future') : 'past';
         tr.className = state === 'now' ? 'now' : state === 'future' ? 'future' : '';
         const c = k => tr.querySelector(`[data-k="${k}"]`);
@@ -1572,6 +1841,9 @@
       });
       const tot = val('tot');
       set(q('planSum'), String(planSum));
+      const pc = q('planSum');
+      pc.classList.toggle('plan-edit', canEditPlan());
+      pc.title = (canEditPlan() ? 'Нажмите, чтобы ввести план на день: он разложится по интервалам. ' : 'План на день. Чтобы изменить, войдите в систему (роль кроме «Просмотр»). ') + (planLast[screen.id] || '');
       set(q('tot'), tot === null ? '—' : String(tot));
       const ds = q('deltaSum');
       if (hasDelta) {
@@ -1580,6 +1852,7 @@
       } else set(ds, '');
       set(q('shTakt'), val('shMin') === null ? '—' : mmss(val('shMin'), val('shSec') || 0));
       andonLast = { starts, n };
+      if (window.dtApply) window.dtApply(screen, andonBody);
     }
 
     // ----- Finish Line: таблица как на экранах SCADA (план из ПЛК, счётчики по моделям) -----
@@ -1592,12 +1865,12 @@
             <div class="tile" title="Время, прошедшее с момента последнего кузова: текущий такт-тайм между кузовами">
               <label>Текущий такт-тайм между кузовами</label><b data-k="curTakt">—</b><small>мин:сек (при длинном простое: ч:мин:сек)</small>
             </div>
-            <div class="andon-clockbox" title="Текущие дата и время"><div class="andon-date" data-k="date"></div><div class="andon-time" data-k="time"></div></div>
+            <div class="andon-clockbox" title="Дата и время сервиса на ПК (не часы телевизора или браузера)"><div class="andon-date" data-k="date"></div><div class="andon-time" data-k="time"></div></div>
           </aside>
           <div class="andon-main">
             <h2 class="andon-h">Ключевые производственные показатели ${screen.name}</h2>
             <div class="kpi-wrap"><table class="kpi-table">
-              <colgroup><col style="width:4%"><col style="width:17%"><col style="width:8%"><col style="width:7%"><col style="width:7%"><col style="width:6%">${FL_MODELS.map(() => '<col style="width:8%">').join('')}<col style="width:19%"></colgroup>
+              <colgroup><col style="width:4%"><col style="width:14%"><col style="width:7%"><col style="width:6%"><col style="width:6%"><col style="width:6%">${FL_MODELS.map(() => '<col style="width:7%">').join('')}<col style="width:17%"><col style="width:12%"></colgroup>
               <thead><tr>
                 <th title="Номер часового интервала смены">№</th>
                 <th title="Время начала и окончания интервала: начало берётся из ПЛК, окончание из настроек">Время</th>
@@ -1607,9 +1880,10 @@
                 <th title="Отклонение факта от плана (по ПЛК) для завершённых интервалов: красный — отставание">±</th>
                 ${FL_MODELS.map(m => `<th title="Количество кузовов модели ${m} за интервал">${m}</th>`).join('')}
                 <th title="Такт-тайм за интервал: сколько минут:секунд в среднем уходит на один кузов">Такт-тайм за период</th>
+                <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой</th>
               </tr></thead>
-              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td>${FL_MODELS.map(m => `<td data-k="m_${m}"></td>`).join('')}<td data-k="takt"></td></tr>`).join('')}</tbody>
-              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td class="plan-cell" data-k="planSum" title="План на день (DayPlan из ПЛК)"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td>${FL_MODELS.map(m => `<td data-k="mt_${m}"></td>`).join('')}<td data-k="shTakt"></td></tr></tfoot>
+              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td>${FL_MODELS.map(m => `<td data-k="m_${m}"></td>`).join('')}<td data-k="takt"></td><td class="dt" data-k="dt"></td></tr>`).join('')}</tbody>
+              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td class="plan-cell" data-k="planSum" title="План на день (DayPlan из ПЛК)"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td>${FL_MODELS.map(m => `<td data-k="mt_${m}"></td>`).join('')}<td data-k="shTakt"></td><td></td></tr></tfoot>
             </table></div>
           </div>
         </div>`;
@@ -1744,6 +2018,7 @@
       } else set(ds, '');
       set(q('shTakt'), val('shMin') === null ? '—' : mmss(val('shMin'), val('shSec') || 0));
       andonLast = { starts, n };
+      if (window.dtApply) window.dtApply(screen, andonBody);
     }
 
     function setAndonBadge(state, text) { andonBadge.className = `live-badge ${state}`; andonBadge.textContent = text; }
@@ -1751,15 +2026,27 @@
     async function andonTick() {
       const panel = document.querySelector('#andon');
       if (!panel.classList.contains('active') || document.hidden) return;
-      const now = new Date();
+      const clock = window.plantClock;
       const dEl = andonBody.querySelector('[data-k="date"]'), tEl = andonBody.querySelector('[data-k="time"]');
-      if (dEl) dEl.textContent = now.toLocaleDateString('ru-RU');
-      if (tEl) tEl.textContent = now.toLocaleTimeString('ru-RU');
+      if (dEl) dEl.textContent = clock ? clock.dateText() : '';
+      if (tEl) tEl.textContent = clock ? clock.timeText() : '';
       if (!andonLoadedAt || Date.now() - andonLoadedAt > 30000) await loadAndonScreens();
       const sel = selectedScreen();
       if (!sel) {
         setAndonBadge('off', '● нет данных');
         showAndonMessage('Экраны Andon / KPI ещё не созданы.');
+        return;
+      }
+      const editBtn = document.querySelector('#andon-edit');
+      // у линий брендов смена и план редактируются по клику на «Итого», у подсборок — в ячейках; кнопка остаётся только у ФЛ (время интервалов)
+      if (editBtn) editBtn.style.display = sel.template === 'fl_counter' ? '' : 'none';
+      if (sel.template === 'manual_counter') {
+        // Подсборки: данных ПЛК нет, план и факт вводят вручную
+        const key = 'manual|' + sel.id;
+        const rebuild = andonBuilt !== key;
+        andonBuilt = key; andonMsg = ''; andonLast = null;
+        setAndonBadge('on', '● ручной ввод');
+        window.manualPaint(sel, andonBody, rebuild);
         return;
       }
       if (!sel.bindings.tot || !sel.bindings.prod) {
@@ -1789,7 +2076,7 @@
           } catch { /* ПЛК недоступен: покажем «нет связи» ниже */ }
         }));
         andonScreens.forEach(s => {
-          const chip = andonChips.querySelector(`[data-screen="${s.id}"] [data-k="chipTot"]`);
+          const chip = andonMenu.querySelector(`[data-screen="${s.id}"] [data-k="chipTot"]`);
           const tv = results.get(s.plc_id) && s.bindings.tot ? results.get(s.plc_id)[s.bindings.tot] : null;
           if (chip) chip.textContent = tv && tv.ok ? String(tv.v) : '';
         });
@@ -1802,9 +2089,15 @@
       } finally { andonBusy = false; }
     }
     setInterval(andonTick, 1000);
+    // Список экранов нужен меню на вкладке «Andon / KPI» ещё до её открытия
+    loadAndonScreens();
+    setInterval(() => { if (!document.hidden) loadAndonScreens(); }, 60000);
 
     // Настройка смены и плана выбранного экрана
     document.querySelector('#andon-edit').addEventListener('click', () => {
+      const st = window.authState && window.authState();
+      if (!st || !st.user) { showToast('Войдите в систему, чтобы изменить смену и план'); return; }
+      if (st.user.role === 'viewer') { showToast('У вашей роли нет права менять смену и план'); return; }
       const screen = selectedScreen();
       if (!screen || !andonLast) { showToast('Сначала дождитесь загрузки данных экрана'); return; }
       const starts = andonLast.starts, n = andonLast.n;
@@ -1877,5 +2170,11 @@
     loadPlcs().catch(error => setStatus('error', 'API Error', error.message));
   </script>
   <script src="/static/auth.js"></script>
+  <script src="/static/dictionary.js"></script>
+  <script src="/static/activity.js"></script>
+  <script src="/static/downtime.js"></script>
+  <script src="/static/manual.js"></script>
+  <script src="/static/downtimes.js"></script>
+  <script src="/static/comments.js"></script>
 </body>
 </html>

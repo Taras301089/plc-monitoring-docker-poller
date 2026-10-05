@@ -53,3 +53,85 @@
 .users-table .badge.on { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
 .users-table .acts { display: flex; gap: 4px; justify-content: flex-end; }
 .users-table .acts button { min-height: 28px; padding: 0 9px; font-size: 11px; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); }
+
+/* Справочники простоев */
+.dict-grid { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(420px, 1.6fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .dict-grid { grid-template-columns: 1fr; } }
+.dict-card { min-width: 0; }
+.dict-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.dict-head h3 { margin: 0; font-size: 15px; flex: 0 0 auto; }
+.dict-scopes { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
+.dict-scope { min-height: 28px; padding: 0 12px; font-size: 12px; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); }
+.dict-scope.active { background: var(--accent) !important; color: #fff; }
+.dict-table { max-width: none; margin-bottom: 12px; }
+.dict-table td.num { width: 34px; color: var(--fg-secondary); text-align: right; }
+.dict-table td { padding: 5px 10px; }
+.dict-hint { color: var(--fg-secondary); font-size: 11px; margin-left: 6px; font-weight: normal; }
+.dict-area { margin-bottom: 14px; }
+.dict-area.off > .dict-area-head b { color: var(--fg-secondary); }
+.dict-area-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; flex-wrap: wrap; }
+.dict-area-head .acts { margin-left: auto; display: flex; gap: 4px; }
+.dict-area-head .acts button { min-height: 28px; padding: 0 9px; font-size: 11px; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); }
+.dict-table .acts button[disabled] { opacity: .35; cursor: default; }
+
+/* Активность пользователей */
+.act-h { margin: 16px 0 8px; font-size: 15px; }
+.act-top { margin-top: 20px; }
+.act-top .act-h { margin: 0; }
+.act-periods { display: flex; gap: 4px; margin-left: auto; }
+.act-per { min-height: 28px; padding: 0 12px; font-size: 12px; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); }
+.act-per.active { background: var(--accent) !important; color: #fff; }
+.act-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+.act-dot.on { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+.act-dot.idle { background: var(--warn); }
+.users-table .badge.idle { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+.users-table tr.u-row { cursor: pointer; }
+.users-table tr.u-row:hover { background: var(--hover); }
+.u-where { margin-top: 2px; font-size: 11px; color: var(--fg-secondary); }
+
+/* Вкладка «Простои» */
+.dl-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.dl-filters select, .dl-filters input[type="date"] { min-height: 30px; font-size: 12px; }
+.dl-lbl { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--fg-secondary); }
+.dl-chk { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--fg-secondary); cursor: pointer; }
+.dl-chk input { width: auto; min-height: 0; }
+.dl-sum { font-size: 13px; color: var(--fg-secondary); margin: 4px 0 10px; }
+.dl-sum b { color: var(--fg-primary); }
+.dl-warn { color: var(--warn); }
+.dl-table { max-width: none; }
+.dl-table td { padding: 6px 10px; vertical-align: top; }
+.dl-table tr.dl-first td { border-top: 2px solid var(--line); }
+.dl-table tr.dl-row { cursor: pointer; }
+.dl-table tr.dl-row:hover { background: var(--hover); }
+.dl-table .dl-time { white-space: nowrap; }
+.dl-table .dl-note { max-width: 320px; word-break: break-word; color: var(--fg-secondary); }
+.dl-table .dl-who { color: var(--fg-secondary); font-size: 12px; }
+.dl-table tr.dl-rest td { background: color-mix(in srgb, var(--warn) 7%, transparent); }
+
+/* Простои: таблица как в Excel */
+.dl-body { outline: none; overflow-x: auto; }
+.dl-spacer { flex: 1; }
+.dl-btn { min-height: 28px; padding: 0 12px; font-size: 12px; }
+.dl-table th { white-space: nowrap; position: relative; user-select: none; }
+.dl-table th.dl-num, .dl-table td.dl-num { text-align: right; }
+.dl-sort { cursor: pointer; }
+.dl-sort:hover { color: var(--fg-primary); }
+.dl-arrow { font-style: normal; margin-left: 4px; color: var(--accent); }
+.dl-arrow sup { font-size: 9px; }
+.dl-sorted { color: var(--fg-primary); }
+.dl-fbtn { min-height: 0; margin-left: 4px; padding: 0 4px; font-size: 11px; line-height: 16px; background: transparent !important; color: var(--fg-secondary); box-shadow: none; }
+.dl-fbtn:hover { color: var(--fg-primary); filter: none; }
+.dl-fbtn.on { color: #fff; background: var(--accent) !important; border-radius: 3px; }
+.dl-table td { user-select: none; cursor: cell; }
+.dl-table td.dl-sel { background: color-mix(in srgb, var(--accent) 28%, transparent) !important; box-shadow: inset 0 0 0 1px var(--accent); }
+.dl-table td.dl-dup { color: var(--fg-secondary); opacity: .65; }
+.dl-table td.dl-nw { white-space: nowrap; }
+.dl-table td.dl-act, .dl-table th.dl-act { width: 28px; padding: 0 4px; text-align: center; }
+.dl-open { min-height: 22px; padding: 0 8px; background: transparent !important; color: var(--accent); box-shadow: none; font-weight: 700; }
+.dl-open:hover { background: var(--hover) !important; filter: none; }
+.dl-pop { position: fixed; z-index: 90; width: 250px; padding: 8px; background: var(--bg-primary); border-radius: 8px; box-shadow: 0 0 0 1px var(--line), 0 12px 32px rgba(0,0,0,.5); }
+.dl-pop .dl-q { width: 100%; min-height: 30px; font-size: 12px; margin-bottom: 6px; text-align: left; }
+.dl-list { max-height: 240px; overflow: auto; margin: 4px 0; }
+.dl-list .dl-chk, .dl-all { padding: 3px 4px; }
+.dl-none { padding: 8px; font-size: 12px; color: var(--fg-secondary); }
+.dl-pop-act { display: flex; justify-content: space-between; gap: 6px; margin-top: 6px; }

@@ -110,6 +110,8 @@
     [data-theme] .warning { background: color-mix(in srgb, var(--danger) 12%, var(--bg-secondary)); color: var(--danger); }
     .step-num { background: var(--accent); }
     * { scrollbar-width: thin; scrollbar-color: rgba(125,135,148,.4) transparent; }  </style>
+  <link rel="stylesheet" href="/static/auth.css">
+  <link rel="stylesheet" href="/static/downtime.css">
 </head>
 <body>
   <nav class="tabs">
@@ -117,8 +119,13 @@
     <a class="tab" href="index.html#saved" title="Переменные сохранённые в базе данных для дальнейшего анализа и мониторинга">💾 Переменные БД</a>
     <a class="tab" href="index.html#charts" title="Графики и визуализация исторических данных переменных">📈 Графики</a>
     <a class="tab" href="index.html#notifications" title="Параметры подключения к ПЛК и настройки оповещений">🔔 Оповещения</a>
+    <a class="tab" href="index.html#andon" title="Dashboard. Информационная панель Andon / KPI: почасовые счётчики кузовов, такт-тайм и показатели производства в реальном времени">📺 Andon / KPI <span class="tab-caret">▾</span></a>
+    <a class="tab" href="index.html#downtimes" title="Все простои за период одним списком: по одной строке на каждую причину, с описаниями и комментариями">⏱ Простои</a>
+    <a class="tab" id="tab-dictionary" hidden href="index.html#dictionary" title="Справочники простоев: причины, участки и станции для описания простоев (редактируют администратор и начальники)">📚 Справочники</a>
+    <a class="tab" id="tab-users" hidden href="index.html#users" title="Пользователи системы: учётные записи, роли, кто в сети, входы и время работы">👥 Пользователи</a>
     <div class="tabs-divider"></div>
     <div class="tabs-tools">
+      <div id="ref-user" class="auth-wrap"></div>
       <button id="theme-toggle" class="theme-toggle" title="Переключить между тёмной и светлой темой (сохраняется автоматически)">🌙</button>
       <a class="tab active" href="reference.html" title="Справочная информация о системе, архитектуре и развёртывании">📖 Справка</a>
     </div>
@@ -144,9 +151,23 @@ C:\plc-monitoring-docker-poller/
 ├── grafana_data/               ← Дашборды Grafana (том Docker)
 ├── fastapi-api/
 │   ├── main.py                 ← REST API для браузера
+│   ├── auth.py                 ← Пользователи, вход, роли
+│   ├── dictionary.py           ← Справочники простоев (причины, участки, станции)
+│   ├── downtime.py             ← Простои и их описание (автосоздаёт сборщик KPI в поллере)
+│   ├── manual.py               ← Экраны подсборок: ручной ввод плана и факта, журнал ввода
+│   ├── comments.py             ← Комментарии к простоям, упоминания @, уведомления
+│   ├── activity.py             ← Кто в сети и статистика входов (админ и начальники)
 │   ├── requirements.txt
 │   └── static/
 │       ├── index.html          ← Браузер переменных ПЛК
+│       ├── auth.js, auth.css   ← Вход и страница «Пользователи»
+│       ├── dictionary.js       ← Вкладка «Справочники» (админ и начальники)
+│       ├── downtime.js, .css   ← Колонка «Простой» и панель описания на экранах Andon
+│       ├── downtimes.js        ← Вкладка «Простои»: все простои списком, фильтры
+│       ├── manual.js           ← Таблица подсборок с вводом в ячейках и журналом
+│       ├── comments.js         ← Комментарии в панели простоя, подсказка по @, колокольчик
+│       ├── activity.js         ← Сигнал присутствия и окно статистики по дням (в «Пользователи»)
+│       ├── plant-time.js       ← Часы Andon: время сервиса на ПК, не пояс браузера/телевизора
 │       └── reference.html      ← Эта справка
 └── python-async-poller/
     ├── main.py                 ← Асинхронный сборщик данных
@@ -386,20 +407,21 @@ pause</div>
 
     <!-- ========== ВЕРСИЯ ========== -->
     <section style="background: #f9fafb; border-left: 4px solid #536471;">
-      <p><small>📝 Справка обновлена: <strong>2026-09-30</strong></small></p>
+      <p><small>📝 Справка обновлена: <strong>2026-10-01</strong> (часы Andon — время сервиса на ПК через <code>/api/time</code>, не пояс браузера)</small></p>
       <p><small>Версия проекта: <strong>1.0.0</strong></small></p>
       <p><small>Сборка: <strong>Иерархический браузер переменных + поиск по Data Block (Instance & Global) + кэширование БД</strong></small></p>
       <p><small>Global Data Blocks: <strong>Автоматическое обнаружение (Namespace 3), кэширование, поиск и фильтрация по 1100+ переменным</strong></small></p>
       <p><small>Структурные теги (массивы и структуры, как в WinCC): <strong>раскрываются по клику ▷, вложенные элементы подгружаются с ПЛК через API <code>/api/plcs/{id}/opcua/children</code></strong></small></p>
       <p><small>Галочка у переменной сразу сохраняет её в БД (таблица <code>plc_tags</code>, тип DIGITAL/ANALOG определяется по типу данных ПЛК), снятие галочки отключает тег; A/G/L — архив, Grafana, авария. Кнопки «Обновить с ПЛК» и «Из БД» находятся в панели Data Blocks, там же дата и время последнего сканирования</small></p>
       <p><small>Колонка «Значение» показывает текущие значения переменных из ПЛК в реальном времени: раз в секунду читаются только видимые на экране строки (до 80), пакетным запросом через <code>POST /api/plcs/{id}/opcua/values</code>; значок LIVE в заголовке области «Переменные» показывает состояние обновления, при чтении также определяется тип данных</small></p>
-      <p><small>Вкладка «Andon / KPI» (Dashboard, информационная панель) повторяет KPI-экраны SCADA: для выбранного ПЛК находит блоки почасового счётчика кузовов (<code>*_counting_numbers_of _Body_by_the_hours_DB</code>), по кнопкам выбирается линия (GWM, Chery, Changan). Таблица: интервал, минуты, план, количество кузовов, отклонение, такт-тайм за период, итого и средний такт смены; слева текущий такт между кузовами, дата и время; обновление раз в секунду. Начало интервалов берётся из ПЛК, окончание и план задаются кнопкой «Смена и план» и хранятся в таблице <code>kpi_schedule</code> (создаётся автоматически при запуске API)</small></p>
+      <p><small>Вкладка «Andon / KPI» (Dashboard, информационная панель) повторяет KPI-экраны SCADA: для выбранного ПЛК находит блоки почасового счётчика кузовов (<code>*_counting_numbers_of _Body_by_the_hours_DB</code>), по кнопкам выбирается линия (GWM, Chery, Changan). Таблица: интервал, минуты, план, количество кузовов, отклонение, такт-тайм за период, итого и средний такт смены; слева текущий такт между кузовами; дата и время — с сервиса на ПК (<code>GET /api/time</code>, смещение <code>KPI_UTC_OFFSET_HOURS</code>), а не часы браузера телевизора. Обновление раз в секунду. Начало интервалов берётся из ПЛК, окончание и план задаются кнопкой «Смена и план» и хранятся в таблице <code>kpi_schedule</code> (создаётся автоматически при запуске API)</small></p>
       <p><small>Переменные блока показываются плоским нумерованным списком; в OPC UA видны только переменные с флагом «Accessible from HMI/OPC UA» в TIA Portal</small></p>
     </section>
 
   </main>
+  <script src="/static/refnav.js"></script>
   <script>
-    function initTheme() {
+function initTheme() {
       const saved = localStorage.getItem('theme');
       const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       const theme = saved || (dark ? 'dark' : 'light');

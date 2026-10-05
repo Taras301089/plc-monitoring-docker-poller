@@ -46,10 +46,29 @@
     };
   }
 
+  // ---------- последний открытый экран пользователя ----------
+  const startedWithHash = !!location.hash;
+  let viewApplied = false;
+  let forceApplyView = false;
+  let viewTimer = null;
+  window.saveLastView = () => {
+    clearTimeout(viewTimer);
+    viewTimer = setTimeout(() => {
+      if (!state.user) return;
+      const active = document.querySelector('.tab.active[data-tab]');
+      if (!active) return;
+      api('PUT', '/api/auth/last-view', { tab: active.dataset.tab, screen: typeof andonScreenId === 'number' ? andonScreenId : null });
+    }, 700);
+  };
+
   // ---------- состояние ----------
   async function refresh() {
     const res = await api('GET', '/api/auth/me');
     if (res.ok) {
+      if (res.data.user && !viewApplied && res.data.last_view && (!startedWithHash || forceApplyView)) {
+        viewApplied = true;
+        if (window.applyLastView) window.applyLastView(res.data.last_view);
+      }
       state.user = res.data.user;
       state.setupRequired = res.data.setup_required;
       state.roles = res.data.roles || {};
@@ -57,6 +76,7 @@
       state.pending = res.data.pending_count || 0;
     }
     renderAuthBox();
+    if (window.onAuthChanged) window.onAuthChanged();
     if (state.user && state.user.must_change_password) showChangePassword(true);
   }
 
@@ -70,21 +90,26 @@
         <button type="button" class="auth-btn" id="auth-user" title="Меню пользователя: смена пароля и выход"><span>${esc(shortName(u))}</span><small>${esc(u.role_name)}</small></button>
         <div class="auth-menu" hidden>
           <div class="who"><b>${esc(u.full_name)}</b><span>${esc(u.login)} · ${esc(u.role_name)}${u.department_name ? ' · ' + esc(u.department_name) : ''}</span></div>
+          <button type="button" data-act="stats" title="Сколько раз вы входили и сколько времени работали в системе по дням">Моя статистика</button>
           <button type="button" data-act="pw" title="Сменить свой пароль">Сменить пароль</button>
           <button type="button" data-act="logout" title="Выйти из системы на этом устройстве">Выйти</button>
         </div>`;
       const menu = authBox.querySelector('.auth-menu');
       authBox.querySelector('#auth-user').addEventListener('click', e => { e.stopPropagation(); menu.hidden = !menu.hidden; });
+      menu.querySelector('[data-act="stats"]').addEventListener('click', () => { menu.hidden = true; if (window.openMyStats) window.openMyStats(); });
       menu.querySelector('[data-act="pw"]').addEventListener('click', () => { menu.hidden = true; showChangePassword(false); });
       menu.querySelector('[data-act="logout"]').addEventListener('click', logout);
     }
     const isAdmin = !!state.user && state.user.role === 'admin';
-    tabUsers.hidden = !isAdmin;
+    const canSee = !!state.user && ['admin', 'chief', 'area_head'].includes(state.user.role);
+    tabUsers.hidden = !canSee;
     tabUsers.textContent = '👥 Пользователи' + (isAdmin && state.pending ? ` (${state.pending})` : '');
-    tabUsers.title = state.pending
+    tabUsers.title = state.pending && isAdmin
       ? `Пользователи системы. Заявок на регистрацию, ожидающих подтверждения: ${state.pending}`
-      : 'Пользователи системы: создание учётных записей, роли, сброс паролей (только для администратора)';
-    if (!isAdmin && usersPane.classList.contains('active')) document.querySelector('.tab[data-tab="browser"]').click();
+      : (isAdmin
+        ? 'Пользователи системы: учётные записи, роли, кто сейчас в сети, входы и время работы (администратор)'
+        : 'Пользователи системы: кто сейчас в сети, сколько раз входили и сколько работали (просмотр для начальников)');
+    if (!canSee && usersPane.classList.contains('active')) document.querySelector('.tab[data-tab="browser"]').click();
   }
   document.addEventListener('click', e => {
     const menu = authBox.querySelector('.auth-menu');
@@ -121,6 +146,7 @@
       const res = await api('POST', '/api/auth/login', { login: f.login.value, password: f.password.value });
       if (!res.ok) { m.showError(errText(res)); return; }
       m.close();
+      viewApplied = false; forceApplyView = true;
       await refresh();
       showToast(`Добро пожаловать, ${state.user.full_name}`);
     });
@@ -191,17 +217,17 @@
   function showChangePassword(forced) {
     const m = openModal(`
       <h3>${forced ? 'Смените временный пароль' : 'Смена пароля'}</h3>
-      ${forced ? '<p class="hint">Администратор выдал вам временный пароль. Задайте свой, чтобы продолжить работу.</p>' : ''}
+      ${forced ? '<p class="hint">Администратор выдал вам временный пароль. Задайте свой: так безопаснее. Можно отложить, но окно появится снова при следующем открытии сайта.</p>' : ''}
       <form>
         <label>Текущий пароль</label><input name="old" type="password" autocomplete="current-password" title="Пароль, которым вы входите сейчас">
         <label>Новый пароль (не короче 8 символов)</label><input name="new1" type="password" autocomplete="new-password" title="Новый пароль, не короче 8 символов">
         <label>Повторите новый пароль</label><input name="new2" type="password" autocomplete="new-password" title="Введите новый пароль ещё раз">
         <div class="auth-err" hidden></div>
         <div class="kpi-modal-actions">
-          ${forced ? '' : '<button type="button" data-act="cancel" style="background: var(--bg-tertiary); color: var(--fg-primary);" title="Закрыть окно без изменений">Отмена</button>'}
+          <button type="button" data-act="cancel" style="background: var(--bg-tertiary); color: var(--fg-primary);" title="${forced ? 'Закрыть окно: пароль можно сменить позже через меню пользователя. Напоминание появится снова при следующем открытии сайта' : 'Закрыть окно без изменений'}">Отмена</button>
           <button type="submit" title="Сохранить новый пароль">Сохранить</button>
         </div>
-      </form>`, !forced);
+      </form>`, true);
     m.onCancel();
     m.q('form').addEventListener('submit', async e => {
       e.preventDefault();
@@ -223,18 +249,40 @@
     crypto.getRandomValues(a);
     return Array.from(a, n => chars[n % chars.length]).join('');
   };
-  const departmentOptions = sel => `<option value="">— не указан (руководство)</option>` +
+  const departmentOptions = sel => `<option value="">— не указан</option>` +
     Object.entries(state.departments).map(([k, v]) => `<option value="${k}"${k === sel ? ' selected' : ''}>${esc(v)}</option>`).join('');
   const roleOptions = sel => Object.entries(state.roles).map(([k, v]) => `<option value="${k}"${k === sel ? ' selected' : ''}>${esc(v)}</option>`).join('');
 
+  // ---------- вкладка «Пользователи»: список, статус «в сети», входы и время работы ----------
+  let usersPeriod = '7';
+  const canSeeUsers = () => !!state.user && ['admin', 'chief', 'area_head'].includes(state.user.role);
+
+  // Статус: отключённая учётная запись или присутствие в системе (и где человек сейчас находится)
+  function statusCell(u, on) {
+    if (u.is_active === false) return '<span class="badge off">Отключён</span>';
+    if (!on) return '<span class="badge off" title="Сейчас не в системе">не в сети</span>';
+    const where = window.activityApi ? window.activityApi.where(on.tab, on.screen_id) : '';
+    return `<span class="badge ${on.idle ? 'idle' : 'on'}" title="${on.idle ? 'В сети, но больше 5 минут ничего не нажимал' : 'В сети и работает'}">● ${on.idle ? 'неактивен' : 'в сети'}</span><div class="u-where" title="Где пользователь находится сейчас">${esc(where)}</div>`;
+  }
+
   async function loadUsers() {
-    if (!state.user || state.user.role !== 'admin') return;
-    const res = await api('GET', '/api/users');
-    if (!res.ok) { usersPane.innerHTML = `<div class="empty">${esc(errText(res))}</div>`; return; }
-    const pendingList = res.data.filter(u => u.status === 'pending');
-    const others = res.data.filter(u => u.status !== 'pending');
-    state.pending = pendingList.length;
-    renderAuthBox();
+    if (!canSeeUsers()) return;
+    const isAdmin = state.user.role === 'admin';
+    const [res, act, onl] = await Promise.all([
+      isAdmin ? api('GET', '/api/users') : Promise.resolve(null),
+      api('GET', `/api/activity/stats?period=${usersPeriod}`),
+      api('GET', '/api/activity/online'),
+    ]);
+    if (isAdmin && !res.ok) { usersPane.innerHTML = `<div class="empty">${esc(errText(res))}</div>`; return; }
+    const A = window.activityApi || { fmtDur: s => String(s), ago: () => '' };
+    const stat = new Map((act.ok ? act.data.users : []).map(u => [u.id, u]));
+    const online = new Map((onl.ok ? onl.data.users : []).map(u => [u.id, u]));
+    const pendingList = isAdmin ? res.data.filter(u => u.status === 'pending') : [];
+    const others = isAdmin
+      ? res.data.filter(u => u.status !== 'pending')
+      : (act.ok ? act.data.users.map(u => ({ id: u.id, full_name: u.name, role_name: u.role_name, department_name: u.department_name, is_active: true })) : []);
+    if (isAdmin) { state.pending = pendingList.length; renderAuthBox(); }
+    const periods = [['today', 'Сегодня'], ['7', '7 дней'], ['30', '30 дней']];
     usersPane.innerHTML = `
       ${pendingList.length ? `<div class="pending-box"><h3>Заявки на регистрацию (${pendingList.length})</h3>
         <table class="users-table"><thead><tr><th>Фамилия Имя</th><th>Логин</th><th>Отдел</th><th>Подана</th><th>Роль</th><th></th></tr></thead>
@@ -242,21 +290,37 @@
           <td><select title="Выберите роль, которую получит сотрудник после подтверждения">${roleOptions('master')}</select></td>
           <td class="acts"><button type="button" data-act="approve" title="Подтвердить заявку и назначить выбранную роль: сотрудник сможет войти">Подтвердить</button>
           <button type="button" data-act="reject" title="Отклонить заявку: она будет удалена">Отклонить</button></td></tr>`).join('')}</tbody></table></div>` : ''}
-      <div class="users-top"><h2>👥 Пользователи</h2><span class="grow">Комментировать и менять настройки могут все, кроме роли «Просмотр». Пользователей создаёт и отключает администратор.</span>
-        <button type="button" id="user-add" title="Создать нового пользователя: фамилия, имя, логин, роль и временный пароль">+ Добавить пользователя</button></div>
-      <table class="users-table"><thead><tr><th>Фамилия Имя</th><th>Логин</th><th>Отдел</th><th>Роль</th><th>Статус</th><th>Последний вход</th><th></th></tr></thead>
-      <tbody>${others.map(u => `
-        <tr class="${u.is_active ? '' : 'off'}" data-id="${u.id}">
-          <td><b>${esc(u.full_name)}</b></td><td>${esc(u.login)}</td><td>${esc(u.department_name || '—')}</td><td><span class="badge">${esc(u.role_name)}</span></td>
-          <td><span class="badge ${u.is_active ? 'on' : 'off'}">${u.is_active ? 'Активен' : 'Отключён'}</span>${u.must_change_password ? ' <span class="badge off" title="Пользователь ещё не сменил выданный пароль">пароль не сменён</span>' : ''}</td>
-          <td>${esc(fmtDate(u.last_login_at))}</td>
-          <td class="acts">
+      <div class="users-top">
+        <span class="grow">${isAdmin ? 'Комментировать и менять настройки могут все, кроме роли «Просмотр». Пользователей создаёт и отключает администратор. ' : ''}В сети сейчас: <b>${online.size}</b>. Нажмите на пользователя, чтобы увидеть статистику по дням.</span>
+        <span class="act-periods">${periods.map(([k, v]) => `<button type="button" data-p="${k}" class="act-per${k === usersPeriod ? ' active' : ''}" title="Входы и время работы за период: ${v.toLowerCase()}">${v}</button>`).join('')}</span>
+        ${isAdmin ? '<button type="button" id="user-add" title="Создать нового пользователя: фамилия, имя, логин, роль и временный пароль">+ Добавить пользователя</button>' : ''}</div>
+      <table class="users-table"><thead><tr><th>Фамилия Имя</th>${isAdmin ? '<th>Логин</th>' : ''}<th>Отдел</th><th>Роль</th>
+        <th title="Отключена ли учётная запись, а если активна — в сети ли пользователь сейчас и где он находится">Статус</th>
+        <th title="Сколько раз пользователь входил в систему за выбранный период">Входов</th>
+        <th title="Время, пока пользователь работал: были действия мышью или клавиатурой. Простой дольше 5 минут не считается">Время работы</th>
+        <th title="Время, пока у пользователя была открыта вкладка сайта, включая паузы без действий">В сети</th>
+        <th>Последний вход</th>${isAdmin ? '<th></th>' : ''}</tr></thead>
+      <tbody>${others.map(u => {
+        const s = stat.get(u.id) || {};
+        return `
+        <tr class="${u.is_active === false ? 'off' : ''} u-row" data-id="${u.id}" title="Нажмите, чтобы посмотреть статистику по дням">
+          <td><b>${esc(u.full_name)}</b></td>${isAdmin ? `<td>${esc(u.login)}</td>` : ''}<td>${esc(u.department_name || '—')}</td><td><span class="badge">${esc(u.role_name)}</span></td>
+          <td>${statusCell(u, online.get(u.id))}${isAdmin && u.must_change_password ? ' <span class="badge off" title="Пользователь ещё не сменил выданный пароль">пароль не сменён</span>' : ''}</td>
+          <td>${s.logins ?? 0}</td><td>${esc(A.fmtDur(s.active_sec || 0))}</td><td>${esc(A.fmtDur(s.online_sec || 0))}</td>
+          <td>${esc(fmtDate(s.last_login || u.last_login_at))}</td>
+          ${isAdmin ? `<td class="acts">
             <button type="button" data-act="edit" title="Изменить фамилию, имя, роль и статус пользователя">Изменить</button>
             <button type="button" data-act="reset" title="Задать новый временный пароль: пользователь сменит его при входе, текущие сессии завершатся">Сбросить пароль</button>
-          </td></tr>`).join('')}</tbody></table>`;
-    usersPane.querySelector('#user-add').addEventListener('click', () => showUserForm(null, res.data));
+          </td>` : ''}</tr>`;
+      }).join('')}</tbody></table>`;
+    usersPane.querySelectorAll('.act-per').forEach(b => b.addEventListener('click', () => { usersPeriod = b.dataset.p; loadUsers(); }));
+    const add = usersPane.querySelector('#user-add');
+    if (add) add.addEventListener('click', () => showUserForm(null, res.data));
     usersPane.querySelectorAll('tr[data-id]').forEach(tr => {
-      const u = res.data.find(x => x.id === Number(tr.dataset.id));
+      const id = Number(tr.dataset.id);
+      tr.addEventListener('click', e => { if (!e.target.closest('.acts') && window.openActivityDays) window.openActivityDays(id, usersPeriod); });
+      if (!isAdmin) return;
+      const u = res.data.find(x => x.id === id);
       tr.querySelector('[data-act="edit"]').addEventListener('click', () => showUserForm(u, res.data));
       tr.querySelector('[data-act="reset"]').addEventListener('click', () => showResetPassword(u));
     });
@@ -275,6 +339,7 @@
       });
     });
   }
+  window.refreshUsersTab = loadUsers;
 
   function showUserForm(user) {
     const isNew = !user;
