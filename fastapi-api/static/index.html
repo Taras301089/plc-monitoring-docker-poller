@@ -549,6 +549,35 @@
     .andon-time { font-size: clamp(30px, 19.5cqw, 150px); letter-spacing: 0; line-height: 1.1; margin-top: 1vh; white-space: nowrap; }
     @media (max-width: 900px) { .andon-layout { grid-template-columns: 1fr; height: auto; } .kpi-table { height: auto; } }
 
+    /* Режим табло: только таблица на весь экран, без вкладок и редактирования */
+    body.tv-mode nav.tabs, body.tv-mode .andon-lines, body.tv-mode #andon-edit, body.tv-mode #andon-day { display: none !important; }
+    body.tv-mode main { padding: 6px 10px; }
+    /* кнопка режима табло остаётся на месте и превращается в «Выйти» (на телевизоре нет клавиши Esc) */
+    body.tv-mode .kpi-table { pointer-events: none; }
+
+    /* Компоновка Andon: одна строка сверху (такт-тайм слева, бренд по центру, LIVE и кнопки справа), под ней таблица на всю ширину */
+    :root { --andon-bar: clamp(54px, 8vh, 96px); }
+    #andon.active { position: relative; }
+    #andon .andon-top { position: absolute; top: 0; right: 0; z-index: 60; margin: 0; height: var(--andon-bar); flex-wrap: nowrap; }
+    #andon .andon-lines { flex: none; }
+    .andon-layout { max-width: none; margin: 0; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-rows: var(--andon-bar) minmax(0, 1fr); column-gap: 14px; row-gap: 8px; align-items: stretch; }
+    .andon-side, .andon-main { display: contents; }
+    .andon-h { grid-column: 2; grid-row: 1; align-self: center; justify-self: center; text-align: center; margin: 0; font-size: clamp(22px, 4.2vh, 56px); padding: 1vh 28px; white-space: nowrap; }
+    .andon-side .tile { grid-column: 1; grid-row: 1; justify-self: start; align-self: center; display: flex; align-items: center; gap: 14px; padding: 6px 14px; }
+    .andon-side .tile label { margin: 0; font-size: clamp(10px, 1.5vh, 16px); max-width: 16em; }
+    .andon-side .tile b { font-size: clamp(24px, 5vh, 64px); padding: 2px 16px; }
+    .andon-side .tile small { display: none; }
+    .andon-main .kpi-wrap { grid-column: 1 / -1; grid-row: 2; }
+    /* цифры таблицы растут вместе с высотой строки: чем меньше интервалов (--rows), тем крупнее */
+    .kpi-table td { font-size: clamp(13px, min(calc(56vh / (var(--rows, 9) + 1.5)), 2.6vw), 72px); }
+    .kpi-table td.time { font-size: clamp(13px, min(calc(56vh / (var(--rows, 9) + 1.5)), 1.85vw), 64px); }
+    .kpi-table td.delta { font-size: clamp(12px, min(calc(52vh / (var(--rows, 9) + 1.5)), 2.4vw), 64px); }
+    /* дата и время: плитка справа, зеркальная плитке такт-тайма, синий цвет отличает её от такт-тайма; отступ справа оставляет место для LIVE и кнопки (--cluster-w задаёт скрипт) */
+    .andon-side .andon-clockbox { grid-column: 3; grid-row: 1; justify-self: end; align-self: center; margin-right: var(--cluster-w, 260px); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 14px; background: var(--bg-primary); border-radius: 8px; box-shadow: var(--shadow-out); }
+    .andon-clockbox .andon-date { font: 600 clamp(10px, 1.7vh, 20px) 'Segoe UI', sans-serif; color: var(--accent); white-space: nowrap; line-height: 1; }
+    .andon-clockbox .andon-time { font: 700 clamp(22px, 4.4vh, 56px) Consolas, 'Courier New', monospace; color: var(--accent); margin: 0; padding: 1px 16px; background: var(--bg-secondary); border-radius: 6px; box-shadow: var(--shadow-in); line-height: 1.1; letter-spacing: 0; }
+    @media (max-width: 900px) { .andon-layout { grid-template-columns: 1fr; grid-template-rows: auto; } .andon-h, .andon-side .tile, .andon-main .kpi-wrap, .andon-side .andon-clockbox { grid-column: 1; grid-row: auto; margin-right: 0; justify-self: start; } #andon .andon-top { position: static; height: auto; } }
+
     /* Значения в реальном времени */
     .variables-panel .var-value { font-family: Consolas, 'Courier New', monospace; font-size: 11px; color: var(--vt-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .variables-panel .var-value.bool { justify-self: start; padding: 0 8px; border-radius: 9px; font-size: 10px; font-weight: 700; line-height: 15px; letter-spacing: .04em; }
@@ -765,10 +794,17 @@
     <div id="andon" class="tab-content">
       <div class="andon-top">
         <div class="andon-lines" id="andon-lines" title="Выбор экрана Andon / KPI: бренд и участок или линия Finish Line"></div>
+        <div id="andon-day" class="andon-day" title="Просмотр любого прошлого дня и выгрузка в Excel">
+          <button type="button" id="andon-day-prev" title="Предыдущий день: показать таблицу за вчерашнюю дату">◀</button>
+          <input type="date" id="andon-day-date" title="Выберите день, чтобы посмотреть таблицу за него (по данным, сохранённым в базе)">
+          <button type="button" id="andon-day-next" title="Следующий день">▶</button>
+          <button type="button" id="andon-day-today" hidden title="Вернуться к живому экрану за сегодня">Сегодня</button>
+          <button type="button" id="andon-day-xlsx" title="Выгрузить таблицу выбранного дня в Excel (.xlsx): интервалы, план, факт, простои, причины и комментарии">⬇ Excel</button>
+        </div>
         <span id="andon-badge" class="live-badge off" title="Данные читаются из ПЛК раз в секунду, пока открыта эта вкладка">● пауза</span>
         <button type="button" id="andon-edit" class="andon-edit" title="Настроить время окончания часовых интервалов смены и плановое количество кузовов по интервалам для выбранной линии">⚙ Смена и план</button>
-      </div>
-      <div id="andon-body" class="andon-body"><div class="empty">Выберите ПЛК на вкладке «Переменные ПЛК»</div></div>
+        <button type="button" id="andon-tv" class="andon-edit" title="Режим табло для телевизора на производстве: скрывает вкладки и кнопки, показывает только таблицу на весь экран. Выход: клавиша Esc или кнопка в правом нижнем углу, которая появляется при движении мыши">🖥 Режим табло</button>
+      </div>      <div id="andon-body" class="andon-body"><div class="empty">Выберите ПЛК на вкладке «Переменные ПЛК»</div></div>
     </div>
 
     <!-- TAB 4: Alerts & Notifications -->
@@ -1050,8 +1086,8 @@
     function renderScanMeta() {
       if (!scanState.ts) { scanMeta.textContent = 'Список ещё не загружен'; scanMeta.classList.remove('stale'); return; }
       const d = new Date(scanState.ts);
-      const when = d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-      const age = Date.now() - d.getTime();
+      const when = plantClock.fmt(scanState.ts, true);
+      const age = plantClock.now() - d.getTime();
       scanMeta.innerHTML = `Обновлено с ПЛК: <b>${when}</b> <span class="ago">(${fmtAgo(age)})</span> · Переменных: <b>${scanState.total.toLocaleString('ru-RU')}</b>`;
       scanMeta.classList.toggle('stale', age > 24 * 3600 * 1000);
     }
@@ -1652,14 +1688,14 @@
         <div class="andon-layout">
           <aside class="andon-side">
             <div class="tile" title="Время, прошедшее с момента последнего кузова: текущий такт-тайм между кузовами">
-              <label>Текущий такт-тайм между кузовами</label><b data-k="curTakt">—</b><small>мин:сек (при длинном простое: ч:мин:сек)</small>
+              <label>Текущий такт-тайм между кузовами</label><b data-k="curTakt">—</b><span class="andon-state" data-k="state" hidden></span><small>мин:сек (при длинном простое: ч:мин:сек)</small>
             </div>
             <div class="andon-clockbox" title="Дата и время сервиса на ПК (не часы телевизора или браузера)"><div class="andon-date" data-k="date"></div><div class="andon-time" data-k="time"></div></div>
           </aside>
           <div class="andon-main">
-            <h2 class="andon-h">Ключевые производственные показатели линии ${screen.name}</h2>
+            <h2 class="andon-h" title="Бренд (линия), по которому показаны данные">${screen.name}</h2>
             <div class="kpi-wrap"><table class="kpi-table">
-              <colgroup><col style="width:5%"><col style="width:19%"><col style="width:8%"><col style="width:10%"><col style="width:16%"><col style="width:8%"><col style="width:20%"><col style="width:14%"></colgroup>
+              <colgroup><col style="width:3%"><col style="width:14%"><col style="width:5%"><col style="width:5%"><col style="width:8%"><col style="width:5%"><col style="width:9%"><col style="width:10%"><col style="width:41%"></colgroup>
               <thead><tr>
                 <th title="Номер часового интервала смены">№</th>
                 <th title="Время начала и окончания интервала: начало берётся из ПЛК, окончание из настроек смены">Время</th>
@@ -1669,9 +1705,10 @@
                 <th title="Отклонение факта от плана: зелёный — выполнено, красный — отставание">±</th>
                 <th title="Такт-тайм за интервал: сколько минут:секунд в среднем уходит на один кузов">Такт-тайм за период</th>
                 <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой</th>
+                <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
               </tr></thead>
-              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td data-k="takt"></td><td class="dt" data-k="dt"></td></tr>`).join('')}</tbody>
-              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого</td><td class="plan-cell" data-k="planSum" title="План на день"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td><td data-k="shTakt"></td><td></td></tr></tfoot>
+              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td data-k="takt"></td><td class="dt" data-k="dt"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
+              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого</td><td class="plan-cell" data-k="planSum" title="План на день"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td><td data-k="shTakt"></td><td></td><td></td></tr></tfoot>
             </table></div>
           </div>
         </div>`;
@@ -1810,9 +1847,10 @@
       const n = prod.length;
       const built = `${screen.id}|${n}|${andonCfgVer}`;
       if (andonBuilt !== built) { buildKpiLayout(screen, n); andonBuilt = built; andonMsg = ''; }
+      andonBody.style.setProperty('--rows', n);
       const q = k => andonBody.querySelector(`[data-k="${k}"]`);
       const set = (el, text) => { if (el && el.textContent !== text) el.textContent = text; };
-      set(q('curTakt'), val('curMin') === null ? '—' : mmss(val('curMin'), val('curSec') || 0));
+      paintTakt(screen, val('curMin'), val('curSec'));
       let planSum = 0, deltaSum = 0, hasDelta = false;
       andonBody.querySelectorAll('tbody tr').forEach(tr => {
         const i = Number(tr.dataset.i);
@@ -1852,6 +1890,8 @@
       } else set(ds, '');
       set(q('shTakt'), val('shMin') === null ? '—' : mmss(val('shMin'), val('shSec') || 0));
       andonLast = { starts, n };
+      // размер цифр считаем по числу видимых строк (скрытые интервалы не в счёт), как и в архиве
+      andonBody.style.setProperty('--rows', Math.max(1, andonBody.querySelectorAll('tbody tr:not([hidden])').length));
       if (window.dtApply) window.dtApply(screen, andonBody);
     }
 
@@ -1863,14 +1903,14 @@
         <div class="andon-layout">
           <aside class="andon-side">
             <div class="tile" title="Время, прошедшее с момента последнего кузова: текущий такт-тайм между кузовами">
-              <label>Текущий такт-тайм между кузовами</label><b data-k="curTakt">—</b><small>мин:сек (при длинном простое: ч:мин:сек)</small>
+              <label>Текущий такт-тайм между кузовами</label><b data-k="curTakt">—</b><span class="andon-state" data-k="state" hidden></span><small>мин:сек (при длинном простое: ч:мин:сек)</small>
             </div>
             <div class="andon-clockbox" title="Дата и время сервиса на ПК (не часы телевизора или браузера)"><div class="andon-date" data-k="date"></div><div class="andon-time" data-k="time"></div></div>
           </aside>
           <div class="andon-main">
-            <h2 class="andon-h">Ключевые производственные показатели ${screen.name}</h2>
+            <h2 class="andon-h" title="Линия Finish Line, по которой показаны данные">${screen.name}</h2>
             <div class="kpi-wrap"><table class="kpi-table">
-              <colgroup><col style="width:4%"><col style="width:14%"><col style="width:7%"><col style="width:6%"><col style="width:6%"><col style="width:6%">${FL_MODELS.map(() => '<col style="width:7%">').join('')}<col style="width:17%"><col style="width:12%"></colgroup>
+              <colgroup><col style="width:3%"><col style="width:10%"><col style="width:5%"><col style="width:5%"><col style="width:5%"><col style="width:5%">${FL_MODELS.map(() => '<col style="width:5%">').join('')}<col style="width:9%"><col style="width:11%"><col style="width:27%"></colgroup>
               <thead><tr>
                 <th title="Номер часового интервала смены">№</th>
                 <th title="Время начала и окончания интервала: начало берётся из ПЛК, окончание из настроек">Время</th>
@@ -1881,9 +1921,10 @@
                 ${FL_MODELS.map(m => `<th title="Количество кузовов модели ${m} за интервал">${m}</th>`).join('')}
                 <th title="Такт-тайм за интервал: сколько минут:секунд в среднем уходит на один кузов">Такт-тайм за период</th>
                 <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой</th>
+                <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
               </tr></thead>
-              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td>${FL_MODELS.map(m => `<td data-k="m_${m}"></td>`).join('')}<td data-k="takt"></td><td class="dt" data-k="dt"></td></tr>`).join('')}</tbody>
-              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td class="plan-cell" data-k="planSum" title="План на день (DayPlan из ПЛК)"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td>${FL_MODELS.map(m => `<td data-k="mt_${m}"></td>`).join('')}<td data-k="shTakt"></td><td></td></tr></tfoot>
+              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td>${FL_MODELS.map(m => `<td data-k="m_${m}"></td>`).join('')}<td data-k="takt"></td><td class="dt" data-k="dt"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
+              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td class="plan-cell" data-k="planSum" title="План на день (DayPlan из ПЛК)"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td>${FL_MODELS.map(m => `<td data-k="mt_${m}"></td>`).join('')}<td data-k="shTakt"></td><td></td><td></td></tr></tfoot>
             </table></div>
           </div>
         </div>`;
@@ -1901,7 +1942,7 @@
         const list = await r.json();
         const w = Array.isArray(list) ? list.find(x => x.ok) : null;
         planLast[screen.id] = w
-          ? `Последнее изменение плана: ${w.user_name}, ${new Date(w.ts).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} (${w.old_value ?? '—'} → ${w.new_value})`
+          ? `Последнее изменение плана: ${w.user_name}, ${plantClock.fmt(w.ts)} (${w.old_value ?? '—'} → ${w.new_value})`
           : 'План ещё не менялся с этого сайта';
       } catch { /* подсказка не критична */ }
     }
@@ -1975,9 +2016,10 @@
       const n = prod.length;
       const built = `fl|${screen.id}|${n}|${andonCfgVer}`;
       if (andonBuilt !== built) { buildFlLayout(screen, n); andonBuilt = built; andonMsg = ''; }
+      andonBody.style.setProperty('--rows', n);
       const q = k => andonBody.querySelector(`[data-k="${k}"]`);
       const set = (el, text) => { if (el && el.textContent !== text) el.textContent = text; };
-      set(q('curTakt'), val('curMin') === null ? '—' : mmss(val('curMin'), val('curSec') || 0));
+      paintTakt(screen, val('curMin'), val('curSec'));
       let planSum = 0, deltaSum = 0, hasDelta = false;
       andonBody.querySelectorAll('tbody tr').forEach(tr => {
         const i = Number(tr.dataset.i);
@@ -2023,6 +2065,81 @@
 
     function setAndonBadge(state, text) { andonBadge.className = `live-badge ${state}`; andonBadge.textContent = text; }
 
+    // Индикатор производства: по часовым интервалам смены определяет, идёт ли работа, перерыв (до 30 мин), обед (30 мин и больше) или смена не идёт.
+    // Перерывы и обед берутся из промежутков между интервалами (например 09:30-09:40, 11:10-11:50, 15:00-15:10), поэтому у каждой линии свои, включая Finish Line.
+    function activeIntervals(sel) {
+      if (!sel || !andonLast || !andonLast.starts) return [];
+      const { starts, n } = andonLast, iv = [];
+      for (let i = 0; i < n; i++) {
+        const c = intervalCfg(sel.id, i, starts);
+        if (c.active) iv.push({ s: starts[i], e: c.end });
+      }
+      return iv;
+    }
+
+    // Такт-тайм не считает перерывы и обед: из времени с последнего кузова вычитаются промежутки между интервалами смены.
+    // Во время перерыва значение стоит на месте (paused), после перерыва продолжает с него.
+    function adjustedTakt(sel, sec) {
+      const clock = window.plantClock, iv = activeIntervals(sel);
+      if (!clock || iv.length < 2) return { sec, paused: false };
+      const now = clock.minutes() * 60, from = now - sec;
+      let skip = 0, paused = false;
+      for (let i = 0; i + 1 < iv.length; i++) {
+        const g0 = iv[i].e * 60, g1 = iv[i + 1].s * 60;
+        if (g1 <= g0) continue;
+        skip += Math.max(0, Math.min(now, g1) - Math.max(from, g0));
+        if (now >= g0 && now < g1) paused = true;
+      }
+      return { sec: Math.max(0, Math.round(sec - skip)), paused };
+    }
+
+    function paintTakt(sel, curMin, curSec) {
+      const el = andonBody.querySelector('[data-k="curTakt"]');
+      if (!el) return;
+      let text = '—', paused = false;
+      if (curMin !== null) {
+        const a = adjustedTakt(sel, curMin * 60 + (curSec || 0));
+        paused = a.paused;
+        text = mmss(Math.floor(a.sec / 60), a.sec % 60);
+      }
+      if (el.textContent !== text) el.textContent = text;
+      el.parentElement.classList.toggle('paused', paused);
+      el.parentElement.title = paused
+        ? 'Перерыв или обед: такт-тайм не считается и продолжится после перерыва'
+        : 'Время, прошедшее с момента последнего кузова (перерывы и обед не считаются)';
+    }
+
+    function paintState(sel) {
+      const el = andonBody.querySelector('[data-k="state"]');
+      if (!el) return;
+      const clock = window.plantClock;
+      if (!sel || !clock || !andonLast || !andonLast.starts || !andonLast.starts.length) { el.hidden = true; return; }
+      const iv = activeIntervals(sel);
+      if (!iv.length) { el.hidden = true; return; }
+      const now = clock.minutes();
+      let cls = 'off', text = 'Смена не идёт', title = 'Сейчас вне интервалов смены этой линии';
+      if (now < iv[0].s) { text = `Смена с ${hhmm(iv[0].s)}`; title = 'Смена ещё не началась'; }
+      else if (now >= iv[iv.length - 1].e) { text = 'Смена окончена'; title = 'Последний интервал смены завершился'; }
+      else {
+        const cur = iv.find(x => now >= x.s && now < x.e);
+        if (cur) { cls = 'work'; text = 'Производство'; title = `Идёт интервал ${hhmm(cur.s)}–${hhmm(cur.e)}`; }
+        else {
+          const next = iv.find(x => x.s > now), prev = [...iv].reverse().find(x => x.e <= now);
+          if (next && prev) {
+            const lunch = next.s - prev.e >= 30;
+            cls = 'break'; text = `${lunch ? 'Обед' : 'Перерыв'} до ${hhmm(next.s)}`;
+            title = `${lunch ? 'Обед' : 'Перерыв'} ${hhmm(prev.e)}–${hhmm(next.s)}: промежуток между интервалами смены`;
+          }
+        }
+      }
+      // показываем только перерыв и обед: во время работы и вне смены индикатор скрыт
+      if (cls !== 'break') { el.hidden = true; return; }
+      el.hidden = false;
+      el.className = `andon-state ${cls}`;
+      if (el.textContent !== text) el.textContent = text;
+      el.title = title;
+    }
+
     async function andonTick() {
       const panel = document.querySelector('#andon');
       if (!panel.classList.contains('active') || document.hidden) return;
@@ -2030,6 +2147,7 @@
       const dEl = andonBody.querySelector('[data-k="date"]'), tEl = andonBody.querySelector('[data-k="time"]');
       if (dEl) dEl.textContent = clock ? clock.dateText() : '';
       if (tEl) tEl.textContent = clock ? clock.timeText() : '';
+      paintState(selectedScreen());
       if (!andonLoadedAt || Date.now() - andonLoadedAt > 30000) await loadAndonScreens();
       const sel = selectedScreen();
       if (!sel) {
@@ -2040,6 +2158,11 @@
       const editBtn = document.querySelector('#andon-edit');
       // у линий брендов смена и план редактируются по клику на «Итого», у подсборок — в ячейках; кнопка остаётся только у ФЛ (время интервалов)
       if (editBtn) editBtn.style.display = sel.template === 'fl_counter' ? '' : 'none';
+      // навигация по дням работает для линий брендов и Finish Line; у подсборок (ручной ввод) её нет
+      const dayBox = document.querySelector('#andon-day');
+      if (dayBox) dayBox.hidden = sel.template === 'manual_counter';
+      if (sel.template === 'manual_counter' && window.andonDay && window.andonSetDay) window.andonSetDay(null);
+      if (window.andonDay && sel.template !== 'manual_counter') { await window.archivePaint(sel); return; }
       if (sel.template === 'manual_counter') {
         // Подсборки: данных ПЛК нет, план и факт вводят вручную
         const key = 'manual|' + sel.id;
@@ -2092,6 +2215,40 @@
     // Список экранов нужен меню на вкладке «Andon / KPI» ещё до её открытия
     loadAndonScreens();
     setInterval(() => { if (!document.hidden) loadAndonScreens(); }, 60000);
+
+    // Ширина блока «LIVE и кнопки» справа: плитка даты и времени отступает от него, чтобы не перекрываться
+    (() => {
+      const top = document.querySelector('#andon .andon-top');
+      if (!top || !window.ResizeObserver) return;
+      const root = document.querySelector('#andon');
+      new ResizeObserver(() => root.style.setProperty('--cluster-w', (top.offsetWidth + 14) + 'px')).observe(top);
+    })();
+
+    // Режим табло для телевизора: включается кнопкой, запоминается в браузере (после перезагрузки телевизора остаётся)
+    (() => {
+      const btn = document.querySelector('#andon-tv');
+      const setTv = on => {
+        if (on && window.andonSetDay) window.andonSetDay(null);   // табло всегда показывает живой экран за сегодня
+        document.body.classList.toggle('tv-mode', on);
+        btn.textContent = on ? '✕ Выйти' : '🖥 Режим табло';
+        // полный экран убирает панель браузера с заголовком страницы (где поддерживается; после перезагрузки нужен клик)
+        try {
+          if (on && !document.fullscreenElement && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+          if (!on && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+        } catch { /* браузер не поддерживает полный экран */ }
+        btn.title = on
+          ? 'Выйти из режима табло: вернуть вкладки и кнопки редактирования и выйти из полного экрана'
+          : 'Режим табло для телевизора на производстве: скрывает вкладки и кнопки, показывает только таблицу на весь экран. Выход: эта же кнопка (она остаётся в правом верхнем углу) или клавиша Esc';
+        try { if (on) localStorage.setItem('tvMode', '1'); else localStorage.removeItem('tvMode'); } catch { /* нет доступа к localStorage */ }
+        if (on) document.querySelector('.tab[data-tab="andon"]').click();
+        window.dispatchEvent(new Event('resize'));
+      };
+      btn.addEventListener('click', () => setTv(!document.body.classList.contains('tv-mode')));
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('tv-mode')) setTv(false); });
+      let saved = false;
+      try { saved = localStorage.getItem('tvMode') === '1'; } catch { /* нет доступа к localStorage */ }
+      if (saved) setTv(true);
+    })();
 
     // Настройка смены и плана выбранного экрана
     document.querySelector('#andon-edit').addEventListener('click', () => {
@@ -2175,6 +2332,7 @@
   <script src="/static/downtime.js"></script>
   <script src="/static/manual.js"></script>
   <script src="/static/downtimes.js"></script>
+  <script src="/static/archive.js"></script>
   <script src="/static/comments.js"></script>
 </body>
 </html>

@@ -11,7 +11,7 @@
   const toast = t => (typeof showToast === 'function' ? showToast(t) : alert(t));
   const st = () => (window.authState && window.authState()) || {};
   const canEdit = () => !!(st().user && st().user.role !== 'viewer');
-  const fmtTs = ts => new Date(ts).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const fmtTs = ts => plantClock.fmt(ts);
 
   async function load(screenId, force = false) {
     const c = cache[screenId] || (cache[screenId] = { at: 0, data: null, loading: false });
@@ -36,7 +36,7 @@
           <h2 class="andon-h">${esc(screen.bindings.brand)}: ${esc(screen.bindings.area)}
             <button type="button" class="man-log-btn" data-act="log" title="Журнал ввода: кто и когда менял план и факт по этому участку">📜 Журнал</button></h2>
           <div class="kpi-wrap"><table class="kpi-table">
-            <colgroup><col style="width:6%"><col style="width:22%"><col style="width:10%"><col style="width:14%"><col style="width:16%"><col style="width:12%"><col style="width:20%"></colgroup>
+            <colgroup><col style="width:4%"><col style="width:13%"><col style="width:6%"><col style="width:8%"><col style="width:10%"><col style="width:7%"><col style="width:12%"><col style="width:40%"></colgroup>
             <thead><tr>
               <th title="Номер часового интервала смены">№</th>
               <th title="Время интервала: такое же, как на Main Line этого бренда">Время</th>
@@ -45,9 +45,10 @@
               <th title="Фактическое количество подсборок за интервал: вводится вручную. Пока не введено, простой не считается">Факт</th>
               <th title="Отклонение факта от плана для завершённых интервалов: красный — отставание">±</th>
               <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой</th>
+              <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
             </tr></thead>
-            <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td class="man" data-k="plan"></td><td class="man fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td class="dt" data-k="dt"></td></tr>`).join('')}</tbody>
-            <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td data-k="planSum"></td><td data-k="factSum"></td><td class="delta" data-k="deltaSum"></td><td></td></tr></tfoot>
+            <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td class="man" data-k="plan"></td><td class="man fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td class="dt" data-k="dt"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
+            <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td data-k="planSum"></td><td data-k="factSum"></td><td class="delta" data-k="deltaSum"></td><td></td><td></td></tr></tfoot>
           </table></div>
         </div>
       </div>`;
@@ -106,6 +107,7 @@
     }
     const n = data.intervals.length;
     if (rebuild || root.dataset.manual !== `${screen.id}|${n}`) { build(screen, root, n); root.dataset.manual = `${screen.id}|${n}`; }
+    root.style.setProperty('--rows', n);
     const set = (el, text) => { if (el && el.textContent !== text) el.textContent = text; };
     const clock = window.plantClock;
     if (clock) {
