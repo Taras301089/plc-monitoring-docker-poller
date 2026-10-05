@@ -44,6 +44,7 @@ services:
     environment:
       DATABASE_URL: postgresql://n8n_user:my_strong_password@postgres_db:5432/general_data_hub_BD
       POLLER_URL: http://plc-monitoring-docker-poller:8080
+      KPI_UTC_OFFSET_HOURS: "5"
     ports:
       - "8000:8000"
     depends_on:

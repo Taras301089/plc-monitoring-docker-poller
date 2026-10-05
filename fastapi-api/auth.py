@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import json
 import re
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -53,6 +54,7 @@ async def ensure_auth_schema(pool: asyncpg.Pool) -> None:
     )
     await pool.execute("ALTER TABLE app_users ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'")
     await pool.execute("ALTER TABLE app_users ADD COLUMN IF NOT EXISTS department TEXT")
+    await pool.execute("ALTER TABLE app_users ADD COLUMN IF NOT EXISTS last_view JSONB")
     await pool.execute(
         """
         CREATE TABLE IF NOT EXISTS app_sessions (
@@ -65,6 +67,17 @@ async def ensure_auth_schema(pool: asyncpg.Pool) -> None:
         """
     )
     await pool.execute("CREATE INDEX IF NOT EXISTS ix_app_sessions_user ON app_sessions (user_id)")
+    # Журнал входов для статистики (кто и сколько раз заходил)
+    await pool.execute(
+        """
+        CREATE TABLE IF NOT EXISTS app_login_events (
+            id      BIGSERIAL PRIMARY KEY,
+            ts      TIMESTAMPTZ NOT NULL DEFAULT now(),
+            user_id INTEGER NOT NULL REFERENCES app_users(id) ON DELETE CASCADE
+        )
+        """
+    )
+    await pool.execute("CREATE INDEX IF NOT EXISTS ix_app_login_events_user_ts ON app_login_events (user_id, ts)")
 
 
 # ------------------------------------------------------------------ пароли и токены
@@ -118,6 +131,7 @@ async def _start_session(pool: asyncpg.Pool, response: Response, user_id: int) -
         user_id,
         _now() + timedelta(days=SESSION_DAYS),
     )
+    await pool.execute("INSERT INTO app_login_events (user_id) VALUES ($1)", user_id)
     response.set_cookie(
         COOKIE_NAME, token, max_age=SESSION_DAYS * 86400, httponly=True, samesite="lax", path="/"
     )
@@ -157,6 +171,13 @@ async def current_user(request: Request, response: Response) -> dict[str, Any] |
 async def require_user(user: dict[str, Any] | None = Depends(current_user)) -> dict[str, Any]:
     if user is None:
         raise HTTPException(status_code=401, detail="Требуется вход в систему")
+    return user
+
+
+async def require_editor(user: dict[str, Any] = Depends(require_user)) -> dict[str, Any]:
+    """Вошедший пользователь, у которого есть право менять настройки (все роли, кроме «Просмотр»)."""
+    if user["role"] == "viewer":
+        raise HTTPException(status_code=403, detail="У вашей роли нет права менять настройки")
     return user
 
 
@@ -236,16 +257,39 @@ async def auth_me(request: Request, user: dict[str, Any] | None = Depends(curren
     pool: asyncpg.Pool = request.app.state.pool
     count = await pool.fetchval("SELECT count(*) FROM app_users")
     pending = 0
-    if user is not None and user["role"] == "admin":
-        pending = await pool.fetchval("SELECT count(*) FROM app_users WHERE status = 'pending'")
+    last_view = None
+    if user is not None:
+        raw = await pool.fetchval("SELECT last_view FROM app_users WHERE id = $1", user["id"])
+        last_view = json.loads(raw) if isinstance(raw, str) else raw
+        if user["role"] == "admin":
+            pending = await pool.fetchval("SELECT count(*) FROM app_users WHERE status = 'pending'")
     return {
         "authenticated": user is not None,
         "user": user,
+        "last_view": last_view,
         "setup_required": count == 0,
         "roles": ROLES,
         "departments": DEPARTMENTS,
         "pending_count": pending,
     }
+
+
+class LastViewBody(BaseModel):
+    tab: str = Field(pattern="^[a-z]{2,20}$")
+    screen: int | None = Field(default=None, ge=1)
+
+
+@router.put("/auth/last-view")
+async def auth_last_view(
+    body: LastViewBody, request: Request, user: dict[str, Any] = Depends(require_user)
+) -> dict[str, str]:
+    """Запоминает последний открытый экран пользователя (вкладка и экран Andon), чтобы открыть его при следующем входе."""
+    await request.app.state.pool.execute(
+        "UPDATE app_users SET last_view = $2::jsonb WHERE id = $1",
+        user["id"],
+        json.dumps({"tab": body.tab, "screen": body.screen}),
+    )
+    return {"status": "ok"}
 
 
 @router.post("/auth/register", status_code=201)

@@ -36,6 +36,55 @@ ON CONFLICT (screen_id, prod_date, idx) DO UPDATE SET
 """
 
 
+# Простой = (план - факт) / план * длительность интервала, только для интервалов, которые уже закончились
+_UPSERT_DOWNTIME = """
+INSERT INTO kpi_downtimes (screen_id, prod_date, idx, source, plan, fact, interval_min, minutes)
+SELECT screen_id, prod_date, idx, 'plan', plan, fact, end_min - start_min,
+       round((plan - fact)::numeric / plan * (end_min - start_min), 1)
+FROM kpi_hourly
+WHERE screen_id = $1 AND prod_date = $2 AND plan > 0 AND fact < plan
+  AND end_min IS NOT NULL AND end_min > start_min AND end_min <= $3
+ON CONFLICT (screen_id, prod_date, idx, source) DO UPDATE SET
+    plan = EXCLUDED.plan, fact = EXCLUDED.fact, interval_min = EXCLUDED.interval_min,
+    minutes = EXCLUDED.minutes, updated_at = now()
+WHERE (kpi_downtimes.plan, kpi_downtimes.fact, kpi_downtimes.interval_min)
+      IS DISTINCT FROM (EXCLUDED.plan, EXCLUDED.fact, EXCLUDED.interval_min)
+"""
+_CLEAR_DOWNTIME = """
+UPDATE kpi_downtimes d SET plan = h.plan, fact = h.fact, minutes = 0, updated_at = now()
+FROM kpi_hourly h
+WHERE d.screen_id = $1 AND d.prod_date = $2 AND d.source = 'plan' AND d.minutes > 0
+  AND h.screen_id = d.screen_id AND h.prod_date = d.prod_date AND h.idx = d.idx
+  AND (h.plan <= 0 OR h.fact >= h.plan)
+"""
+
+
+# Подсборки: план и факт вводят вручную, сетка интервалов берётся у Main Line бренда.
+# Пока факт не введён (NULL), простой не создаётся.
+_UPSERT_MANUAL_DOWNTIME = """
+INSERT INTO kpi_downtimes (screen_id, prod_date, idx, source, plan, fact, interval_min, minutes)
+SELECT m.screen_id, m.prod_date, m.idx, 'plan', m.plan, m.fact, h.end_min - h.start_min,
+       round((m.plan - m.fact)::numeric / m.plan * (h.end_min - h.start_min), 1)
+FROM kpi_manual_hourly m
+JOIN kpi_screens s ON s.id = m.screen_id AND s.template = 'manual_counter'
+JOIN kpi_hourly h ON h.screen_id = (s.bindings->>'main')::int AND h.prod_date = m.prod_date AND h.idx = m.idx
+WHERE m.prod_date = $1 AND m.plan > 0 AND m.fact IS NOT NULL AND m.fact < m.plan
+  AND h.end_min IS NOT NULL AND h.end_min > h.start_min AND h.end_min <= $2
+ON CONFLICT (screen_id, prod_date, idx, source) DO UPDATE SET
+    plan = EXCLUDED.plan, fact = EXCLUDED.fact, interval_min = EXCLUDED.interval_min,
+    minutes = EXCLUDED.minutes, updated_at = now()
+WHERE (kpi_downtimes.plan, kpi_downtimes.fact, kpi_downtimes.interval_min)
+      IS DISTINCT FROM (EXCLUDED.plan, EXCLUDED.fact, EXCLUDED.interval_min)
+"""
+_CLEAR_MANUAL_DOWNTIME = """
+UPDATE kpi_downtimes d SET plan = m.plan, fact = COALESCE(m.fact, 0), minutes = 0, updated_at = now()
+FROM kpi_manual_hourly m
+WHERE d.screen_id = m.screen_id AND d.prod_date = m.prod_date AND d.idx = m.idx
+  AND d.source = 'plan' AND d.minutes > 0 AND m.prod_date = $1
+  AND (m.fact IS NULL OR m.plan <= 0 OR m.fact >= m.plan)
+"""
+
+
 def production_date(first_start_min: int, now_utc: datetime | None = None) -> date:
     """Производственные сутки начинаются с первого интервала смены, а не в полночь."""
     now = now_utc or datetime.now(timezone.utc)
@@ -187,6 +236,10 @@ class KpiCollector:
             except Exception:
                 log.exception("Сбой цикла сборщика KPI")
             try:
+                await self._manual_downtimes()
+            except Exception:
+                log.exception("Сбой расчёта простоев подсборок")
+            try:
                 await asyncio.wait_for(self._stop.wait(), timeout=_COLLECT_SEC)
             except asyncio.TimeoutError:
                 pass
@@ -195,7 +248,7 @@ class KpiCollector:
         pool = self._get_pool()
         try:
             screens = await pool.fetch(
-                "SELECT id, plc_id, name, bindings FROM kpi_screens WHERE template = 'body_counter'"
+                "SELECT id, plc_id, name, template, bindings FROM kpi_screens WHERE template IN ('body_counter', 'fl_counter')"
             )
             if not screens:
                 return
@@ -252,12 +305,16 @@ class KpiCollector:
             return
         t_min = val("tMin") if isinstance(val("tMin"), list) else []
         t_sec = val("tSec") if isinstance(val("tSec"), list) else []
+        # У ФЛ план по интервалам ПЛК раскладывает сам (IntervalPlan), у брендов он задаётся в расписании экрана
+        iplan = val("iplan") if screen["template"] == "fl_counter" and isinstance(val("iplan"), list) else None
         pdate = production_date(int(starts[0]))
         rows = []
         for i, fact in enumerate(prod[: len(starts)]):
             fact = int(fact or 0)
             default_end = int(starts[i + 1]) if i + 1 < len(starts) else int(starts[i]) + 30
             end, plan = sched.get(i + 1, (default_end, 0))
+            if iplan is not None:
+                plan = int(iplan[i] or 0) if i < len(iplan) else 0
             takt = None
             if fact > 0 and i < len(t_min) and i < len(t_sec):
                 takt = int(t_min[i] or 0) * 60 + int(t_sec[i] or 0)
@@ -267,4 +324,32 @@ class KpiCollector:
         except asyncpg.UndefinedTableError:
             if not self._schema_warned:
                 log.warning("Таблица kpi_hourly ещё не создана (её создаёт API при запуске)")
+                self._schema_warned = True
+            return
+        await self._update_downtimes(pool, screen["id"], pdate)
+
+    async def _manual_downtimes(self) -> None:
+        """Простои экранов подсборок за последние двое суток (ввод ручной, поэтому правки возможны задним числом)."""
+        pool = self._get_pool()
+        try:
+            days = await pool.fetch("SELECT DISTINCT prod_date FROM kpi_manual_hourly WHERE prod_date >= current_date - 2")
+        except asyncpg.UndefinedTableError:
+            return
+        local = (datetime.now(timezone.utc) + timedelta(hours=_UTC_OFFSET_HOURS)).replace(tzinfo=None)
+        for r in days:
+            elapsed_min = (local - datetime.combine(r["prod_date"], datetime.min.time())).total_seconds() / 60
+            await pool.execute(_UPSERT_MANUAL_DOWNTIME, r["prod_date"], elapsed_min)
+            await pool.execute(_CLEAR_MANUAL_DOWNTIME, r["prod_date"])
+
+    async def _update_downtimes(self, pool: asyncpg.Pool, screen_id: int, pdate: date) -> None:
+        """Простои по завершённым интервалам текущих производственных суток: факт меньше плана."""
+        local = (datetime.now(timezone.utc) + timedelta(hours=_UTC_OFFSET_HOURS)).replace(tzinfo=None)
+        elapsed_min = (local - datetime.combine(pdate, datetime.min.time())).total_seconds() / 60
+        try:
+            await pool.execute(_UPSERT_DOWNTIME, screen_id, pdate, elapsed_min)
+            # факт мог дорасти до плана уже после конца интервала: простой обнуляем (запись остаётся)
+            await pool.execute(_CLEAR_DOWNTIME, screen_id, pdate)
+        except asyncpg.UndefinedTableError:
+            if not self._schema_warned:
+                log.warning("Таблица kpi_downtimes ещё не создана (её создаёт API при запуске)")
                 self._schema_warned = True

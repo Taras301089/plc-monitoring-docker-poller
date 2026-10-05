@@ -8,7 +8,7 @@ RUN pip install --no-cache-dir \
 	--trusted-host files.pythonhosted.org \
 	-r requirements.txt
 
-COPY main.py auth.py ./
+COPY main.py auth.py dictionary.py downtime.py manual.py comments.py activity.py ./
 COPY static ./static
 
 EXPOSE 8000

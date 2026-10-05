@@ -5,6 +5,7 @@ import json
 import os
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -15,7 +16,12 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from auth import ensure_auth_schema, require_user, router as auth_router
+from auth import current_user, ensure_auth_schema, require_admin, require_editor, require_user, router as auth_router
+from downtime import ensure_downtime_schema, router as downtime_router
+from activity import ensure_activity_schema, router as activity_router
+from comments import ensure_comments_schema, router as comments_router
+from manual import ensure_manual_schema, seed_manual_screens, router as manual_router
+from dictionary import ensure_dictionary_schema, seed_dictionary, router as dictionary_router
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
@@ -23,6 +29,8 @@ DATABASE_URL = os.getenv(
 )
 STATIC_DIR = Path(__file__).parent / "static"
 POLLER_URL = os.getenv("POLLER_URL", "http://plc-monitoring-docker-poller:8080")
+# То же смещение, что у KPI: контейнер живёт в UTC, производство — часы ПК (UTC+5)
+UTC_OFFSET_HOURS = float(os.getenv("KPI_UTC_OFFSET_HOURS", "5"))
 
 
 @dataclass(slots=True)
@@ -220,7 +228,16 @@ async def ensure_kpi_schema(pool: asyncpg.Pool) -> None:
 async def lifespan(app: FastAPI):
     app.state.pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
     await ensure_kpi_schema(app.state.pool)
+    # Интервал, снятый галочкой в «Плане на день», не показывается на экране Andon (если в нём нет кузовов)
+    await app.state.pool.execute("ALTER TABLE kpi_schedule ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE")
     await ensure_auth_schema(app.state.pool)
+    await ensure_dictionary_schema(app.state.pool)
+    await seed_dictionary(app.state.pool)
+    await ensure_downtime_schema(app.state.pool)
+    await ensure_manual_schema(app.state.pool)
+    await ensure_comments_schema(app.state.pool)
+    await ensure_activity_schema(app.state.pool)
+    await seed_manual_screens(app.state.pool)
     try:
         yield
     finally:
@@ -229,6 +246,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="PLC Monitoring API", version="0.1.0", lifespan=lifespan)
 app.include_router(auth_router)
+app.include_router(dictionary_router)
+app.include_router(downtime_router)
+app.include_router(manual_router)
+app.include_router(comments_router)
+app.include_router(activity_router)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
@@ -248,6 +270,19 @@ async def static_file(filename: str) -> FileResponse:
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/api/time")
+async def server_time() -> dict[str, Any]:
+    """Текущее время сервиса (ПК / Docker UTC + KPI_UTC_OFFSET_HOURS), без часов браузера."""
+    utc = datetime.now(timezone.utc)
+    local = utc + timedelta(hours=UTC_OFFSET_HOURS)
+    return {
+        "unix_ms": int(utc.timestamp() * 1000),
+        "offset_hours": UTC_OFFSET_HOURS,
+        "date": local.strftime("%d.%m.%Y"),
+        "time": local.strftime("%H:%M:%S"),
+    }
 
 
 @app.get("/api/plcs")
@@ -279,7 +314,7 @@ class CreatePlcRequest(BaseModel):
 
 
 @app.post("/api/plcs")
-async def create_plc(request: CreatePlcRequest) -> dict[str, Any]:
+async def create_plc(request: CreatePlcRequest, _: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
     pool = await get_pool(app)
     try:
         plc_id = await pool.fetchval(
@@ -296,7 +331,7 @@ async def create_plc(request: CreatePlcRequest) -> dict[str, Any]:
 
 
 @app.put("/api/plcs/{plc_id}")
-async def update_plc(plc_id: int, request: CreatePlcRequest) -> dict[str, Any]:
+async def update_plc(plc_id: int, request: CreatePlcRequest, _: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
     pool = await get_pool(app)
     try:
         result = await pool.fetchrow(
@@ -320,7 +355,7 @@ async def update_plc(plc_id: int, request: CreatePlcRequest) -> dict[str, Any]:
 
 
 @app.delete("/api/plcs/{plc_id}")
-async def delete_plc(plc_id: int) -> dict[str, str]:
+async def delete_plc(plc_id: int, _: dict[str, Any] = Depends(require_admin)) -> dict[str, str]:
     pool = await get_pool(app)
     result = await pool.execute("DELETE FROM plcs WHERE id = $1", plc_id)
     if result == "DELETE 0":
@@ -347,6 +382,7 @@ class KpiItem(BaseModel):
     idx: int = Field(ge=1, le=48)
     end_min: int = Field(ge=0, le=2880)
     plan: int = Field(ge=0, le=100000)
+    active: bool | None = None      # None — оставить как было (старое окно «Смена и план» этот признак не передаёт)
 
 
 class KpiScheduleRequest(BaseModel):
@@ -409,17 +445,19 @@ async def _write_screen(pool: asyncpg.Pool, body: KpiScreenBody, screen_id: int 
 
 
 @app.post("/api/kpi/screens", status_code=201)
-async def create_kpi_screen(body: KpiScreenBody) -> dict[str, Any]:
+async def create_kpi_screen(body: KpiScreenBody, _: dict[str, Any] = Depends(require_editor)) -> dict[str, Any]:
     return await _write_screen(await get_pool(app), body, None)
 
 
 @app.put("/api/kpi/screens/{screen_id}")
-async def update_kpi_screen(screen_id: int, body: KpiScreenBody) -> dict[str, Any]:
+async def update_kpi_screen(
+    screen_id: int, body: KpiScreenBody, _: dict[str, Any] = Depends(require_editor)
+) -> dict[str, Any]:
     return await _write_screen(await get_pool(app), body, screen_id)
 
 
 @app.delete("/api/kpi/screens/{screen_id}")
-async def delete_kpi_screen(screen_id: int) -> dict[str, str]:
+async def delete_kpi_screen(screen_id: int, _: dict[str, Any] = Depends(require_editor)) -> dict[str, str]:
     pool = await get_pool(app)
     result = await pool.execute("DELETE FROM kpi_screens WHERE id = $1", screen_id)
     if result == "DELETE 0":
@@ -435,23 +473,37 @@ class KpiScreenScheduleRequest(BaseModel):
 async def get_screen_schedule(screen_id: int) -> list[dict[str, Any]]:
     pool = await get_pool(app)
     rows = await pool.fetch(
-        "SELECT idx, end_min, plan FROM kpi_schedule WHERE screen_id = $1 ORDER BY idx", screen_id
+        "SELECT idx, end_min, plan, active FROM kpi_schedule WHERE screen_id = $1 ORDER BY idx", screen_id
     )
     return [dict(r) for r in rows]
 
 
 @app.put("/api/kpi/screens/{screen_id}/schedule")
-async def put_screen_schedule(screen_id: int, request: KpiScreenScheduleRequest) -> dict[str, int]:
+async def put_screen_schedule(
+    screen_id: int, request: KpiScreenScheduleRequest, user: dict[str, Any] = Depends(require_editor)
+) -> dict[str, int]:
     pool = await get_pool(app)
-    if not await pool.fetchval("SELECT EXISTS(SELECT 1 FROM kpi_screens WHERE id = $1)", screen_id):
+    screen = await pool.fetchrow("SELECT id, name, plc_id FROM kpi_screens WHERE id = $1", screen_id)
+    if screen is None:
         raise HTTPException(status_code=404, detail="Экран не найден")
+    new_total = sum(it.plan for it in request.items)
     async with pool.acquire() as conn:
         async with conn.transaction():
+            old_total = await conn.fetchval("SELECT COALESCE(sum(plan), 0) FROM kpi_schedule WHERE screen_id = $1", screen_id)
+            old_active = {r["idx"]: r["active"] for r in await conn.fetch("SELECT idx, active FROM kpi_schedule WHERE screen_id = $1", screen_id)}
             await conn.execute("DELETE FROM kpi_schedule WHERE screen_id = $1", screen_id)
             await conn.executemany(
-                "INSERT INTO kpi_schedule (screen_id, idx, end_min, plan) VALUES ($1, $2, $3, $4)",
-                [(screen_id, it.idx, it.end_min, it.plan) for it in request.items],
+                "INSERT INTO kpi_schedule (screen_id, idx, end_min, plan, active) VALUES ($1, $2, $3, $4, $5)",
+                [(screen_id, it.idx, it.end_min, it.plan, it.active if it.active is not None else old_active.get(it.idx, True))
+                 for it in request.items],
             )
+            # План на день у линий брендов хранится на сайте: изменение итога пишем в тот же журнал, что и запись плана в ПЛК
+            if old_total != new_total:
+                await conn.execute(
+                    "INSERT INTO kpi_plan_writes (screen_id, screen_name, plc_id, node_id, user_id, user_name, "
+                    "old_value, new_value, readback_value, ok) VALUES ($1, $2, $3, 'site:kpi_schedule', $4, $5, $6, $7, $7, TRUE)",
+                    screen_id, screen["name"], screen["plc_id"], user["id"], user["full_name"], old_total, new_total,
+                )
     return {"saved": len(request.items)}
 
 
@@ -469,14 +521,16 @@ async def get_kpi_schedule(plc_id: int, line: str = Query(min_length=1)) -> list
 
 
 @app.put("/api/plcs/{plc_id}/kpi/schedule")
-async def put_kpi_schedule(plc_id: int, request: KpiScheduleRequest) -> dict[str, int]:
+async def put_kpi_schedule(
+    plc_id: int, request: KpiScheduleRequest, user: dict[str, Any] = Depends(require_editor)
+) -> dict[str, int]:
     pool = await get_pool(app)
     screen_id = await pool.fetchval(
         "SELECT id FROM kpi_screens WHERE plc_id = $1 AND name = $2", plc_id, request.line
     )
     if screen_id is None:
         raise HTTPException(status_code=404, detail="Экран не найден: сначала создайте его")
-    return await put_screen_schedule(screen_id, KpiScreenScheduleRequest(items=request.items))
+    return await put_screen_schedule(screen_id, KpiScreenScheduleRequest(items=request.items), user)
 
 
 class PlanDayBody(BaseModel):
@@ -581,7 +635,9 @@ async def list_plc_tags(plc_id: int) -> list[dict[str, Any]]:
 
 
 @app.delete("/api/plcs/{plc_id}/tags")
-async def deactivate_plc_tag(plc_id: int, node_id: str = Query(min_length=1)) -> dict[str, str]:
+async def deactivate_plc_tag(
+    plc_id: int, node_id: str = Query(min_length=1), _: dict[str, Any] = Depends(require_admin)
+) -> dict[str, str]:
     pool = await get_pool(app)
     await pool.execute(
         "UPDATE plc_tags SET is_active = FALSE WHERE plc_id = $1 AND node_id = $2",
@@ -611,8 +667,16 @@ async def browse_plc_variables(
     name: str | None = Query(default=None),
     include_system: bool = Query(default=False),
     refresh: bool = Query(default=False),
+    user: dict[str, Any] | None = Depends(current_user),
 ) -> Any:
     pool = await get_pool(app)
+    # Сканирование ПЛК (тяжёлая нагрузка на OPC UA) доступно только администратору; остальные читают кэш из БД
+    is_admin = bool(user and user["role"] == "admin")
+    if refresh and not is_admin:
+        raise HTTPException(
+            status_code=401 if user is None else 403,
+            detail="Обновлять список с ПЛК может только администратор",
+        )
 
     # Если пользователь НЕ просит принудительное пересканирование (refresh=True)
     if not refresh:
@@ -640,6 +704,8 @@ async def browse_plc_variables(
         cached_rows = await pool.fetch(sql, *args)
         if cached_rows:
             return [dict(row) for row in cached_rows]
+        if not is_admin:
+            return []
 
     # Если в базе нет данных или запрошен refresh=True — запрашиваем у опросчика (Poller)
     params = {"include_system": str(include_system).lower()}
@@ -719,7 +785,9 @@ async def browse_plc_variables(
 
 
 @app.post("/api/plcs/{plc_id}/tags")
-async def save_plc_tags(plc_id: int, request: SaveTagsRequest) -> dict[str, int]:
+async def save_plc_tags(
+    plc_id: int, request: SaveTagsRequest, _: dict[str, Any] = Depends(require_admin)
+) -> dict[str, int]:
     pool = await get_pool(app)
     plc_exists = await pool.fetchval(
         "SELECT EXISTS(SELECT 1 FROM plcs WHERE id = $1)", plc_id
