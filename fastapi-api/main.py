@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 
 from auth import current_user, ensure_auth_schema, require_admin, require_editor, require_user, router as auth_router
 from downtime import ensure_downtime_schema, router as downtime_router
+from history import router as history_router
 from activity import ensure_activity_schema, router as activity_router
 from comments import ensure_comments_schema, router as comments_router
 from manual import ensure_manual_schema, seed_manual_screens, router as manual_router
@@ -248,10 +249,20 @@ app = FastAPI(title="PLC Monitoring API", version="0.1.0", lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(dictionary_router)
 app.include_router(downtime_router)
+app.include_router(history_router)
 app.include_router(manual_router)
 app.include_router(comments_router)
 app.include_router(activity_router)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+
+@app.middleware("http")
+async def no_stale_pages(request, call_next):
+    """Страницы и скрипты всегда сверяются с сервером (ETag), чтобы экраны и телевизоры не держали старую версию."""
+    response = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 @app.get("/", response_class=FileResponse)
