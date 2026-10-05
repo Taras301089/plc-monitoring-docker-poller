@@ -21,7 +21,7 @@
   const hhmm = m => (m === null || m === undefined ? '' : `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`);
   const fmt = n => String(Math.round(n));
   const fmtDay = iso => { const [, m, d] = iso.split('-'); return `${d}.${m}`; };
-  const fmtTs = ts => new Date(ts).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const fmtTs = ts => plantClock.fmt(ts);
   const me = () => { const st = window.authState && window.authState(); return st && st.user ? st.user : null; };
   const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
   const toast = t => (typeof showToast === 'function' ? showToast(t) : alert(t));

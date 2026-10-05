@@ -242,7 +242,7 @@
   }
 
   // ---------- страница «Пользователи» ----------
-  const fmtDate = iso => (iso ? new Date(iso).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
+  const fmtDate = iso => plantClock.fmt(iso, true);
   const genPassword = () => {
     const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     const a = new Uint32Array(10);
