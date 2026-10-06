@@ -5,7 +5,7 @@
 -- Создаём две необходимые БД: для N8N и для Poller
 
 CREATE DATABASE n8n_db;
-CREATE DATABASE general_data_hub_BD;
+CREATE DATABASE "general_data_hub_BD";
 \connect general_data_hub_BD
 
 -- 1. ТАБЛИЦА ПОДКЛЮЧЕНИЙ К ПЛК

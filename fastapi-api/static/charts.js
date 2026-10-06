@@ -34,7 +34,7 @@
     const t = today();
     const pm = addDays(firstOfMonth(t), -1);
     return {
-      week: [addDays(t, -6), t], month30: [addDays(t, -29), t], month: [firstOfMonth(t), t],
+      day: [t, t], week: [addDays(t, -6), t], month: [firstOfMonth(t), t],
       prev: [firstOfMonth(pm), pm],
     };
   };
@@ -73,9 +73,12 @@
       `<text class="ch-tick" x="${m.l + gw * i + gw / 2}" y="${H - m.b + 16}" text-anchor="middle">${esc(t)}</text>`)).join('');
   };
 
+  const lab = d => d.label || fmtDay(d.date);
+  window.andonChart = { planFact: (days, W) => chartPlanFact(days, W) };   // для предпросмотра отчёта на вкладке «Отчёты»
+
   function chartPlanFact(days, W) {
     if (!days.length) return empty('Нет данных за период');
-    const H = 300, m = { l: 46, r: 46, t: 14, b: 34 };
+    const H = 300, m = { l: 46, r: 46, t: 22, b: 34 };
     const n = days.length, iw = W - m.l - m.r, ih = H - m.t - m.b, gw = iw / n, bw = Math.max(3, Math.min(28, gw * 0.36));
     const ay = axis(Math.max(...days.map(d => Math.max(d.plan, d.fact)), 1));
     const maxPct = Math.max(1, ...days.map(d => d.pct || 0));
@@ -85,7 +88,7 @@
     let bars = '', pts = [], dots = '';
     days.forEach((d, i) => {
       const x0 = m.l + gw * i + gw / 2;
-      const tip = `${fmtDay(d.date)}: план ${d.plan}, факт ${d.fact}, выполнение ${pct(d.pct)}`;
+      const tip = `${lab(d)}: план ${d.plan}, факт ${d.fact}, выполнение ${pct(d.pct)}`;
       bars += `<rect class="ch-plan" x="${x0 - bw - 1}" y="${yv(d.plan)}" width="${bw}" height="${ih - (yv(d.plan) - m.t)}"/>` +
         `<rect class="ch-fact" x="${x0 + 1}" y="${yv(d.fact)}" width="${bw}" height="${ih - (yv(d.fact) - m.t)}"/>`;
       if (gw >= 46) bars += `<text class="ch-val" x="${x0 + 1 + bw / 2}" y="${yv(d.fact) - 4}" text-anchor="middle">${d.fact}</text>`;
@@ -94,12 +97,12 @@
     });
     return frame(W, H, gridY(ay, m, W, H, v => v, 'l') +
       ap.ticks.map(v => `<text class="ch-tick ch-tick-r" x="${W - m.r + 6}" y="${yp(v) + 4}">${v}%</text>`).join('') +
-      bars + (pts.length > 1 ? `<polyline class="ch-line" points="${pts.join(' ')}"/>` : '') + dots + xLabels(days.map(d => fmtDay(d.date)), m, W, H));
+      bars + (pts.length > 1 ? `<polyline class="ch-line" points="${pts.join(' ')}"/>` : '') + dots + xLabels(days.map(lab), m, W, H));
   }
 
   function chartDowntime(days, W) {
     if (!days.length) return empty('Нет данных за период');
-    const H = 260, m = { l: 46, r: 16, t: 14, b: 34 };
+    const H = 260, m = { l: 46, r: 16, t: 22, b: 34 };
     const n = days.length, iw = W - m.l - m.r, ih = H - m.t - m.b, gw = iw / n, bw = Math.max(4, Math.min(34, gw * 0.62));
     const ay = axis(Math.max(...days.map(d => d.downtime), 1));
     const yv = v => m.t + ih * (1 - v / ay.max);
@@ -118,7 +121,7 @@
     const rows = reasons.slice(0, 10);
     if (!rows.length) return empty('Простоев с причинами за период нет');
     const total = reasons.reduce((s, r) => s + r.min, 0);
-    const H = 320, m = { l: 46, r: 46, t: 14, b: 96 };
+    const H = 320, m = { l: 46, r: 46, t: 22, b: 96 };
     const n = rows.length, iw = W - m.l - m.r, ih = H - m.t - m.b, gw = iw / n, bw = Math.max(8, Math.min(44, gw * 0.6));
     const ay = axis(Math.max(...rows.map(r => r.min), 1));
     const yv = v => m.t + ih * (1 - v / ay.max);
@@ -142,7 +145,7 @@
   function chartStations(stations, W) {
     const rows = stations.slice(0, 15);
     if (!rows.length) return empty('Простоев по станциям за период нет');
-    const m = { l: 170, r: 56, t: 8, b: 26 }, rh = 26;
+    const m = { l: 190, r: 56, t: 8, b: 26 }, rh = 26;
     const H = m.t + m.b + rows.length * rh, iw = W - m.l - m.r;
     const ax = axis(Math.max(...rows.map(r => r.min), 1));
     const xv = v => m.l + iw * (v / ax.max);
@@ -179,9 +182,9 @@
         <label title="Первый день периода">С <input type="date" id="ch-from" max="${today()}" title="Первый день периода"></label>
         <label title="Последний день периода (включительно)">По <input type="date" id="ch-to" max="${today()}" title="Последний день периода"></label>
         <span class="ch-presets">
-          <button type="button" class="dt-sec" data-p="week" title="Последние 7 дней, включая сегодня">7 дней</button>
-          <button type="button" class="dt-sec" data-p="month30" title="Последние 30 дней, включая сегодня">30 дней</button>
-          <button type="button" class="dt-sec" data-p="month" title="С первого числа текущего месяца по сегодня">Этот месяц</button>
+          <button type="button" class="dt-sec" data-p="day" title="Только сегодняшний день">День</button>
+          <button type="button" class="dt-sec" data-p="week" title="Последние 7 дней, включая сегодня">Неделя</button>
+          <button type="button" class="dt-sec" data-p="month" title="С первого числа текущего месяца по сегодня">Месяц</button>
           <button type="button" class="dt-sec" data-p="prev" title="Весь прошлый календарный месяц">Прошлый месяц</button>
         </span>
         <button type="button" id="ch-report" class="dt-sec" title="Скачать полный отчёт по линии за период: сводка с графиками, таблицы по дням, причинам и станциям, список простоев">⬇ Отчёт за период</button>
@@ -213,9 +216,9 @@
       pane.querySelector('#ch-to').value = state.to;
       saveState(); load();
     }));
-    pane.querySelector('#ch-report').addEventListener('click', e => exportXlsx(e.currentTarget, `/api/kpi/screens/${state.screen}/period.xlsx?from=${state.from}&to=${state.to}`));
+    pane.querySelector('#ch-report').addEventListener('click', e => exportXlsx(e.currentTarget, `/api/kpi/screens/${state.screen}/period.xlsx?from=${state.from}&to=${state.to}&src=charts`));
     pane.querySelectorAll('.ch-xl').forEach(b => b.addEventListener('click', e =>
-      exportXlsx(e.currentTarget, `/api/kpi/screens/${state.screen}/chart.xlsx?kind=${b.dataset.kind}&from=${state.from}&to=${state.to}`)));
+      exportXlsx(e.currentTarget, `/api/kpi/screens/${state.screen}/chart.xlsx?kind=${b.dataset.kind}&from=${state.from}&to=${state.to}&src=charts`)));
     built = true;
   }
 
@@ -236,7 +239,13 @@
     body('stations').innerHTML = chartStations(data.stations, W);
   }
 
+  function markPreset() {
+    const p = presets();
+    pane.querySelectorAll("[data-p]").forEach(b => b.classList.toggle("on", p[b.dataset.p][0] === state.from && p[b.dataset.p][1] === state.to));
+  }
+
   async function load() {
+    markPreset();
     if (!built || state.screen === null) return;
     const token = ++loadToken;
     try {
@@ -276,5 +285,4 @@
 
   tabBtn.addEventListener('click', show);
   window.addEventListener('resize', () => { if (pane.classList.contains('active')) requestAnimationFrame(draw); });
-  if (pane.classList.contains('active')) show();
 })();

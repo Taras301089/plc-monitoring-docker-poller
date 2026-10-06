@@ -78,7 +78,6 @@
     m.querySelector('[data-act="close"]').addEventListener('click', close);
     m.querySelectorAll('.act-per').forEach(b => b.addEventListener('click', () => openDays(userId, b.dataset.p)));
   }
-  window.openMyStats = () => openDays(null, '7');
   window.openActivityDays = openDays;
 
   const prev = window.onAuthChanged;

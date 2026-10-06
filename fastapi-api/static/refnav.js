@@ -9,7 +9,7 @@
     try { const r = await fetch('/api/auth/me', { credentials: 'same-origin' }); if (r.ok) d = await r.json(); } catch { /* нет связи */ }
     const u = d && d.user;
     if (!u) {
-      box.innerHTML = `<a class="auth-btn" href="index.html" style="text-decoration:none" title="Перейти на главную страницу, чтобы войти или зарегистрироваться">🔑 Войти или зарегистрироваться</a>`;
+      box.innerHTML = `<a class="auth-btn" href="index.html" style="text-decoration:none" title="Перейти на главную страницу, чтобы войти или зарегистрироваться">🔑 Вход / регистрация</a>`;
       return;
     }
     let unread = 0;
@@ -18,7 +18,8 @@
       <div class="notif-wrap"><a class="notif-btn" href="index.html" style="text-decoration:none;color:inherit" title="Уведомления: упоминания, ответы на ваши комментарии и запросы к ОТО (откроются на главной странице)">🔔<b class="notif-badge"${unread ? '' : ' hidden'}>${unread > 99 ? '99+' : unread}</b></a></div>
       <a class="auth-btn" href="index.html" style="text-decoration:none" title="Вы вошли в систему. Меню пользователя, смена пароля и выход — на главной странице"><span>${esc(u.last_name + ' ' + u.first_name.charAt(0) + '.')}</span><small>${esc(u.role_name)}</small></a>`;
     const canSee = ['admin', 'chief', 'area_head'].includes(u.role);
-    document.querySelector('#tab-users').hidden = !canSee;
+    document.querySelector('#tab-users').hidden = u.role !== 'admin';
+    ['#tab-browser', '#tab-saved'].forEach(s => { document.querySelector(s).hidden = u.role !== 'admin'; });   // переменные ПЛК и БД: только администратору
     document.querySelector('#tab-dictionary').hidden = !canSee;
   }
   init();

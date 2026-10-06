@@ -16,8 +16,8 @@
       --fg-secondary: #8a94a3;
       --border-color: #2f3440;
       --header-bg: #14161b;
-      --button-primary: #22a06b;
-      --button-primary-hover: #1b8558;
+      --button-primary: #3b82f6;
+      --button-primary-hover: #2f6bd0;
       --button-secondary: #3b82f6;
       --button-secondary-hover: #2f6bd0;
       --button-tertiary: #4b5563;
@@ -43,8 +43,8 @@
       --fg-secondary: #6b7785;
       --border-color: #d5dbe3;
       --header-bg: #17324d;
-      --button-primary: #177245;
-      --button-primary-hover: #125d39;
+      --button-primary: #2b6cb0;
+      --button-primary-hover: #1f4d7a;
       --button-secondary: #2b6cb0;
       --button-secondary-hover: #1f4d7a;
       --button-tertiary: #6b7785;
@@ -69,7 +69,7 @@
 
     /* Навигационные табы */
     .tabs { background: var(--bg-primary); border-bottom: 2px solid var(--border-color); display: flex; gap: 0; padding: 0; margin: 0; align-items: stretch; }
-    .tab { padding: 12px 16px; cursor: pointer; border: none; background: none; font-size: 13px; color: var(--fg-secondary); font-weight: 500; border-bottom: 3px solid transparent; margin: 0; white-space: nowrap; }
+    .tab { padding: 12px 16px; cursor: pointer; border: none; background: none; font-size: var(--fs-small); color: var(--fg-secondary); font-weight: 500; border-bottom: 3px solid transparent; margin: 0; white-space: nowrap; }
     .tab:hover { background: var(--bg-secondary); }
     .tab.active { color: var(--button-primary); border-bottom-color: var(--button-primary); }
     .tabs-divider { flex: 1; border-right: 1px solid var(--border-color); }
@@ -462,14 +462,14 @@
     #andon.active { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: auto; }
     .andon-top { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; flex-wrap: wrap; }
     .andon-lines { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
-    .andon-chip { min-height: 32px; padding: 0 14px; font-size: 12px; font-weight: 600; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line), 0 1px 2px rgba(0,0,0,.3); }
+    .andon-chip { min-height: 32px; padding: 0 14px; font-size: var(--fs-small); font-weight: 600; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line), 0 1px 2px rgba(0,0,0,.3); }
     .andon-chip.active { background: var(--accent) !important; color: #fff; box-shadow: 0 0 0 1px var(--accent), 0 2px 8px color-mix(in srgb, var(--accent) 45%, transparent); }
-    .andon-chip small { margin-left: 8px; font: 700 11px Consolas, monospace; opacity: .85; }
-    .tab-caret { font-size: 10px; opacity: .7; margin-left: 2px; }
+    .andon-chip small { margin-left: 8px; font-size: var(--fs-small); font-weight: 700; opacity: .85; }
+    .tab-caret { font-size: var(--fs-small); opacity: .7; margin-left: 2px; }
     .andon-menu { position: fixed; z-index: 70; min-width: 180px; padding: 6px; background: var(--bg-primary); border-radius: 0 0 8px 8px; box-shadow: 0 0 0 1px var(--line), 0 12px 32px rgba(0,0,0,.5); }
     .andon-menu[hidden] { display: none; }
     .am-group { position: relative; }
-    .am-head, .am-leaf { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 14px; min-height: 34px; margin: 1px 0; padding: 0 12px; font-size: 13px; font-weight: 600; text-align: left; background: transparent !important; color: var(--fg-primary); box-shadow: none; border-radius: 4px; white-space: nowrap; }
+    .am-head, .am-leaf { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 14px; min-height: 34px; margin: 1px 0; padding: 0 12px; font-size: var(--fs-small); font-weight: 600; text-align: left; background: transparent !important; color: var(--fg-primary); box-shadow: none; border-radius: 4px; white-space: nowrap; }
     .am-leaf { font-weight: 500; }
     .am-head i { font-style: normal; opacity: .6; }
     .am-group:hover > .am-head, .am-group.open > .am-head, .am-leaf:hover { background: var(--hover) !important; filter: none; }
@@ -477,26 +477,30 @@
     .am-sub { display: none; position: absolute; left: 100%; top: -6px; min-width: 200px; padding: 6px; background: var(--bg-primary); border-radius: 8px; box-shadow: 0 0 0 1px var(--line), 0 12px 32px rgba(0,0,0,.5); }
     .am-group.open > .am-sub { display: block; }
     .am-leaf.active { background: color-mix(in srgb, var(--accent) 22%, transparent) !important; color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
-    .am-leaf small { font: 700 11px Consolas, monospace; opacity: .85; }
+    .am-leaf small { font-size: var(--fs-small); font-weight: 700; opacity: .85; }
     .andon-edit.locked { opacity: .55; }
-    .andon-edit { min-height: 32px; padding: 0 14px; font-size: 12px; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); }
-    .andon-body { flex: 1; min-height: 0; }
+    .andon-edit { min-height: 32px; padding: 0 14px; font-size: var(--fs-small); background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); }
+    /* три размера шрифта (см. CLAUDE.md): мелкий, крупный (числа таблицы; зависит от числа интервалов --rows) и заголовочный */
+    :root { --fs-small: 13px; --fs-large: 16px; --fs-title: 22px; }
+    #andon { --fs-small: clamp(12px, 1.35vh, 16px); --fs-title: clamp(22px, 4.4vh, 56px); }
+    body.tv-mode #andon { --fs-small: clamp(14px, 2vh, 26px); }
+    .andon-body { --fs-large: clamp(13px, min(calc(56vh / (var(--rows, 9) + 1.5)), 1.85vw), 64px); flex: 1; min-height: 0; }
     .andon-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 14px; align-items: start; }
     .andon-side { display: flex; flex-direction: column; gap: 12px; }
     .tile { background: var(--bg-primary); border-radius: 8px; padding: 12px 14px; box-shadow: var(--shadow-out); }
-    .tile label { display: block; margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-secondary); }
-    .tile b { display: block; font: 700 34px 'Segoe UI', Roboto, Arial, sans-serif; color: var(--fg-primary); text-align: center; background: var(--bg-secondary); border-radius: 6px; padding: 6px 4px; box-shadow: var(--shadow-in); }
-    .tile small { display: block; margin-top: 6px; font-size: 10px; color: var(--fg-secondary); text-align: center; }
+    .tile label { display: block; margin: 0 0 6px; font-size: var(--fs-small); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-secondary); }
+    .tile b { display: block; font: 700 var(--fs-title) 'Segoe UI', Roboto, Arial, sans-serif; color: var(--fg-primary); text-align: center; background: var(--bg-secondary); border-radius: 6px; padding: 6px 4px; box-shadow: var(--shadow-in); }
+    .tile small { display: block; margin-top: 6px; font-size: var(--fs-small); color: var(--fg-secondary); text-align: center; }
     .andon-clockbox { text-align: center; padding: 6px 0; }
-    .andon-date { font: 600 30px 'Segoe UI', sans-serif; color: var(--fg-primary); }
-    .andon-time { font: 700 34px 'Segoe UI', Roboto, Arial, sans-serif; color: var(--fg-primary); margin-top: 4px; }
+    .andon-date { font: 600 var(--fs-small) 'Segoe UI', sans-serif; color: var(--fg-primary); }
+    .andon-time { font: 700 var(--fs-title) 'Segoe UI', Roboto, Arial, sans-serif; color: var(--fg-primary); margin-top: 4px; }
     .andon-main { min-width: 0; }
     .andon-h .brand-logo { height: 1.2em; width: auto; max-width: 3.2em; object-fit: contain; vertical-align: middle; margin-right: .45em; border-radius: .22em; }
-    .andon-h { margin: 0 0 10px; font-size: 16px; font-weight: 700; padding: 10px 14px; background: var(--bg-primary); border-radius: 8px; box-shadow: var(--shadow-out); }
+    .andon-h { margin: 0 0 10px; font-size: var(--fs-title); font-weight: 700; padding: 10px 14px; background: var(--bg-primary); border-radius: 8px; box-shadow: var(--shadow-out); }
     .kpi-table { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--bg-primary); border-radius: 8px; overflow: hidden; box-shadow: var(--shadow-out); }
-    .kpi-table th { padding: 8px 10px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-secondary); background: var(--bg-secondary); text-align: center; border-bottom: 1px solid var(--line); }
-    .kpi-table td { padding: 0 10px; height: 36px; text-align: center; font: 600 16px 'Segoe UI', Roboto, Arial, sans-serif; border-bottom: 1px solid var(--line); }
-    .kpi-table td.n { color: var(--fg-secondary); font-size: 12px; width: 44px; }
+    .kpi-table th { padding: 8px 10px; font-size: var(--fs-small); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-secondary); background: var(--bg-secondary); text-align: center; border-bottom: 1px solid var(--line); }
+    .kpi-table td { padding: 0 10px; height: 36px; text-align: center; font: 600 var(--fs-large) 'Segoe UI', Roboto, Arial, sans-serif; border-bottom: 1px solid var(--line); }
+    .kpi-table td.n { color: var(--fg-secondary); font-size: var(--fs-small); width: 44px; }
     .kpi-table td.time { white-space: nowrap; }
     .kpi-table td.dim { color: var(--fg-secondary); font-weight: 400; }
     .kpi-table tbody tr:nth-child(even) { background: var(--zebra); }
@@ -510,7 +514,7 @@
     .kpi-table .pos { color: var(--ok); }
     .kpi-table .neg { color: var(--danger); }
     .kpi-table tfoot td { background: var(--bg-secondary); font-weight: 700; height: 40px; border-bottom: 0; }
-    .kpi-table tfoot td.lbl { font: 700 14px 'Segoe UI', sans-serif; text-transform: uppercase; letter-spacing: .05em; }
+    .kpi-table tfoot td.lbl { font: 700 var(--fs-small) 'Segoe UI', sans-serif; text-transform: uppercase; letter-spacing: .05em; }
     .kpi-modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); }
     .kpi-modal-box { width: min(560px, 94vw); max-height: 90vh; overflow: auto; background: var(--bg-primary); border-radius: 10px; box-shadow: 0 0 0 1px var(--line), 0 20px 50px rgba(0,0,0,.6); padding: 16px; }
     .kpi-modal-box h3 { margin: 0 0 4px; font-size: 16px; }
@@ -536,20 +540,20 @@
     .andon-layout { height: 100%; max-width: 1600px; margin: 0 auto; grid-template-columns: minmax(320px, 32%) minmax(0, 1fr); align-items: stretch; }
     .andon-side { justify-content: flex-start; container-type: inline-size; }
     .andon-main { display: flex; flex-direction: column; min-height: 0; }
-    .andon-h { flex: none; font-size: clamp(16px, 2.6vh, 32px); padding: 1.2vh 14px; }
+    .andon-h { flex: none; font-size: var(--fs-title); padding: 1.2vh 14px; }
     .kpi-wrap { flex: 1; min-height: 0; }
     .kpi-table { height: 100%; table-layout: fixed; }
-    .kpi-table th { font-size: clamp(10px, 1.5vh, 17px); padding: 0 6px; height: 1px; }
-    .kpi-table td { font-size: clamp(13px, min(2.9vh, 1.9vw), 40px); }
-    .kpi-table td.n { font-size: clamp(10px, min(1.7vh, 1.2vw), 20px); width: auto; }
+    .kpi-table th { font-size: var(--fs-small); padding: 0 6px; height: 1px; }
+    .kpi-table td.n { font-size: var(--fs-small); width: auto; }
     .kpi-table td.delta { width: auto; }
     .kpi-table tfoot td { height: 1px; }
-    .kpi-table tfoot td.lbl { font-size: clamp(13px, 2.2vh, 28px); }
-    .tile b { font-size: clamp(30px, 15.5cqw, 110px); }
-    .tile label { font-size: clamp(10px, 1.5vh, 16px); }
+    .kpi-table tbody td { height: 1px; }   /* строки по содержимому: таблица сжимается и делит свободную высоту, итоговая строка всегда видна */
+    .kpi-table tfoot td.lbl { font-size: var(--fs-small); }
+    .tile b { font-size: var(--fs-title); }
+    .tile label { font-size: var(--fs-small); }
     .andon-clockbox { padding-top: 3vh; }
-    .andon-date { font-size: clamp(24px, 15.5cqw, 110px); line-height: 1.1; }
-    .andon-time { font-size: clamp(30px, 19.5cqw, 150px); letter-spacing: 0; line-height: 1.1; margin-top: 1vh; white-space: nowrap; }
+    .andon-date { font-size: var(--fs-small); line-height: 1.1; }
+    .andon-time { font-size: var(--fs-title); letter-spacing: 0; line-height: 1.1; margin-top: 1vh; white-space: nowrap; }
     @media (max-width: 900px) { .andon-layout { grid-template-columns: 1fr; height: auto; } .kpi-table { height: auto; } }
 
     /* Режим табло: только таблица на весь экран, без вкладок и редактирования */
@@ -557,6 +561,7 @@
     body.tv-mode main { padding: 6px 10px; }
     /* кнопка режима табло остаётся на месте и превращается в «Выйти» (на телевизоре нет клавиши Esc) */
     body.tv-mode .kpi-table { pointer-events: none; }
+    body.tv-mode.logged-in .kpi-table { pointer-events: auto; }   /* на телевизоре без ПК вошедший мастер работает прямо с табло: простои и план */
 
     /* Компоновка Andon: одна строка сверху (такт-тайм слева, бренд по центру, LIVE и кнопки справа), под ней таблица на всю ширину */
     :root { --andon-bar: clamp(54px, 8vh, 96px); }
@@ -565,33 +570,52 @@
     #andon .andon-lines { flex: none; }
     .andon-layout { max-width: none; margin: 0; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-rows: var(--andon-bar) minmax(0, 1fr); column-gap: 14px; row-gap: 8px; align-items: stretch; }
     .andon-side, .andon-main { display: contents; }
-    .andon-h { grid-column: 2; grid-row: 1; align-self: center; justify-self: center; text-align: center; margin: 0; font-size: clamp(22px, 4.2vh, 56px); padding: 1vh 28px; white-space: nowrap; }
+    .andon-h { grid-column: 2; grid-row: 1; align-self: center; justify-self: center; text-align: center; margin: 0; font-size: var(--fs-title); padding: 1vh 28px; white-space: nowrap; }
     .andon-side .tile { grid-column: 1; grid-row: 1; justify-self: start; align-self: center; display: flex; align-items: center; gap: 14px; padding: 6px 14px; }
-    .andon-side .tile label { margin: 0; font-size: clamp(10px, 1.5vh, 16px); max-width: 16em; }
-    .andon-side .tile b { font-size: clamp(24px, 5vh, 64px); padding: 2px 16px; }
+    .andon-side .tile label { margin: 0; font-size: var(--fs-small); max-width: 16em; }
+    .andon-side .tile b { font-size: var(--fs-title); padding: 2px 16px; }
     .andon-side .tile small { display: none; }
     .andon-main .kpi-wrap { grid-column: 1 / -1; grid-row: 2; }
     /* цифры таблицы растут вместе с высотой строки: чем меньше интервалов (--rows), тем крупнее */
-    .kpi-table td { font-size: clamp(13px, min(calc(56vh / (var(--rows, 9) + 1.5)), 1.85vw), 64px); }
+    .kpi-table td { font-size: var(--fs-large); }
     /* дата и время: плитка справа, зеркальная плитке такт-тайма, синий цвет отличает её от такт-тайма; отступ справа оставляет место для LIVE и кнопки (--cluster-w задаёт скрипт) */
     .andon-side .andon-clockbox { grid-column: 3; grid-row: 1; justify-self: end; align-self: center; margin-right: var(--cluster-w, 260px); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 14px; background: var(--bg-primary); border-radius: 8px; box-shadow: var(--shadow-out); }
-    .andon-clockbox .andon-date { font: 600 clamp(10px, 1.7vh, 20px) 'Segoe UI', sans-serif; color: var(--fg-secondary); white-space: nowrap; line-height: 1; }
-    .andon-clockbox .andon-time { font: 700 clamp(22px, 4.4vh, 56px) 'Segoe UI', Roboto, Arial, sans-serif; color: var(--fg-primary); margin: 0; padding: 1px 16px; background: var(--bg-secondary); border-radius: 6px; box-shadow: var(--shadow-in); line-height: 1.1; letter-spacing: 0; }
+    .andon-clockbox .andon-date { font: 600 var(--fs-small) 'Segoe UI', sans-serif; color: var(--fg-secondary); white-space: nowrap; line-height: 1; }
+    .andon-clockbox .andon-time { font: 700 var(--fs-title) 'Segoe UI', Roboto, Arial, sans-serif; color: var(--fg-primary); margin: 0; padding: 1px 16px; background: var(--bg-secondary); border-radius: 6px; box-shadow: var(--shadow-in); line-height: 1.1; letter-spacing: 0; }
     .kpi-table td, .tile b, .andon-time { font-variant-numeric: tabular-nums; }
     @media (max-width: 900px) { .andon-layout { grid-template-columns: 1fr; grid-template-rows: auto; } .andon-h, .andon-side .tile, .andon-main .kpi-wrap, .andon-side .andon-clockbox { grid-column: 1; grid-row: auto; margin-right: 0; justify-self: start; } #andon .andon-top { position: static; height: auto; } }
     /* средняя ширина (окно на пол-экрана): кнопки идут отдельной строкой над таблицей, а не поверх шапки; заголовки колонок мельче */
-    .kpi-table th { font-size: clamp(9px, min(1.5vh, 1.15vw), 17px); }
+    .kpi-table th { font-size: var(--fs-small); }
     @media (max-width: 1400px) {
-      #andon .andon-top { position: static; height: auto; flex-wrap: wrap; justify-content: flex-end; margin-bottom: 8px; }
-      #andon .andon-lines { flex: 1; }
-      .andon-side .andon-clockbox { margin-right: 0; }
+      /* узкое окно: шапка остаётся одной строкой, элементы справа компактнее */
+      .andon-layout, body.tv-mode .andon-layout { grid-template-columns: auto minmax(0, 1fr) auto; }
+      #andon .andon-top { gap: 6px; }
+      #andon .andon-top button, #andon .andon-top input, #andon .andon-top .live-badge { padding-left: 8px; padding-right: 8px; font-size: var(--fs-small); }
+      #andon .andon-day { gap: 4px; }
+      #andon #andon-day-date { width: 118px; }
+      .andon-side .tile, .andon-side .andon-clockbox { padding: 3px 10px; }
+      .andon-side .tile b { padding: 2px 10px; }
       .kpi-table th { letter-spacing: 0; padding: 0 2px; }
       .andon-side .tile label { max-width: 9em; }
+    }
+    @media (max-width: 1100px) {
+      /* очень узкое окно: бренд, такт-тайм и часы крупностью обычных чисел таблицы, чтобы шапка не наезжала на кнопки */
+      .andon-h, .andon-side .tile b, .andon-clockbox .andon-time { font-size: var(--fs-large); }
+      .andon-h { padding: 0.5vh 12px; }
+      .andon-side .tile { gap: 6px; }
     }
     @media (max-width: 1100px) {
       .andon-side .tile { flex-wrap: wrap; row-gap: 2px; }
       .andon-side .tile label { max-width: none; flex: 1 0 100%; }
     }
+    /* табло: шапка всегда одной строкой (такт-тайм, бренд, часы, LIVE и «Выйти»), даже на узких телевизорах */
+    body.tv-mode #andon .andon-top { position: absolute; top: 0; right: 0; height: var(--andon-bar); flex-wrap: nowrap; margin: 0; gap: 8px; justify-content: flex-end; }
+    body.tv-mode .andon-layout { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-rows: var(--andon-bar) minmax(0, 1fr); }
+    body.tv-mode .andon-h { grid-column: 2; grid-row: 1; padding: 0.5vh 14px; justify-self: center; }
+    body.tv-mode .andon-side .tile { grid-column: 1; grid-row: 1; justify-self: start; flex-wrap: nowrap; padding: 4px 10px; gap: 8px; }
+    body.tv-mode .andon-side .tile label { flex: 0 1 auto; max-width: none; }
+    body.tv-mode .andon-side .andon-clockbox { grid-column: 3; grid-row: 1; justify-self: end; margin-right: var(--cluster-w, 200px); padding: 3px 10px; }
+    body.tv-mode .andon-main .kpi-wrap { grid-column: 1 / -1; grid-row: 2; }
 
     /* Значения в реальном времени */
     .variables-panel .var-value { font-family: Consolas, 'Courier New', monospace; font-size: 11px; color: var(--vt-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -602,7 +626,7 @@
     .variables-panel .var-value.pending { color: var(--vt-muted); }
     @keyframes valueFlash { from { background: color-mix(in srgb, var(--warn) 45%, transparent); } to { background: transparent; } }
     .variables-panel .var-value.flash:not(.bool) { animation: valueFlash .9s ease-out; border-radius: 3px; }
-    .live-badge { font-size: 10px; font-weight: 600; letter-spacing: .04em; padding: 1px 8px; border-radius: 9px; }
+    .live-badge { font-size: var(--fs-small); font-weight: 600; letter-spacing: .04em; padding: 1px 8px; border-radius: 9px; }
     .live-badge.on { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
     .live-badge.on::first-letter { animation: livePulse 1.6s infinite; }
     .live-badge.off { color: var(--fg-secondary); background: var(--zebra); }
@@ -673,9 +697,9 @@
     }
     #toast.show { opacity: 1; transform: none; }
 
-    /* Кнопки: сине-бирюзовая гамма, красный только для опасных действий */
-    :root { --button-primary: #0f9d8f; --button-primary-hover: #0b8378; }
-    [data-theme="light"] { --button-primary: #0f766e; --button-primary-hover: #0b5f58; }
+    /* Кнопки: главные действия синие, красный только для опасных действий */
+    :root { --button-primary: #3b82f6; --button-primary-hover: #2f6bd0; }
+    [data-theme="light"] { --button-primary: #2b6cb0; --button-primary-hover: #1f4d7a; }
     #load { background: var(--bg-tertiary); color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line), 0 1px 2px rgba(0,0,0,.3); }
     #refresh { background: var(--button-secondary) !important; }
     #save { background: var(--button-primary); }
@@ -685,14 +709,14 @@
 </head>
 <body>
   <nav class="tabs">
-    <button class="tab active" data-tab="browser" title="Просмотр всех переменных ПЛК в реальном времени с возможностью поиска и фильтрации">📊 Переменные ПЛК</button>
-    <button class="tab" data-tab="saved" title="Переменные сохранённые в базе данных для дальнейшего анализа и мониторинга">💾 Переменные БД</button>
+    <button class="tab active" data-tab="andon" title="Dashboard. Информационная панель Andon / KPI: почасовые счётчики кузовов, такт-тайм и показатели производства в реальном времени. Наведите, чтобы выбрать бренд и участок">📺 Andon / KPI <span class="tab-caret">▾</span></button>
     <button class="tab" data-tab="charts" title="Графики по линии за период: план и факт, простои, причины и станции; каждый график можно выгрузить в Excel">📈 Графики</button>
-    <button class="tab" data-tab="notifications" title="Параметры подключения к ПЛК и настройки оповещений">🔔 Оповещения</button>
-    <button class="tab" data-tab="andon" title="Dashboard. Информационная панель Andon / KPI: почасовые счётчики кузовов, такт-тайм и показатели производства в реальном времени. Наведите, чтобы выбрать бренд и участок">📺 Andon / KPI <span class="tab-caret">▾</span></button>
+    <button class="tab" data-tab="reports" id="tab-reports" title="Отчёт дня по линии: график план/факт и таблица как в файле Excel, выбор дня и скачивание; администратор здесь же настраивает автосохранение отчётов в папку">📁 Отчёты</button>
     <button class="tab" data-tab="downtimes" id="tab-downtimes" title="Все простои за период одним списком: по одной строке на каждую причину, с описаниями и комментариями">⏱ Простои</button>
+    <button class="tab" data-tab="notifications" title="Параметры подключения к ПЛК и настройки оповещений">🔔 Оповещения</button>
+    <button class="tab" data-tab="browser" id="tab-browser" hidden title="Просмотр всех переменных ПЛК в реальном времени с возможностью поиска и фильтрации">📊 Переменные ПЛК</button>
+    <button class="tab" data-tab="saved" id="tab-saved" hidden title="Переменные сохранённые в базе данных для дальнейшего анализа и мониторинга">💾 Переменные БД</button>
     <button class="tab" data-tab="dictionary" id="tab-dictionary" hidden title="Справочники простоев: причины, участки и станции для описания простоев (редактируют администратор и начальники)">📚 Справочники</button>
-    <button class="tab" data-tab="reports" id="tab-reports" hidden title="Автосохранение отчётов дня по линиям в папку на ПК с сервисом: включить, указать время сохранения, сохранить сейчас (только администратор)">📁 Отчёты</button>
     <button class="tab" data-tab="users" id="tab-users" hidden title="Пользователи системы: создание учётных записей, роли, сброс паролей (только для администратора)">👥 Пользователи</button>
     <div class="tabs-divider"></div>
     <div class="tabs-tools">
@@ -704,7 +728,7 @@
 
   <main>
     <!-- TAB 1: PLC Variables Browser -->
-    <div id="browser" class="tab-content active">
+    <div id="browser" class="tab-content">
       <!-- PLC Selection & Actions -->
       <section class="area area-plc">
         <div class="panel-header">🖥 ПЛК <span class="area-hint">выбор и настройка</span>
@@ -808,7 +832,7 @@
     <div id="downtimes" class="tab-content"></div>
 
     <!-- TAB 5: Andon / KPI Dashboard -->
-    <div id="andon" class="tab-content">
+    <div id="andon" class="tab-content active">
       <div class="andon-top">
         <div class="andon-lines" id="andon-lines" title="Выбор экрана Andon / KPI: бренд и участок или линия Finish Line"></div>
         <div id="andon-day" class="andon-day" title="Просмотр любого прошлого дня и выгрузка в Excel">
@@ -858,10 +882,11 @@
         try { localStorage.setItem('andonScreen', String(view.screen)); } catch { /* не критично */ }
       }
       const tab = document.querySelector(`.tab[data-tab="${view.tab}"]`);
-      if (tab && !tab.hidden) tab.click();
+      if (tab) tab.click();   // вкладки только для администратора сами уходят на Andon (authtabs.js), если роль не админ
     };
     // Возврат со страницы справки на нужную вкладку (index.html#saved и т.п.)
-    if (location.hash) document.querySelector(`.tab[data-tab="${location.hash.slice(1)}"]`)?.click();
+    // (после загрузки всех скриптов: иначе вкладки с отдельными файлами не успевают подписаться на открытие и остаются пустыми)
+    document.addEventListener("DOMContentLoaded", () => { if (location.hash) document.querySelector(`.tab[data-tab="${location.hash.slice(1)}"]`)?.click(); });
 
     let plcItems = [];
     const plcDd = document.querySelector('#plc-dd');
@@ -1549,6 +1574,7 @@
     let andonLoadedAt = 0;
     let andonLoading = false;
     let andonBusy = false;
+    let andonFails = 0;        // подряд неудачных опросов ПЛК
     let andonBuilt = '';
     let andonLast = null;      // { starts, n } выбранного экрана
     let andonMsg = '';
@@ -1566,6 +1592,20 @@
         andonCfg[screenId] = r.ok ? await r.json() : [];
       } catch { andonCfg[screenId] = []; }
       andonCfgVer++;
+    }
+
+    // План по интервалам хранится в расписании на сервере и меняется с других устройств: экран перечитывает его каждые 5 секунд
+    // (иначе телевизор показывал бы план на момент загрузки страницы). Вёрстка перестраивается, только если расписание изменилось.
+    let andonCfgAt = 0;
+    async function refreshKpiCfg(screenId) {
+      if (Date.now() - andonCfgAt < 5000) return;
+      andonCfgAt = Date.now();
+      try {
+        const r = await fetch(`/api/kpi/screens/${screenId}/schedule`);
+        if (!r.ok) return;
+        const fresh = await r.json();
+        if (JSON.stringify(fresh) !== JSON.stringify(andonCfg[screenId])) { andonCfg[screenId] = fresh; andonCfgVer++; }
+      } catch { /* оставляем прежнее расписание */ }
     }
 
     // Окончание интервала по умолчанию — начало следующего (для последнего +30 мин), план 0
@@ -1717,7 +1757,7 @@
         <div class="andon-layout">
           <aside class="andon-side">
             <div class="tile" title="Время, прошедшее с момента последнего кузова: текущий такт-тайм между кузовами">
-              <label>Текущий такт-тайм между кузовами</label><b data-k="curTakt">—</b><span class="andon-state" data-k="state" hidden></span><small>мин:сек (при длинном простое: ч:мин:сек)</small>
+              <label>Такт-тайм</label><b data-k="curTakt">—</b><span class="andon-state" data-k="state" hidden></span><small>мин:сек (при длинном простое: ч:мин:сек)</small>
             </div>
             <div class="andon-clockbox" title="Дата и время сервиса на ПК (не часы телевизора или браузера)"><div class="andon-date" data-k="date"></div><div class="andon-time" data-k="time"></div></div>
           </aside>
@@ -1933,7 +1973,7 @@
         <div class="andon-layout">
           <aside class="andon-side">
             <div class="tile" title="Время, прошедшее с момента последнего кузова: текущий такт-тайм между кузовами">
-              <label>Текущий такт-тайм между кузовами</label><b data-k="curTakt">—</b><span class="andon-state" data-k="state" hidden></span><small>мин:сек (при длинном простое: ч:мин:сек)</small>
+              <label>Такт-тайм</label><b data-k="curTakt">—</b><span class="andon-state" data-k="state" hidden></span><small>мин:сек (при длинном простое: ч:мин:сек)</small>
             </div>
             <div class="andon-clockbox" title="Дата и время сервиса на ПК (не часы телевизора или браузера)"><div class="andon-date" data-k="date"></div><div class="andon-time" data-k="time"></div></div>
           </aside>
@@ -2208,6 +2248,7 @@
         showAndonMessage(`У экрана «${sel.name}» не заданы теги счётчика (выпуск по часам и итог за день).`);
         return;
       }
+      refreshKpiCfg(sel.id);
       if (andonBusy) return;
       andonBusy = true;
       try {
@@ -2222,12 +2263,17 @@
         const results = new Map();
         await Promise.all([...byPlc].map(async ([pid, set]) => {
           try {
-            const resp = await fetch(`/api/plcs/${pid}/opcua/values`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ node_ids: [...set] }),
-            });
-            const data = await resp.json();
-            if (resp.ok) results.set(pid, data.values);
-          } catch { /* ПЛК недоступен: покажем «нет связи» ниже */ }
+            // тайм-аут: «зависший» запрос (сбой сети на телевизоре) не должен навсегда останавливать обновление экрана
+            const ctl = new AbortController();
+            const timer = setTimeout(() => ctl.abort(), 6000);
+            try {
+              const resp = await fetch(`/api/plcs/${pid}/opcua/values`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ node_ids: [...set] }), signal: ctl.signal,
+              });
+              const data = await resp.json();
+              if (resp.ok) results.set(pid, data.values);
+            } finally { clearTimeout(timer); }
+          } catch { /* ПЛК недоступен или запрос завис: покажем «нет связи» ниже */ }
         }));
         andonScreens.forEach(s => {
           const chip = andonMenu.querySelector(`[data-screen="${s.id}"] [data-k="chipTot"]`);
@@ -2238,8 +2284,14 @@
         if (v) {
           if (andonScreenId !== sel.id) return;
           if (sel.template === 'fl_counter') paintFl(sel, v); else paintKpi(sel, v);
+          andonFails = 0;
           setAndonBadge('on', '● LIVE');
-        } else setAndonBadge('err', '● нет связи');
+        } else {
+          // две неудачных опроса подряд: числа из ПЛК заменяются прочерком, значок красный; устаревшие цифры под LIVE не показываем
+          andonFails++;
+          setAndonBadge('err', '● нет связи');
+          if (andonFails >= 2) andonBody.querySelectorAll('[data-k="plan"],[data-k="fact"],[data-k="delta"],[data-k="takt"],[data-k="planSum"],[data-k="tot"],[data-k="deltaSum"],[data-k="shTakt"],[data-k="curTakt"]').forEach(el => { if (el.textContent !== '—') el.textContent = '—'; });
+        }
       } finally { andonBusy = false; }
     }
     setInterval(andonTick, 1000);
@@ -2275,6 +2327,10 @@
         window.dispatchEvent(new Event('resize'));
       };
       btn.addEventListener('click', () => setTv(!document.body.classList.contains('tv-mode')));
+      // после перезагрузки браузер разрешает полный экран только по нажатию: в режиме табло первое нажатие или касание включает его
+      const fsOnTap = () => { if (document.body.classList.contains("tv-mode") && !document.fullscreenElement && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {}); };
+      document.addEventListener("pointerdown", fsOnTap);
+      document.addEventListener("keydown", fsOnTap);
       document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('tv-mode')) setTv(false); });
       let saved = false;
       try { saved = localStorage.getItem('tvMode') === '1'; } catch { /* нет доступа к localStorage */ }
@@ -2369,5 +2425,6 @@
   <script src="/static/downtimes.js"></script>
   <script src="/static/archive.js"></script>
   <script src="/static/comments.js"></script>
+  <script src="/static/authtabs.js"></script>
 </body>
 </html>

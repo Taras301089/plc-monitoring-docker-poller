@@ -102,13 +102,13 @@ async def _notify(conn: asyncpg.Connection, user_ids: list[int], kind: str, down
 
 @router.get("/mentionable")
 async def mentionable(request: Request, _: dict[str, Any] = Depends(require_user)) -> list[dict[str, Any]]:
-    """Активные пользователи для подсказки по @: только имя, отдел и должность (без логинов)."""
+    """Активные пользователи для подсказки по @: имя, логин, отдел и должность."""
     pool: asyncpg.Pool = request.app.state.pool
     rows = await pool.fetch(
-        "SELECT id, last_name, first_name, role, department FROM app_users WHERE is_active AND status = 'active' ORDER BY last_name, first_name"
+        "SELECT id, login, last_name, first_name, role, department FROM app_users WHERE is_active AND status = 'active' ORDER BY last_name, first_name"
     )
     return [
-        {"id": r["id"], "name": f"{r['last_name']} {r['first_name']}", "role_name": ROLES.get(r["role"], r["role"]),
+        {"id": r["id"], "login": r["login"], "name": f"{r['last_name']} {r['first_name']}", "role_name": ROLES.get(r["role"], r["role"]),
          "department": r["department"], "department_name": DEPARTMENTS.get(r["department"] or "", "")}
         for r in rows
     ]
@@ -157,8 +157,7 @@ async def add_comment(
     text = body.text.strip()
     if not text:
         raise HTTPException(status_code=422, detail="Введите текст комментария")
-    if body.is_oto and not _can_oto(user):
-        raise HTTPException(status_code=403, detail="Комментарий от ОТО могут оставить сотрудники ОТО, начальники и администратор")
+    from_oto = user.get("department") == "oto"   # метка «ОТО» ставится автоматически по категории автора, галочки нет
     parent_author: int | None = None
     if body.parent_id is not None:
         parent = await pool.fetchrow("SELECT user_id, item_id, deleted_at FROM kpi_downtime_comments WHERE id = $1", body.parent_id)
@@ -172,7 +171,7 @@ async def add_comment(
                 "INSERT INTO kpi_downtime_comments (downtime_id, item_id, parent_id, user_id, user_name, department, is_oto, oto_request, text, mentions) "
                 "VALUES ($1,$10,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id",
                 downtime_id, body.parent_id, user["id"], user["full_name"], user.get("department"),
-                body.is_oto, body.oto_request and not body.is_oto, text, mention_ids, item_id,
+                from_oto, body.oto_request and not from_oto, text, mention_ids, item_id,
             )
             notified: set[int] = set()
             await _notify(conn, mention_ids, "mention", downtime_id, cid, user["full_name"], text)
@@ -180,7 +179,7 @@ async def add_comment(
             if parent_author and parent_author != user["id"] and parent_author not in notified:
                 await _notify(conn, [parent_author], "reply", downtime_id, cid, user["full_name"], text)
                 notified.add(parent_author)
-            if body.oto_request and not body.is_oto:
+            if body.oto_request and not from_oto:
                 oto = await conn.fetch("SELECT id FROM app_users WHERE department = 'oto' AND is_active AND status = 'active' AND id <> $1", user["id"])
                 targets = [r["id"] for r in oto if r["id"] not in notified]
                 await _notify(conn, targets, "oto", downtime_id, cid, user["full_name"], text)
@@ -217,8 +216,8 @@ async def delete_comment(comment_id: int, request: Request, user: dict[str, Any]
     c = await pool.fetchrow("SELECT user_id, deleted_at FROM kpi_downtime_comments WHERE id = $1", comment_id)
     if c is None or c["deleted_at"]:
         raise HTTPException(status_code=404, detail="Комментарий не найден")
-    if c["user_id"] != user["id"] and user["role"] not in MODERATOR_ROLES:
-        raise HTTPException(status_code=403, detail="Удалить чужой комментарий могут администратор и начальники")
+    if c["user_id"] != user["id"] and user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Удалить комментарий может только его автор или администратор")
     await pool.execute("UPDATE kpi_downtime_comments SET deleted_at = now() WHERE id = $1", comment_id)
     return {"status": "ok"}
 

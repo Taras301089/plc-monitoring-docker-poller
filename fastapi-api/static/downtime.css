@@ -13,7 +13,7 @@
 .dt-row select, .dt-row input { min-height: 30px; font-size: 13px; width: 100%; text-align: left; }
 .dt-row input[data-f="minutes"] { text-align: center; }
 .dt-row .dt-note { grid-column: 1 / -1; text-align: left; }
-.dt-x { min-height: 30px; padding: 0; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); }
+.dt-x { min-height: 30px; padding: 0 12px; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); }
 .dt-sec { background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); }
 .dt-sum { font-size: 12px; color: var(--fg-secondary); margin: 4px 0 10px; }
 .dt-sum.over { color: var(--danger); }
@@ -23,9 +23,9 @@
 /* Подсборки: ручной ввод плана и факта в ячейках */
 .kpi-table td.man-edit { cursor: pointer; }
 .kpi-table td.man-edit:hover { background: var(--hover); box-shadow: inset 0 -2px 0 var(--accent); }
-.kpi-table td.man-missing { background: color-mix(in srgb, var(--warn) 16%, transparent); box-shadow: inset 0 0 0 1px var(--warn); }
-.kpi-table td.man-missing:empty::after { content: '?'; color: var(--warn); }
-.man-input { width: 80%; max-width: 110px; height: 80%; min-height: 0; text-align: center; font: inherit; font-size: .9em; padding: 0 4px; }
+.kpi-table td.man-missing { background: color-mix(in srgb, var(--accent) 14%, transparent); box-shadow: inset 0 0 0 1px var(--accent); }
+.kpi-table td.man-missing:empty::after { content: '?'; color: var(--accent); }
+.man-input { width: 80%; max-width: 110px; height: 80%; min-height: 0; text-align: center; font: inherit; font-size: 1em; padding: 0 4px; }
 .man-log-btn { float: right; min-height: 28px; padding: 0 12px; font-size: 12px; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); text-transform: none; letter-spacing: 0; }
 .man-log { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 12px; }
 .man-log th { text-align: left; padding: 4px 6px; }
@@ -44,7 +44,7 @@
 .cm-ts { margin-left: auto; color: var(--fg-secondary); font-size: 11px; }
 .cm-badge { padding: 0 8px; border-radius: 9px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
 .cm-badge.oto { background: color-mix(in srgb, var(--ok) 20%, transparent); color: var(--ok); }
-.cm-badge.req { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+.cm-badge.req { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
 .cm-text { font-size: 13px; margin: 4px 0; word-break: break-word; }
 .cm-men { color: var(--accent); font-weight: 600; }
 .cm-del { font-size: 12px; font-style: italic; color: var(--fg-secondary); }
@@ -80,14 +80,14 @@
 .dt-cmt-btn:hover { text-decoration: underline; filter: none; }
 .dt-row > .dt-comments { grid-column: 1 / -1; margin: 2px 0 6px 12px; padding: 6px 0 0 12px; border-top: 0; border-left: 2px solid var(--line); }
 .dt-row .dt-note { grid-column: 1 / -1; text-align: left; }
-.dt-row .dt-note.need { box-shadow: inset 0 0 0 1px var(--warn); }
+.dt-row .dt-note.need { box-shadow: inset 0 0 0 1px var(--danger); }
 .dt-row .cm-title { margin-bottom: 4px; }
 .dt-row .cm-form textarea { min-height: 40px; }
 .cm-add { min-height: 26px; padding: 0 10px; font-size: 12px; background: transparent !important; color: var(--accent); box-shadow: inset 0 0 0 1px var(--line); }
 .cm-add:hover { background: var(--hover) !important; filter: none; }
 .dt-who { display: flex; flex-direction: column; gap: 1px; }
 .dt-who b { font-weight: 600; color: var(--fg-primary); }
-.dt-lock { grid-column: 1 / -1; font-size: 11px; color: var(--warn); margin: 0 0 2px 2px; }
+.dt-lock { grid-column: 1 / -1; font-size: 11px; color: var(--danger); margin: 0 0 2px 2px; }
 .dt-go { margin-left: 6px; font-weight: 700; opacity: .55; transition: transform .12s, opacity .12s; }
 .dt-btn { cursor: pointer; }
 .dt-btn:hover { text-decoration: underline; }
@@ -104,25 +104,31 @@
 .bp-table input:disabled { opacity: .4; }
 
 /* Андон: колонка «Причина» рядом с простоем */
-.kpi-table td.why { text-align: left; font-size: clamp(11px, min(2vh, 1.2vw), 26px); line-height: 1.2; overflow: hidden; }
-.kpi-table td.why > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kpi-table td.why { text-align: left; font-size: var(--fs-small); line-height: 1.2; overflow: hidden; }
+.kpi-table td.why > span, .kpi-table td.why .why-col > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kpi-table td.why .why-cols { display: flex; align-items: center; gap: 22px; overflow: hidden; }
+.kpi-table td.why .why-col { flex: 0 1 auto; min-width: 0; max-width: 48%; }
+.kpi-table td.why .why-col[hidden] { display: none; }
+.kpi-table td.why .why-cols > .why-more { flex: none; }
 .kpi-table td.why .why-main { font-weight: 600; color: var(--fg-primary); }
-.kpi-table td.why .why-more { display: inline-block; margin-top: 2px; padding: 0 7px; border-radius: 9px; font-size: .8em; font-weight: 700; color: var(--fg-primary); background: color-mix(in srgb, var(--fg-secondary) 24%, transparent); }
-.kpi-table td.why .why-none { color: var(--fg-secondary); font-size: .85em; }
+.kpi-table td.why .why-by { font-weight: 400; color: var(--fg-secondary); white-space: nowrap; }
+.kpi-table td.why .why-re { color: var(--fg-secondary); font-weight: 700; margin-right: 2px; }
+.kpi-table td.why .why-more { display: inline-block; margin-top: 2px; padding: 0 7px; border-radius: 9px; font-weight: 700; color: var(--fg-primary); background: color-mix(in srgb, var(--fg-secondary) 24%, transparent); }
+.kpi-table td.why .why-none { color: var(--fg-secondary); }
 .kpi-table th:last-child { text-align: left; }
 .kpi-table td.why .why-row { display: flex; align-items: center; gap: 6px; }
 .kpi-table td.why .why-row .why-main { display: block; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kpi-table td.why .why-row .why-more { flex: none; margin-top: 0; }
-.kpi-table td.why .why-note { color: var(--fg-secondary); font-size: .88em; font-style: italic; }
-.kpi-table td.why .why-more { display: inline-block; margin: 0 0 0 6px; padding: 0 7px; border-radius: 9px; font-size: .85em; font-style: normal; font-weight: 700; color: var(--fg-primary); background: color-mix(in srgb, var(--fg-secondary) 24%, transparent); }
+.kpi-table td.why .why-note { color: var(--fg-secondary); font-style: italic; }
+.kpi-table td.why .why-more { display: inline-block; margin: 0 0 0 6px; padding: 0 7px; border-radius: 9px; font-style: normal; font-weight: 700; color: var(--fg-primary); background: color-mix(in srgb, var(--fg-secondary) 24%, transparent); }
 
 /* Индикатор производства рядом с брендом: идёт работа, перерыв или обед */
-.andon-state { display: inline-block; vertical-align: middle; margin-left: 4px; padding: 3px 12px; border-radius: 12px; font: 700 clamp(11px, 1.9vh, 22px) 'Segoe UI', sans-serif; white-space: nowrap; letter-spacing: 0; }
+.andon-state { display: inline-block; vertical-align: middle; margin-left: 4px; padding: 3px 12px; border-radius: 12px; font: 700 var(--fs-small) 'Segoe UI', sans-serif; white-space: nowrap; letter-spacing: 0; }
 .andon-state[hidden] { display: none; }
 .andon-state.work { background: color-mix(in srgb, var(--ok) 20%, transparent); color: var(--ok); box-shadow: inset 3px 0 0 var(--ok); }
-.andon-state.break { background: color-mix(in srgb, var(--warn) 22%, transparent); color: var(--warn); }
+.andon-state.break { background: var(--bg-tertiary); color: var(--fg-secondary); box-shadow: inset 3px 0 0 var(--line); }
 .andon-state.off { background: var(--bg-tertiary); color: var(--fg-secondary); box-shadow: inset 3px 0 0 var(--line); }
-.tile.paused b { color: var(--warn); }
+.tile.paused b { color: var(--fg-secondary); }
 
 /* Узкое окно: кнопка простоя не выходит за колонку, у причины есть отступ слева */
 .kpi-table td.dt { padding-left: 4px; padding-right: 4px; overflow: hidden; }
@@ -132,17 +138,17 @@
   .kpi-table td.dt .dt-btn { padding: 0 .4em; }
   .kpi-table td.dt .dt-go, .kpi-table td.dt .dt-cm { display: none; }
 }
-.kpi-table td.why .why-comment { color: var(--fg-secondary); font-size: .9em; }
+.kpi-table td.why .why-comment { color: var(--fg-secondary); }
 .kpi-table td.why .why-who { color: var(--fg-primary); font-weight: 700; }
 
 /* Навигация по дням и выгрузка в Excel в верхней строке Andon */
 .andon-day { display: flex; align-items: center; gap: 4px; }
 .andon-day[hidden] { display: none; }
-.andon-day button { min-height: 32px; padding: 0 10px; font-size: 12px; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); white-space: nowrap; }
+.andon-day button { min-height: 32px; padding: 0 10px; font-size: var(--fs-small); background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); white-space: nowrap; }
 .andon-day button:disabled { opacity: .35; cursor: default; }
-.andon-day input[type="date"] { min-height: 32px; padding: 0 6px; font-size: 12px; width: 128px; }
+.andon-day input[type="date"] { min-height: 32px; padding: 0 6px; font-size: var(--fs-small); width: 140px; }
 body.andon-archive .kpi-table .plan-cell { pointer-events: none; }
-body.andon-archive .andon-day input[type="date"] { box-shadow: inset 0 0 0 1px var(--warn); }
+body.andon-archive .andon-day input[type="date"] { box-shadow: inset 0 0 0 1px var(--accent); }
 /* надпись кнопки простоя не крупнее, чем помещается в её колонку (около 10% ширины окна) */
 .kpi-table td.dt .dt-btn { font-size: 1em; }
 
@@ -181,21 +187,22 @@ body.andon-archive .andon-day input[type="date"] { box-shadow: inset 0 0 0 1px v
 
 /* Вкладка «Графики» */
 .ch-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 12px; }
-.ch-bar label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--fg-secondary); }
-.ch-bar select, .ch-bar input[type="date"] { min-height: 32px; font-size: 13px; }
+.ch-bar label { display: flex; align-items: center; gap: 6px; font-size: var(--fs-small); color: var(--fg-secondary); }
+#charts button, #charts select, #charts input { font-size: var(--fs-small); }
+.ch-bar select, .ch-bar input[type="date"] { min-height: 32px; }
 .ch-presets { display: flex; gap: 6px; flex-wrap: wrap; }
 .ch-tiles { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
 .ch-tile { min-width: 120px; padding: 8px 14px; background: var(--bg-primary); border-radius: 6px; box-shadow: var(--shadow-out); }
-.ch-tile span { display: block; font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-secondary); }
-.ch-tile b { display: block; margin-top: 2px; font-size: 22px; font-variant-numeric: tabular-nums; }
+.ch-tile span { display: block; font-size: var(--fs-small); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-secondary); }
+.ch-tile b { display: block; margin-top: 2px; font-size: var(--fs-title); font-variant-numeric: tabular-nums; }
 .ch-tile.ch-ok b { color: var(--ok); }
 .ch-tile.ch-bad b { color: color-mix(in srgb, var(--danger) 72%, var(--fg-primary)); }
 .ch-grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); gap: 12px; }
 .ch-card { min-width: 0; padding: 10px 12px; background: var(--bg-primary); border-radius: 6px; box-shadow: var(--shadow-out); }
 .ch-card header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
-.ch-card h3 { margin: 0; font-size: 14px; font-weight: 700; }
-.ch-xl { min-height: 28px; padding: 0 12px; font-size: 12px; white-space: nowrap; }
-.ch-legend { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 12px; color: var(--fg-secondary); }
+.ch-card h3 { margin: 0; font-size: var(--fs-large); font-weight: 700; }
+.ch-xl { min-height: 28px; padding: 0 12px; white-space: nowrap; }
+.ch-legend { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: var(--fs-small); color: var(--fg-secondary); }
 .ch-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-left: 10px; }
 .ch-legend i:first-child { margin-left: 0; }
 .ch-l-plan { background: color-mix(in srgb, var(--fg-secondary) 55%, transparent); }
@@ -204,8 +211,8 @@ body.andon-archive .andon-day input[type="date"] { box-shadow: inset 0 0 0 1px v
 .ch-body { min-height: 60px; }
 .ch-svg { display: block; max-width: 100%; }
 .ch-svg .ch-grid { stroke: var(--line); stroke-width: 1; }
-.ch-svg .ch-tick { fill: var(--fg-secondary); font: 11px 'Segoe UI', Roboto, Arial, sans-serif; }
-.ch-svg .ch-val { fill: var(--fg-primary); font: 600 11px 'Segoe UI', Roboto, Arial, sans-serif; }
+.ch-svg .ch-tick { fill: var(--fg-secondary); font: var(--fs-small) 'Segoe UI', Roboto, Arial, sans-serif; }
+.ch-svg .ch-val { fill: var(--fg-primary); font: 600 var(--fs-small) 'Segoe UI', Roboto, Arial, sans-serif; }
 .ch-svg .ch-plan { fill: color-mix(in srgb, var(--fg-secondary) 55%, transparent); }
 .ch-svg .ch-fact { fill: var(--accent); }
 .ch-svg .ch-down { fill: color-mix(in srgb, var(--danger) 70%, transparent); }
@@ -215,9 +222,25 @@ body.andon-archive .andon-day input[type="date"] { box-shadow: inset 0 0 0 1px v
 .ch-svg .ch-dot-b { stroke: var(--fg-secondary); }
 .ch-svg .ch-hit { fill: transparent; }
 .ch-svg .ch-hit:hover { fill: color-mix(in srgb, var(--fg-primary) 6%, transparent); }
-.ch-empty { padding: 28px 8px; text-align: center; font-size: 13px; color: var(--fg-secondary); }
+.ch-empty { padding: 28px 8px; text-align: center; font-size: var(--fs-small); color: var(--fg-secondary); }
 
 /* Вкладка «Отчёты» */
-.rep-pane { max-width: 1000px; }
-.rep-pane .hint { margin: 0 0 12px; font-size: 12px; color: var(--fg-secondary); }
+.rep-pane { max-width: none; }
+.rep-pane .hint { margin: 0 0 12px; font-size: var(--fs-small); color: var(--fg-secondary); }
 .rep-actions { display: flex; justify-content: flex-end; }
+
+/* Таблица с ручной шириной столбцов (пиксели): длинный текст в ячейках обрезается многоточием */
+.col-px td { overflow: hidden; text-overflow: ellipsis; }
+.col-px td.dl-note { white-space: normal; text-overflow: clip; }
+
+/* Вкладка «Отчёты» */
+.rep-prev-file { font-size: var(--fs-small); color: var(--fg-secondary); }
+.rep-table-card { margin-top: 12px; }
+.rep-prev-table { max-height: 46vh; overflow: auto; }
+.rep-prev-t { width: max-content; min-width: 100%; }
+.rep-prev-t th, .rep-prev-t td { white-space: nowrap; padding: 5px 10px; font-size: var(--fs-small); text-align: center; }
+.rep-prev-t th { position: sticky; top: 0; background: var(--bg-secondary); }
+.rep-auto { margin-top: 16px; padding: 10px 14px; background: var(--bg-primary); border-radius: 6px; box-shadow: var(--shadow-out); }
+.rep-auto summary { cursor: pointer; font-size: var(--fs-large); font-weight: 700; }
+.rep-auto .hint { margin: 8px 0 10px; }
+.ch-presets .dt-sec.on, .dt-sec.on { box-shadow: inset 0 0 0 1px var(--accent) !important; color: var(--accent); }

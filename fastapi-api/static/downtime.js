@@ -82,6 +82,29 @@
     if (!dict) loadDict().then(() => window.dtApply(screen, root)).catch(() => {});
   };
 
+  // Подгонка по ширине: показываем столько колонок-причин, сколько помещается; остальные прячем и пишем «+N»
+  function fitWhy(td) {
+    const box = td.querySelector('.why-cols');
+    if (!box) return;
+    box.querySelectorAll('.why-more').forEach(e => e.remove());
+    const cols = [...box.querySelectorAll('.why-col')];
+    cols.forEach(c => { c.hidden = false; });
+    const fits = () => cols.every(c => c.hidden || c.offsetLeft + c.offsetWidth <= box.clientWidth + 1);
+    if (fits()) return;
+    const items = cols.filter(c => !c.classList.contains('why-left'));
+    const more = document.createElement('span');
+    more.className = 'why-more';
+    box.appendChild(more);
+    let hiddenN = 0;
+    for (let i = cols.length - 1; i >= 0 && !fits(); i--) {
+      cols[i].hidden = true;
+      if (items.includes(cols[i])) hiddenN++;
+      more.textContent = hiddenN ? `+${hiddenN}` : '';
+    }
+    if (!hiddenN) more.remove();
+  }
+  window.addEventListener('resize', () => document.querySelectorAll('td.why').forEach(fitWhy));
+
   // Колонка «Причина»: до трёх строк (причина, описание, следующая причина...), остальное сворачивается в «+N»
   function fillWhy(tr, d) {
     const td = tr.querySelector('[data-k="why"]');
@@ -101,27 +124,27 @@
           return { place: (st && st.name) || (area && area.name) || '', reason, min: it.minutes };
         };
         // причины по убыванию минут; у каждой строка «станция · причина» (минуты, если причин несколько) и под ней описание
-        const all = its.map(it => ({ ...name(it), note: (it.note || '').trim(), comment: it.last_comment || null })).sort((a, b) => b.min - a.min);
+        const all = its.map(it => ({ ...name(it), note: (it.note || '').trim(), comment: it.last_comment || null, who: it.author || '' })).sort((a, b) => b.min - a.min);
         const left = Math.max(0, d.minutes - d.described);
         // при малом числе интервалов строки высокие и помещается четыре строки текста, иначе три
-        const MAX_LINES = tr.parentElement.children.length <= 10 ? 4 : 3;
-        const lines = [];
-        let shown = 0;
+        const rowsN = [...tr.parentElement.children].filter(x => !x.hidden).length;   // скрытые (неактивные) интервалы не считаются
+        const MAX_LINES = rowsN <= 8 ? 4 : rowsN <= 11 ? 3 : 2;
+        // каждая причина занимает свою колонку (до MAX_LINES строк); колонки идут слева направо, что не поместилось по ширине, скрывается в «+N»
+        const cols = [];
         for (const x of all) {
-          if (lines.length >= MAX_LINES) break;
-          lines.push({ c: 'why-main', t: `${x.place ? x.place + ' · ' : ''}${x.reason}${all.length > 1 ? ' · ' + fmt(x.min) + ' мин' : ''}` });
-          shown++;
+          const lines = [];
+          lines.push({ c: 'why-main', h:`${esc(`${x.place ? x.place + ' · ' : ''}${x.reason}${all.length > 1 ? ' · ' + fmt(x.min) + ' мин' : ''}`)}${x.who ? ` <span class="why-by" title="Кто описал причину простоя: фамилия и должность">· ${esc(x.who)}</span>` : ''}` });
           if (x.note && lines.length < MAX_LINES) lines.push({ c: 'why-note', t: x.note });
-          if (x.comment && lines.length < MAX_LINES) lines.push({ c: 'why-comment', h: `💬 <b class="why-who">${esc(x.comment.user_name)}</b>: ${esc(x.comment.text)}` });
+          if (x.comment && lines.length < MAX_LINES) lines.push({ c: 'why-comment', h: `<span class="why-re" title="Ответ или дополнение к описанию выше">↳</span> ${x.comment.is_oto ? '<span class="cm-badge oto" title="Комментарий оставил сотрудник ОТО">ОТО</span> ' : ''}${esc(x.comment.text)}${x.comment.author ? ` <span class="why-by" title="Кто написал комментарий: фамилия и должность">· ${esc(x.comment.author)}</span>` : ''}` });
+          cols.push(`<div class="why-col">${lines.map(l => `<span class="${l.c}">${l.h || esc(l.t)}</span>`).join('')}</div>`);
         }
-        if (left > 0.5 && lines.length < MAX_LINES) lines.push({ c: 'why-none', t: `не описано ${fmt(left)} мин` });
-        const hidden = all.length - shown;
-        html = lines.map((l, i) => `<span class="${l.c}">${l.h || esc(l.t)}${i === lines.length - 1 && hidden > 0 ? ` <span class="why-more">+${hidden}</span>` : ''}</span>`).join('');
-        title = all.map(x => `${x.place ? x.place + ' · ' : ''}${x.reason}: ${fmt(x.min)} мин${x.note ? ' — ' + x.note : ''}${x.comment ? `\n   💬 ${x.comment.user_name}: ${x.comment.text}` : ''}`).join('\n')
+        if (left > 0.5) cols.push(`<div class="why-col why-left"><span class="why-none">не описано ${fmt(left)} мин</span></div>`);
+        html = `<div class="why-cols">${cols.join('')}</div>`;
+        title = all.map(x => `${x.place ? x.place + ' · ' : ''}${x.reason}: ${fmt(x.min)} мин${x.who ? ' (' + x.who + ')' : ''}${x.note ? ' — ' + x.note : ''}${x.comment ? `\n   ${x.comment.is_oto ? 'ОТО: ' : ''}${x.comment.text}${x.comment.author ? ' (' + x.comment.author + ')' : ''}` : ''}`).join('\n')
           + (left > 0.5 ? `\nНе описано ${fmt(left)} мин` : '');
       }
     }
-    if (td.dataset.sig !== html) { td.innerHTML = html; td.dataset.sig = html; }
+    if (td.dataset.sig !== html) { td.innerHTML = html; td.dataset.sig = html; fitWhy(td); }
     td.title = title;
   }
 
@@ -233,13 +256,15 @@
         const meU = (window.authState && window.authState().user) || null;
         const mine = !r.id || (!!meU && (r.created_by === meU.id || ['admin', 'chief', 'area_head'].includes(meU.role)));
         const canRow = editable && mine;
+        // удалить строку может только её автор или администратор (удалённое сохраняется в журнале)
+        const canDel = editable && (!r.id || (!!meU && (r.created_by === meU.id || meU.role === 'admin')));
         const ro = canRow ? '' : ' disabled';
         row.innerHTML = `
           ${single ? '' : `<select data-f="area"${ro} title="Участок, где произошёл простой. Если участок определить нельзя, оставьте пустым — обязательна только причина">${opt(areas.filter(a => a.is_active || a.id === r.area_id), r.area_id, 'Участок…')}</select>`}
           <select data-f="station"${ro} title="Станция (пост), на которой был простой. Список зависит от выбранного участка">${opt(single ? areas[0].stations.filter(s => s.is_active || s.id === r.station_id) : stations, r.station_id, 'Станция…')}</select>
           <select data-f="reason"${ro} title="Причина простоя — обязательное поле. Если подходящей нет, выберите «Другое» и опишите текстом">${opt(reasons, r.reason_id, 'Причина…')}</select>
           <input data-f="minutes" type="number" min="0.1" max="999" step="0.1" value="${r.minutes ?? ''}"${ro} title="Сколько минут из общего простоя приходится на эту причину">
-          ${canRow ? `<button type="button" data-f="del" class="dt-x" title="Убрать эту строку из описания простоя">✕</button>` : '<span></span>'}
+          ${canDel ? `<button type="button" data-f="del" class="dt-x" title="Удалить эту строку описания простоя: удалить может только автор или администратор, запись остаётся в журнале">Удалить</button>` : '<span></span>'}
           ${canRow || r.note ? `<input data-f="note" class="dt-note${needNote && !(r.note || '').trim() ? ' need' : ''}" maxlength="500" value="${esc(r.note)}" placeholder="${needNote ? 'Опишите, что произошло (обязательно для «Другое»)' : 'Описание: что произошло (необязательно)'}"${ro} title="Свободное описание: что именно произошло. Для причины или станции «Другое» заполнять обязательно">` : ''}
           ${r.id
             ? `<div class="dt-meta"><div class="dt-who">${authorLine(r)}</div></div>${editable && !mine ? `<div class="dt-lock" title="Строку описания меняет только тот, кто её внёс (и администратор с начальниками)">🔒 Строку описал(а) ${esc(r.created_by_name)}: изменить её может только автор, остальные могут комментировать</div>` : ''}`
@@ -254,6 +279,8 @@
         on('reason', 'change', e => { r.reason_id = e.target.value ? Number(e.target.value) : null; render(); });
         on('minutes', 'input', e => { r.minutes = e.target.value === '' ? null : Number(e.target.value); updateSum(); });
         on('note', 'input', e => { r.note = e.target.value; });
+        const noteEl = row.querySelector('[data-f="note"]');   // @ в описании: подсказка коллег, отмеченные получают уведомление
+        if (noteEl && window.dtComments && window.dtComments.attachMentions) { r._men = r._men || new Map(); r._ids = window.dtComments.attachMentions(noteEl, r._men); }
         on('del', 'click', () => { threads.delete(r.id); rows.splice(n, 1); render(); });
         if (r.id) {
           // комментарии строки всегда раскрыты: ответ сразу виден
@@ -294,10 +321,14 @@
       try {
         const resp = await fetch(`/api/kpi/downtimes/${d.id}/items`, {
           method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items: rows.map(r => ({ id: r.id, area_id: r.area_id, station_id: r.station_id, reason_id: r.reason_id, minutes: Number(r.minutes), note: r.note || '' })) }),
+          body: JSON.stringify({ items: rows.map(r => ({ id: r.id, area_id: r.area_id, station_id: r.station_id, reason_id: r.reason_id, minutes: Number(r.minutes), note: r.note || '', mentions: r._ids ? r._ids() : [] })) }),
         });
         const data = await resp.json().catch(() => ({}));
         if (!resp.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Проверьте заполнение строк');
+        // набранные, но не отправленные комментарии уходят вместе с сохранением
+        for (const el of threads.values()) {
+          if (el._flushDraft && !(await el._flushDraft())) throw new Error('Описание сохранено, но комментарий не отправлен: проверьте текст');
+        }
         close();
         toast('Описание простоя сохранено');
         await refreshTable();

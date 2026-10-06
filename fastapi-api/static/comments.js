@@ -10,7 +10,7 @@
   const toast = t => (typeof showToast === 'function' ? showToast(t) : alert(t));
   const me = () => { const st = window.authState && window.authState(); return st && st.user ? st.user : null; };
   const canWrite = () => { const u = me(); return !!u && u.role !== 'viewer'; };
-  const canOto = () => { const u = me(); return !!u && (OTO_ROLES.includes(u.role) || u.department === 'oto'); };
+  const canOto = () => { const u = me(); return !!u && u.department === 'oto'; };   // автор из категории ОТО: его комментарии помечаются «ОТО» автоматически
 
   async function call(method, url, body) {
     try {
@@ -55,7 +55,7 @@
       close(); ta.focus();
     };
     const draw = () => {
-      pop.innerHTML = items.map((p, i) => `<button type="button" class="cm-opt${i === sel ? ' sel' : ''}" data-i="${i}" title="Отметить ${esc(p.name)}: он получит уведомление"><b>${esc(p.name)}</b><small>${esc([p.department_name, p.role_name].filter(Boolean).join(' · '))}</small></button>`).join('');
+      pop.innerHTML = items.map((p, i) => `<button type="button" class="cm-opt${i === sel ? ' sel' : ''}" data-i="${i}" title="Отметить ${esc(p.name)}: он получит уведомление"><b>${esc(p.name)}</b><small>${esc([p.login, p.department_name, p.role_name].filter(Boolean).join(" · "))}</small></button>`).join('');
       pop.querySelectorAll('.cm-opt').forEach(b => b.addEventListener('mousedown', e => { e.preventDefault(); choose(items[Number(b.dataset.i)]); }));
       pop.hidden = !items.length;
     };
@@ -65,7 +65,7 @@
       if (!m) { close(); return; }
       const q = m[1].toLowerCase();
       const list = await loadPeople();
-      items = list.filter(p => p.name.toLowerCase().includes(q)).slice(0, 8);
+      items = list.filter(p => p.name.toLowerCase().includes(q) || (p.login || '').toLowerCase().includes(q)).slice(0, 8);
       sel = 0;
       range = { start: caret - m[1].length - 1, end: caret };
       draw();
@@ -95,6 +95,7 @@
     box.innerHTML = '<div class="cm-title">Комментарии</div><div class="cm-list"></div><div class="cm-new"></div>';
     const listEl = box.querySelector('.cm-list'), newEl = box.querySelector('.cm-new'), titleEl = box.querySelector('.cm-title');
     let mainComposer = null, composerOpen = false;
+    box._flushDraft = async () => (mainComposer && mainComposer._flush ? mainComposer._flush() : true);   // «Сохранить» окна простоя отправляет и набранный комментарий
 
     async function reload() {
       const r = await call('GET', `/api/kpi/items/${itemId}/comments`);
@@ -109,14 +110,13 @@
       wrap.className = 'cm-form';
       const user = me();
       const isEdit = !!edit;
+      const isNew = !isEdit && !parentId;   // новый комментарий уходит вместе с кнопкой «Сохранить» окна простоя
       wrap.innerHTML = `
         <textarea rows="2" maxlength="2000" placeholder="${isEdit ? 'Изменить комментарий' : parentId ? 'Ваш ответ…' : 'Напишите комментарий. Чтобы отметить коллегу, введите @ и начало фамилии'}" title="Текст комментария. Введите @ и первые буквы фамилии, чтобы отметить коллегу: он получит уведомление"></textarea>
         <div class="cm-bar">
-          ${!isEdit && !(canOto()) ? '<label class="cm-chk" title="Коллеги из ОТО получат уведомление и смогут оставить комментарий по оборудованию"><input type="checkbox" data-f="req"> Запросить ОТО</label>' : ''}
-          ${!isEdit && canOto() ? '<label class="cm-chk" title="Отметить комментарий как ответ ОТО: он будет выделен для остальных"><input type="checkbox" data-f="oto"> Комментарий ОТО</label>' : ''}
           <span style="flex:1"></span>
-          ${parentId || isEdit || cancellable ? '<button type="button" data-a="cancel" class="dt-sec" title="Отменить и закрыть поле ввода">Отмена</button>' : ''}
-          <button type="button" data-a="send" title="${isEdit ? 'Сохранить изменённый комментарий' : 'Отправить комментарий: отмеченные коллеги получат уведомление'}">${isEdit ? 'Сохранить' : parentId ? 'Ответить' : 'Отправить'}</button>
+          ${parentId || isEdit ? '<button type="button" data-a="cancel" class="dt-sec" title="Отменить и закрыть поле ввода">Отмена</button>' : ''}
+          ${isNew ? '' : `<button type="button" data-a="send" title="${isEdit ? 'Сохранить изменённый комментарий' : 'Отправить комментарий: отмеченные коллеги получат уведомление'}">${isEdit ? 'Сохранить' : parentId ? 'Ответить' : 'Отправить'}</button>`}
         </div>
         <div class="auth-err" hidden></div>`;
       const ta = wrap.querySelector('textarea');
@@ -130,22 +130,24 @@
       const err = wrap.querySelector('.auth-err');
       const cancel = wrap.querySelector('[data-a="cancel"]');
       if (cancel) cancel.addEventListener('click', () => onDone && onDone(false));
-      wrap.querySelector('[data-a="send"]').addEventListener('click', async e => {
+      const send = async btn => {
         const text = ta.value.trim();
-        if (!text) { err.textContent = 'Введите текст комментария'; err.hidden = false; return; }
-        e.target.disabled = true; err.hidden = true;
+        if (!text) { err.textContent = 'Введите текст комментария'; err.hidden = false; return false; }
+        if (btn) btn.disabled = true;
+        err.hidden = true;
         const r = isEdit
           ? await call('PUT', `/api/kpi/comments/${edit.id}`, { text, mentions: ids() })
-          : await call('POST', `/api/kpi/items/${itemId}/comments`, {
-            text, parent_id: parentId, mentions: ids(),
-            is_oto: !!(wrap.querySelector('[data-f="oto"]') || {}).checked,
-            oto_request: !!(wrap.querySelector('[data-f="req"]') || {}).checked,
-          });
-        if (!r.ok) { err.textContent = errText(r); err.hidden = false; e.target.disabled = false; return; }
+          : await call('POST', `/api/kpi/items/${itemId}/comments`, { text, parent_id: parentId, mentions: ids() });
+        if (!r.ok) { err.textContent = errText(r); err.hidden = false; if (btn) btn.disabled = false; return false; }
         if (onDone) onDone(true);
-        ta.value = ''; picked.clear(); e.target.disabled = false;   // основное поле остаётся на месте для следующего комментария
+        ta.value = ''; picked.clear(); if (btn) btn.disabled = false;   // основное поле остаётся на месте для следующего комментария
         await changed();
-      });
+        return true;
+      };
+      const sendBtn = wrap.querySelector('[data-a="send"]');
+      if (sendBtn) sendBtn.addEventListener('click', e => send(e.currentTarget));
+      // новый комментарий: черновик отправляется вместе с «Сохранить» окна простоя; пустой поле пропускается
+      wrap._flush = async () => (ta.value.trim() ? send(null) : true);
       return wrap;
     }
 
@@ -167,7 +169,7 @@
           <div class="cm-acts">
             ${canWrite() ? '<button type="button" data-a="reply" title="Ответить на этот комментарий: автор получит уведомление">Ответить</button>' : ''}
             ${mine ? '<button type="button" data-a="edit" title="Изменить свой комментарий">Изменить</button>' : ''}
-            ${(mine || (u && MODERATORS.includes(u.role))) && canWrite() ? '<button type="button" data-a="del" title="Удалить комментарий (ответы на него сохранятся)">Удалить</button>' : ''}
+            ${(mine || (u && u.role === 'admin')) && canWrite() ? '<button type="button" data-a="del" title="Удалить комментарий (ответы на него сохранятся)">Удалить</button>' : ''}
           </div>
           <div class="cm-slot"></div>`;
         const slot = el.querySelector('.cm-slot');
@@ -218,7 +220,7 @@
     }, 10000);
     reload();
   }
-  window.dtComments = { mount };
+  window.dtComments = { mount, attachMentions };
 
   // ---------- колокольчик уведомлений ----------
   const tools = document.querySelector('.tabs-tools');

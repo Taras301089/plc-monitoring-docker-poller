@@ -123,7 +123,7 @@ def _public(row: asyncpg.Record | dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def _start_session(pool: asyncpg.Pool, response: Response, user_id: int) -> None:
+async def _start_session(pool: asyncpg.Pool, response: Response, user_id: int) -> str:
     token = secrets.token_urlsafe(32)
     await pool.execute(
         "INSERT INTO app_sessions (token_hash, user_id, expires_at) VALUES ($1, $2, $3)",
@@ -135,11 +135,16 @@ async def _start_session(pool: asyncpg.Pool, response: Response, user_id: int) -
     response.set_cookie(
         COOKIE_NAME, token, max_age=SESSION_DAYS * 86400, httponly=True, samesite="lax", path="/"
     )
+    return token
 
 
 # ------------------------------------------------------------------ зависимости
+def _request_token(request: Request) -> str | None:
+    """Токен сессии: из cookie, а если браузер её не хранит (например, на телевизоре), из заголовка X-Auth-Token."""
+    return request.cookies.get(COOKIE_NAME) or request.headers.get("x-auth-token") or None
+
 async def current_user(request: Request, response: Response) -> dict[str, Any] | None:
-    token = request.cookies.get(COOKIE_NAME)
+    token = _request_token(request)
     if not token:
         return None
     pool: asyncpg.Pool = request.app.state.pool
@@ -348,13 +353,13 @@ async def auth_login(body: LoginBody, request: Request, response: Response) -> d
     if row["status"] == "pending":
         raise HTTPException(status_code=403, detail="Ваша заявка ещё не подтверждена администратором")
     await pool.execute("UPDATE app_users SET last_login_at = now() WHERE id = $1", row["id"])
-    await _start_session(pool, response, row["id"])
-    return {"user": _public(row)}
+    token = await _start_session(pool, response, row["id"])
+    return {"user": _public(row), "token": token}
 
 
 @router.post("/auth/logout")
 async def auth_logout(request: Request, response: Response) -> dict[str, str]:
-    token = request.cookies.get(COOKIE_NAME)
+    token = _request_token(request)
     if token:
         await request.app.state.pool.execute("DELETE FROM app_sessions WHERE token_hash = $1", _token_hash(token))
     response.delete_cookie(COOKIE_NAME, path="/")

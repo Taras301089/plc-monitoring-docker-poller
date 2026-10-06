@@ -65,7 +65,7 @@ async def save_day(pool: asyncpg.Pool, screen_id: int, day: date) -> tuple[Path 
     data, folder, fname, n = rep
     if n == 0:
         return None, 0
-    path = REPORTS_DIR / day.strftime("%Y-%m") / folder / fname
+    path = REPORTS_DIR / day.strftime("%Y-%m") / folder / f"Отчёт_{fname}"
     await asyncio.to_thread(_write_file, path, data)
     return path, n
 
@@ -79,7 +79,7 @@ async def save_month(pool: asyncpg.Pool, screen_id: int, year: int, month: int) 
     data, folder, _, days = rep
     if days == 0:
         return None
-    path = REPORTS_DIR / d1.strftime("%Y-%m") / folder / f"{folder}_месяц_{d1.strftime('%Y-%m')}.xlsx"
+    path = REPORTS_DIR / d1.strftime("%Y-%m") / folder / f"Отчёт_{folder}_месяц_{d1.strftime('%Y-%m')}.xlsx"
     await asyncio.to_thread(_write_file, path, data)
     return path
 

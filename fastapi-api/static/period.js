@@ -76,8 +76,8 @@
       const b = e.currentTarget;
       b.disabled = true;
       const url = from.value === to.value
-        ? `/api/kpi/screens/${id}/day.xlsx?date=${from.value}`
-        : `/api/kpi/screens/${id}/period.xlsx?from=${from.value}&to=${to.value}`;
+        ? `/api/kpi/screens/${id}/day.xlsx?date=${from.value}&src=andon`
+        : `/api/kpi/screens/${id}/period.xlsx?from=${from.value}&to=${to.value}&src=andon`;
       try { await window.xlsxDownload(url); close(); } catch (ex) { err.textContent = ex.message; err.hidden = false; b.disabled = false; }
     });
   });

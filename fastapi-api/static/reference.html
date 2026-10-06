@@ -98,7 +98,7 @@
     section { border: 0; border-radius: 6px; box-shadow: var(--shadow-out); }
     h2 { border-bottom: 1px solid var(--line); }
     h2::before { content: ''; }
-    .code-block { border-radius: 0 4px 4px 0; }
+    .code-block { border-radius: 0 4px 4px 0; white-space: pre-wrap; overflow-wrap: anywhere; }   /* команды в несколько строк остаются построчно */
     .folder-tree { border: 0; border-radius: 6px; box-shadow: inset 1px 1px 3px rgba(0,0,0,.35); }
     table th, table td { border: 0; border-bottom: 1px solid var(--line); }
     table th { color: var(--fg-tertiary); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
@@ -115,12 +115,13 @@
 </head>
 <body>
   <nav class="tabs">
-    <a class="tab" href="index.html#browser" title="Просмотр всех переменных ПЛК с возможностью поиска и фильтрации">📊 Переменные ПЛК</a>
-    <a class="tab" href="index.html#saved" title="Переменные сохранённые в базе данных для дальнейшего анализа и мониторинга">💾 Переменные БД</a>
-    <a class="tab" href="index.html#charts" title="Графики и визуализация исторических данных переменных">📈 Графики</a>
-    <a class="tab" href="index.html#notifications" title="Параметры подключения к ПЛК и настройки оповещений">🔔 Оповещения</a>
     <a class="tab" href="index.html#andon" title="Dashboard. Информационная панель Andon / KPI: почасовые счётчики кузовов, такт-тайм и показатели производства в реальном времени">📺 Andon / KPI <span class="tab-caret">▾</span></a>
+    <a class="tab" href="index.html#charts" title="Графики и визуализация исторических данных переменных">📈 Графики</a>
+    <a class="tab" href="index.html#reports" title="Отчёт дня по линии: график план/факт и таблица как в файле Excel, выбор периода и скачивание">📁 Отчёты</a>
     <a class="tab" href="index.html#downtimes" title="Все простои за период одним списком: по одной строке на каждую причину, с описаниями и комментариями">⏱ Простои</a>
+    <a class="tab" href="index.html#notifications" title="Параметры подключения к ПЛК и настройки оповещений">🔔 Оповещения</a>
+    <a class="tab" id="tab-browser" hidden href="index.html#browser" title="Просмотр всех переменных ПЛК с возможностью поиска и фильтрации">📊 Переменные ПЛК</a>
+    <a class="tab" id="tab-saved" hidden href="index.html#saved" title="Переменные сохранённые в базе данных для дальнейшего анализа и мониторинга">💾 Переменные БД</a>
     <a class="tab" id="tab-dictionary" hidden href="index.html#dictionary" title="Справочники простоев: причины, участки и станции для описания простоев (редактируют администратор и начальники)">📚 Справочники</a>
     <a class="tab" id="tab-users" hidden href="index.html#users" title="Пользователи системы: учётные записи, роли, кто в сети, входы и время работы">👥 Пользователи</a>
     <div class="tabs-divider"></div>
@@ -143,9 +144,7 @@ C:\plc-monitoring-docker-poller/
 ├── docker-compose.yml          ← Конфигурация всех контейнеров
 ├── init.sql                    ← Инициализация БД
 ├── CLAUDE.md                   ← Инструкции для разработки
-├── backups/                    ← SQL дампы БД (автоматически)
-│   ├── backup_2026-09-28.sql
-│   └── backup_2026-09-29.sql
+├── backup.ps1                  ← Бэкап баз данных в C:\plc-backups (запуск по расписанию)
 ├── pg_data/                    ← Данные PostgreSQL (том Docker)
 ├── n8n_data/                   ← Конфиги N8N (том Docker)
 ├── grafana_data/               ← Дашборды Grafana (том Docker)
@@ -157,8 +156,9 @@ C:\plc-monitoring-docker-poller/
 │   ├── manual.py               ← Экраны подсборок: ручной ввод плана и факта, журнал ввода
 │   ├── comments.py             ← Комментарии к простоям, упоминания @, уведомления
 │   ├── activity.py             ← Кто в сети и статистика входов (админ и начальники)
-│   ├── history.py              ← История экрана Andon по дням и отчёт дня в Excel (.xlsx) с графиком план/факт
+│   ├── history.py              ← История экрана Andon по дням и отчёт дня в Excel (.xlsx): плитки, график план/факт и таблица на одном листе
 │   ├── period.py               ← Отчёт по линии за период в Excel с графиками (доступен всем)
+│   ├── colwidths.py            ← Ширины столбцов таблиц на сервере: личные и общие (таблица ui_col_widths)
 │   ├── reports.py              ← Автосохранение отчётов дня в папку на ПК (настройки по линиям, фоновый цикл)
 │   ├── requirements.txt
 │   └── static/
@@ -172,10 +172,11 @@ C:\plc-monitoring-docker-poller/
 │       ├── manual.js           ← Таблица подсборок с вводом в ячейках и журналом
 │       ├── comments.js         ← Комментарии в панели простоя, подсказка по @, колокольчик
 │       ├── activity.js         ← Сигнал присутствия и окно статистики по дням (в «Пользователи»)
-│       ├── colwidths.js        ← Изменение ширины столбцов таблиц Andon перетаскиванием (запоминается в браузере)
+│       ├── colwidths.js        ← Изменение ширины столбцов таблиц перетаскиванием границы (хранится на сервере: личные и общие)
 │       ├── period.js           ← Кнопка «Excel» на Andon: выбор дня или периода и скачивание (всем)
 │       ├── charts.js           ← Вкладка «Графики»: графики за период (SVG) и выгрузка каждого в Excel
 │       ├── reports.js          ← Вкладка «Отчёты» (админ): автосохранение отчётов дня и месяца по линиям
+│       ├── authtabs.js         ← Перезагрузка вкладок «Пользователи», «Справочники», «Отчёты» после обновления страницы, когда стало известно, кто вошёл
 │       ├── plant-time.js       ← Часы Andon: время сервиса на ПК, не пояс браузера/телевизора
 │       └── reference.html      ← Эта справка
 └── python-async-poller/
@@ -229,159 +230,237 @@ C:\plc-monitoring-docker-poller/
 
     <!-- ========== СТРАТЕГИЯ БЭКАПА ========== -->
     <section>
-      <h2>💾 Стратегия бэкапа и восстановления</h2>
+      <h2>💾 Что хранится и как это сохранять</h2>
 
       <table>
         <tr>
-          <th>Компонент</th>
-          <th>Что бэкапировать</th>
-          <th>Где находится</th>
-          <th>Как бэкапировать</th>
+          <th>Что</th>
+          <th>Что внутри</th>
+          <th>Где лежит</th>
+          <th>Как сохранять и переносить</th>
         </tr>
         <tr>
-          <td><strong>✅ Исходный код</strong></td>
-          <td>Все файлы проекта</td>
-          <td>Git репозиторий</td>
-          <td><code>git commit</code> + <code>git push</code></td>
+          <td><strong>Исходный код</strong></td>
+          <td>Весь проект, справка, правила (CLAUDE.md)</td>
+          <td>Папка проекта и репозиторий Git</td>
+          <td><code>git commit</code> + <code>git push</code>; на новом ПК <code>git clone</code></td>
         </tr>
         <tr>
-          <td><strong>✅ PostgreSQL БД</strong></td>
-          <td>Теги, значения, конфиги</td>
-          <td>./pg_data/ (том)</td>
-          <td><code>pg_dump</code> → ./backups/*.sql</td>
+          <td><strong>База <code>general_data_hub_BD</code></strong></td>
+          <td>Пользователи и пароли, роли, сессии, ПЛК и теги, план и расписание, часовые данные, простои, комментарии, справочники, ширины столбцов, настройки отчётов, оповещения</td>
+          <td>PostgreSQL, папка <code>./pg_data/</code></td>
+          <td>Дамп <code>pg_dump -Fc</code> в файл <code>hub.dump</code> (не копировать папку <code>pg_data</code> на ходу)</td>
         </tr>
         <tr>
-          <td><strong>✅ N8N конфиги</strong></td>
-          <td>Workflows, credentials</td>
-          <td>./n8n_data/</td>
-          <td>Копировать всю папку</td>
+          <td><strong>База <code>n8n_db</code></strong></td>
+          <td>Данные N8N (если используется)</td>
+          <td>PostgreSQL, папка <code>./pg_data/</code></td>
+          <td>Дамп в файл <code>n8n.dump</code></td>
         </tr>
         <tr>
-          <td><strong>✅ Grafana дашборды</strong></td>
-          <td>Дашборды, datasources</td>
-          <td>./grafana_data/</td>
-          <td>Копировать всю папку</td>
+          <td><strong>Файл <code>python-async-poller/.env</code></strong></td>
+          <td>Параметры подключения опросника к базе</td>
+          <td>Не хранится в Git (в <code>.gitignore</code>)</td>
+          <td>Копировать вручную на новый ПК</td>
+        </tr>
+        <tr>
+          <td><strong>Отчёты Excel</strong></td>
+          <td>Автосохранённые отчёты дня и месяца</td>
+          <td><code>C:\Andon-Reports</code> (или папка из <code>REPORTS_HOST_DIR</code>)</td>
+          <td>Копировать папку целиком</td>
+        </tr>
+        <tr>
+          <td><strong>Grafana и N8N</strong></td>
+          <td>Дашборды, потоки</td>
+          <td><code>./grafana_data/</code>, <code>./n8n_data/</code></td>
+          <td>Остановить контейнер и скопировать папку</td>
         </tr>
         <tr class="warning">
-          <td><strong>❌ Логи контейнеров</strong></td>
-          <td>Служебные логи</td>
-          <td>Внутри контейнеров</td>
-          <td>Можно пересоздать (не критично)</td>
+          <td><strong>Логи контейнеров</strong></td>
+          <td>Служебные записи</td>
+          <td>Внутри Docker</td>
+          <td>Не переносятся, не критично</td>
         </tr>
       </table>
 
-      <h3>Автоматический бэкап</h3>
-      <p>База данных автоматически бэкапируется каждый день в папку <span class="highlight">./backups/</span></p>
-      <p>Это происходит благодаря скрипту в docker-compose.yml</p>
+      <h3>Регулярный бэкап</h3>
+      <p>Автоматического бэкапа в проекте <strong>нет</strong>: его нужно настроить. Рекомендуется ежедневно снимать дамп обеих баз в папку <span class="highlight">C:\plc-backups</span> (вне папки проекта) через «Планировщик заданий» Windows и раз в неделю копировать эту папку на другой диск или сетевую папку. Команды дампа даны в шаге 3 плана переноса ниже.</p>
     </section>
 
-    <!-- ========== РАЗВЁРТЫВАНИЕ НА НОВОМ ПК ========== -->
+    <!-- ========== ПЕРЕНОС НА ДРУГОЙ ПК ========== -->
     <section>
-      <h2>🚀 Развёртывание на другом ПК</h2>
+      <h2>🚀 Перенос на другой ПК (с базой, пользователями и настройками)</h2>
+      <p>Все команды запускаются в <strong>PowerShell</strong>. Проверено: дамп базы восстанавливается на чистом сервере без потерь (пользователи, простои, план, настройки, теги ПЛК совпали по числу строк).</p>
 
-      <h3>Требования</h3>
+      <h3>Требования к новому ПК</h3>
       <ul>
-        <li>Windows 11 Pro (с WSL2)</li>
-        <li>Docker Desktop установлен и запущен</li>
-        <li>Git установлен</li>
+        <li>Windows 11 Pro, Docker Desktop (WSL2) и Git установлены; Docker Desktop запускается при входе в систему</li>
+        <li><strong>Тот же сетевой доступ к ПЛК</strong>: адреса ПЛК (OPC UA) хранятся в базе и должны быть доступны с нового ПК</li>
+        <li>Постоянный (статический) IP-адрес, выключенный спящий режим, свободные порты 8000, 5432, 3000, 5678</li>
+        <li><strong>Местное время завода</strong> задаёт параметр <code>KPI_UTC_OFFSET_HOURS</code> в <code>docker-compose.yml</code>: на сколько часов местное время отличается от UTC (сейчас <code>5</code>, то есть UTC+5). Он определяет границы смен и суток (когда начинается новый день и интервалы), время на экранах Andon и время автосохранения отчётов. Часы самого ПК и пояс Windows на это не влияют. Если новый ПК стоит на том же заводе, ничего менять не нужно (значение переносится с кодом). Если пояс другой, измените число в обоих местах (<code>fastapi-api</code> и <code>plc-monitoring-docker-poller</code>) и перезапустите контейнеры</li>
       </ul>
 
-      <h3>Пошаговый план</h3>
+      <h3>Часть А. На старом ПК (подготовка)</h3>
 
       <div class="step">
         <div class="step-num">1</div>
         <div>
-          <strong>Клонировать репозиторий</strong>
-          <div class="code-block">git clone https://github.com/YOUR_USER/plc-monitoring-docker-poller.git C:\plc-monitoring-docker-poller</div>
+          <strong>Сохранить код в Git</strong>
+          <div class="code-block">cd C:\plc-monitoring-docker-poller
+git status
+git add -A
+git commit -m "Перед переносом на новый ПК"
+git push</div>
+          Без этого на новом ПК будет старая версия. Файл <code>.env</code> в Git не попадает (см. шаг 4).
         </div>
       </div>
 
       <div class="step">
         <div class="step-num">2</div>
         <div>
-          <strong>Перейти в папку проекта</strong>
-          <div class="code-block">cd C:\plc-monitoring-docker-poller</div>
+          <strong>Остановить запись данных</strong> (на время переноса, чтобы дамп был полным)
+          <div class="code-block">docker compose stop fastapi-api plc-monitoring-docker-poller</div>
+          Экраны Andon на это время недоступны: переносите в нерабочее время.
         </div>
       </div>
 
       <div class="step">
         <div class="step-num">3</div>
         <div>
-          <strong>Создать папку для бэкапов (если нужно восстановление)</strong>
-          <div class="code-block">mkdir backups</div>
-          <p><small>Если у вас есть старые бэкапы БД — скопируйте файлы *.sql в эту папку</small></p>
+          <strong>Снять дампы баз</strong>
+          <div class="code-block">mkdir C:\plc-backups
+docker exec postgres_db sh -c "pg_dump -U n8n_user -Fc general_data_hub_BD > /tmp/hub.dump"
+docker cp postgres_db:/tmp/hub.dump C:\plc-backups\hub.dump
+docker exec postgres_db sh -c "pg_dump -U n8n_user -Fc n8n_db > /tmp/n8n.dump"
+docker cp postgres_db:/tmp/n8n.dump C:\plc-backups\n8n.dump</div>
+          Проверьте, что <code>hub.dump</code> не пустой (около 3 МБ и более).
         </div>
       </div>
 
       <div class="step">
         <div class="step-num">4</div>
         <div>
-          <strong>Запустить все контейнеры</strong>
-          <div class="code-block">docker compose up -d</div>
-          <p><small>Подождите 30 сек, пока PostgreSQL инициализируется</small></p>
+          <strong>Собрать файлы для переноса</strong> в одну папку (флешка или сетевая папка):
+          <ul>
+            <li><code>C:\plc-backups\hub.dump</code> и <code>n8n.dump</code></li>
+            <li><code>C:\plc-monitoring-docker-poller\python-async-poller\.env</code></li>
+            <li>Папки <code>grafana_data</code> и <code>n8n_data</code> (если используются; перед копированием <code>docker compose stop grafana n8n</code>)</li>
+            <li>Папка отчётов <code>C:\Andon-Reports</code></li>
+          </ul>
         </div>
       </div>
+
+      <h3>Часть Б. На новом ПК</h3>
 
       <div class="step">
         <div class="step-num">5</div>
         <div>
-          <strong>Если нужно восстановить БД из бэкапа</strong>
-          <div class="code-block">docker exec plc-monitoring-docker-poller-postgres-1 psql -U postgres < backups/backup_ДАТА.sql</div>
-          <p><small>Замените ДАТА на актуальную дату файла бэкапа</small></p>
+          <strong>Получить код и разложить файлы</strong>
+          <div class="code-block">git clone &lt;адрес вашего репозитория&gt; C:\plc-monitoring-docker-poller
+cd C:\plc-monitoring-docker-poller
+copy &lt;флешка&gt;\.env python-async-poller\.env
+xcopy &lt;флешка&gt;\grafana_data grafana_data /E /I
+xcopy &lt;флешка&gt;\n8n_data n8n_data /E /I
+xcopy &lt;флешка&gt;\Andon-Reports C:\Andon-Reports /E /I</div>
+          Если диска C: для отчётов нет или нужен другой путь, создайте в корне проекта файл <code>.env</code> со строкой <code>REPORTS_HOST_DIR=D:/Andon-Reports</code>.
         </div>
       </div>
 
       <div class="step">
         <div class="step-num">6</div>
         <div>
-          <strong>Открыть веб-интерфейс</strong>
-          <div class="code-block">http://localhost:8000</div>
-          <p><small>Браузер переменных ПЛК будет доступен по этому адресу</small></p>
+          <strong>Запустить только базу данных</strong>
+          <div class="code-block">docker compose up -d postgres
+timeout /t 20</div>
+          На пустом томе PostgreSQL сам создаёт две пустые базы по <code>init.sql</code>.
         </div>
       </div>
 
-      <h3 class="success">✅ Проект развёрнут!</h3>
+      <div class="step">
+        <div class="step-num">7</div>
+        <div>
+          <strong>Восстановить данные</strong> (пересоздаём пустую базу и загружаем в неё дамп)
+          <div class="code-block">docker cp C:\plc-backups\hub.dump postgres_db:/tmp/hub.dump
+'DROP DATABASE "general_data_hub_BD" WITH (FORCE);' | docker exec -i postgres_db psql -U n8n_user -d postgres
+'CREATE DATABASE "general_data_hub_BD";' | docker exec -i postgres_db psql -U n8n_user -d postgres
+docker exec postgres_db pg_restore -U n8n_user -d general_data_hub_BD --no-owner /tmp/hub.dump</div>
+          Предупреждения «errors ignored on restore» безвредны (служебные права). Для N8N повторите то же с <code>n8n.dump</code> и базой <code>n8n_db</code>.
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">8</div>
+        <div>
+          <strong>Проверить, что данные на месте</strong>
+          <div class="code-block">docker exec postgres_db psql -U n8n_user -d general_data_hub_BD -c "select (select count(*) from app_users) users, (select count(*) from plcs) plcs, (select count(*) from kpi_hourly) hourly, (select count(*) from kpi_downtime_items) downtimes"</div>
+          Сравните числа с теми же запросом на старом ПК: они должны совпасть.
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">9</div>
+        <div>
+          <strong>Запустить всё остальное</strong>
+          <div class="code-block">docker compose up -d --build
+docker compose ps</div>
+          Все контейнеры должны быть в состоянии <code>running</code>. Недостающие таблицы приложение создаёт само при запуске.
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">10</div>
+        <div>
+          <strong>Открыть доступ по сети и проверить</strong>
+          <div class="code-block">New-NetFirewallRule -DisplayName "PLC Monitoring 8000" -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow</div>
+          <ul>
+            <li>Откройте <code>http://localhost:8000</code> и войдите под администратором (пароли переехали вместе с базой)</li>
+            <li>Andon: значок «● LIVE» и живые цифры (иначе нет связи с ПЛК, проверьте сеть и адреса во вкладке «Переменные ПЛК»)</li>
+            <li>Вкладки Графики, Отчёты, Простои, Пользователи: данные за прошлые дни на месте</li>
+            <li>Отчёты: «Сохранить сейчас» создаёт файл в папке отчётов</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Часть В. Переключение</h3>
+
+      <div class="step">
+        <div class="step-num">11</div>
+        <div>
+          <strong>Отключить старый ПК и переключить пользователей</strong>
+          <ul>
+            <li>На старом ПК <code>docker compose down</code>: две работающие системы одновременно не допускаются (обе пишут в ПЛК и сменные данные)</li>
+            <li>Старые данные и дампы храните минимум 2 недели</li>
+            <li>Новый адрес: <code>http://&lt;IP нового ПК&gt;:8000</code>. Обновите закладки и <strong>телевизоры</strong>: на каждом открыть новый адрес, один раз войти (<code>tv1</code>) и включить «Режим табло»: вход и выбранная линия запоминаются отдельно для каждого адреса</li>
+            <li>Все пользователи входят заново (сессии привязаны к адресу)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">12</div>
+        <div>
+          <strong>Настроить ежедневный бэкап на новом ПК</strong>
+          <div class="code-block">schtasks /Create /SC DAILY /ST 03:00 /TN "PLC backup" /TR "powershell -NoProfile -ExecutionPolicy Bypass -File C:\plc-monitoring-docker-poller\backup.ps1"</div>
+          Скрипт <code>backup.ps1</code> лежит в корне проекта: кладёт дампы обеих баз в <code>C:\plc-backups</code> и удаляет дампы старше 30 дней. Раз в неделю копируйте эту папку на другой диск или в сетевую папку.
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">✓</div>
+        <div>
+          <h3 class="success">Откат, если что-то пошло не так</h3>
+          Старый ПК остаётся нетронутым (шаг 2 лишь остановил контейнеры): выполните на нём <code>docker compose up -d</code>, а на новом <code>docker compose down</code>. Потеряются только данные, накопленные после остановки.
+        </div>
+      </div>
+
+      <h3>Безопасность после переноса</h3>
       <ul>
-        <li>Веб-интерфейс: http://localhost:8000</li>
-        <li>API: http://localhost:8000/api/</li>
-        <li>N8N (если включен): http://localhost:5678</li>
-        <li>Grafana (если включен): http://localhost:3000</li>
+        <li>Адрес репозитория (<code>git remote -v</code>) не должен содержать токен GitHub: храните доступ в «Диспетчере учётных данных» Git. Если токен был открыт в адресе, его нужно отозвать на GitHub и выпустить новый</li>
+        <li>Пароль базы <code>my_strong_password</code> в <code>docker-compose.yml</code> стоит заменить на свой (изменить в <code>docker-compose.yml</code>, <code>python-async-poller/.env</code> и пользователе PostgreSQL); сделайте это отдельным шагом после проверки переноса</li>
+        <li>Порты 5432 (база), 3000 (Grafana) и 5678 (N8N) без надобности не открывайте в брандмауэре для сети</li>
       </ul>
     </section>
 
-    <!-- ========== ОПТИМИЗАЦИИ ДЛЯ ПЕРЕНОСА ========== -->
-    <section>
-      <h2>⚡ Оптимизации для упрощения переноса</h2>
-
-      <h3>1. Использование .env файла</h3>
-      <p>Все переменные окружения (IP ПЛК, логины БД) хранятся в <span class="highlight">.env</span></p>
-      <p>При переносе просто отредактируйте этот файл под новые значения:</p>
-      <div class="code-block">PLC_IP=192.168.1.100
-POSTGRES_PASSWORD=your_secure_password
-POSTGRES_DB=general_data_hub_BD</div>
-
-      <h3>2. Docker volumes вместо хост-папок</h3>
-      <p>Все данные хранятся в Docker томах (./pg_data/, ./n8n_data/, и т.д.)</p>
-      <p>Это делает систему независимой от операционной системы и легче переносится между машинами</p>
-
-      <h3>3. Git для кода</h3>
-      <p>Весь исходный код в Git — просто <code>git clone</code> и готово</p>
-
-      <h3>4. SQL дампы для БД</h3>
-      <p>Вместо копирования томов, используются SQL дампы, которые легче архивировать и распространять</p>
-
-      <h3>5. Скрипт быстрого развёртывания (рекомендуется)</h3>
-      <p>Можно создать batch-скрипт для автоматизации:</p>
-      <div class="code-block">@echo off
-git clone https://github.com/YOUR_USER/plc-monitoring-docker-poller.git
-cd plc-monitoring-docker-poller
-docker compose up -d
-echo Ожидание инициализации БД...
-timeout /t 30
-echo.
-echo ✅ Проект запущен! Откройте http://localhost:8000
-pause</div>
-    </section>
 
     <!-- ========== РЕШЕНИЕ ПРОБЛЕМ ========== -->
     <section>
@@ -396,7 +475,7 @@ pause</div>
 
       <h3>❌ БД не инициализируется</h3>
       <ul>
-        <li>Удалите volume: <code>docker volume rm plc-monitoring-docker-poller_pg_data</code></li>
+        <li>Остановите контейнеры (<code>docker compose down</code>) и переименуйте папку <code>pg_data</code> (данные базы лежат в ней; сначала сделайте дамп, если база уже работала)</li>
         <li>Пересоздайте контейнеры: <code>docker compose down && docker compose up -d</code></li>
       </ul>
 
@@ -408,15 +487,15 @@ pause</div>
 
       <h3>❌ ПЛК не подключается</h3>
       <ul>
-        <li>Проверьте IP адрес ПЛК в .env файле</li>
+        <li>Проверьте адрес ПЛК (OPC UA) во вкладке «Переменные ПЛК» и доступность ПЛК по сети с этого ПК</li>
         <li>Убедитесь, что ПЛК в сети и включена OPC UA</li>
-        <li>Посмотрите логи Poller: <code>docker logs plc-monitoring-docker-poller-plc-monitoring-docker-poller-1</code></li>
+        <li>Посмотрите логи Poller: <code>docker logs python-async-poller</code></li>
       </ul>
     </section>
 
     <!-- ========== ВЕРСИЯ ========== -->
     <section style="background: #f9fafb; border-left: 4px solid #536471;">
-      <p><small>📝 Справка обновлена: <strong>2026-10-05</strong> (вкладка «Графики»: план/факт, простои, парето причин и станции за период с выгрузкой каждого графика в Excel, доступна всем; отчёт за период; автосохранение отчётов в <code>C:Andon-Reports</code> — только админ)</small></p>
+      <p><small>📝 Справка обновлена: <strong>2026-10-06</strong> (перенос на другой ПК переписан и проверен: дамп и восстановление баз, backup.ps1; ширина столбцов таблиц меняется перетаскиванием и хранится на сервере: личные ширины у вошедшего, общие задаёт админ с Shift; вкладка «Графики»: план/факт, простои, парето причин и станции за период с выгрузкой каждого графика в Excel, доступна всем; отчёт за период; автосохранение отчётов в <code>C:Andon-Reports</code> — только админ)</small></p>
       <p><small>Версия проекта: <strong>1.0.0</strong></small></p>
       <p><small>Сборка: <strong>Иерархический браузер переменных + поиск по Data Block (Instance & Global) + кэширование БД</strong></small></p>
       <p><small>Global Data Blocks: <strong>Автоматическое обнаружение (Namespace 3), кэширование, поиск и фильтрация по 1100+ переменным</strong></small></p>

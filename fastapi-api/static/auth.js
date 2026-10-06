@@ -1,4 +1,20 @@
 // Вход в систему, страница «Пользователи», смена пароля
+// Вход без cookie: если браузер (например, на телевизоре) не хранит cookie, токен входа запоминается в браузере
+// и добавляется заголовком X-Auth-Token ко всем запросам к /api/
+(() => {
+  const orig = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    let t = null;
+    try { t = localStorage.getItem('authToken'); } catch { /* без хранилища */ }
+    if (t && typeof input === 'string' && input.startsWith('/api/')) {
+      const h = new Headers((init && init.headers) || {});
+      h.set('X-Auth-Token', t);
+      init = { ...(init || {}), headers: h };
+    }
+    return orig(input, init);
+  };
+})();
+
 (() => {
   'use strict';
 
@@ -30,6 +46,31 @@
     return typeof d === 'string' ? d : 'Проверьте правильность заполнения полей';
   };
 
+  // Какие поля формы неверны: ответ сервера (422 со списком полей или текстовая ошибка) превращается в подпись и имена полей формы
+  const FIELD_LABELS = { last_name: 'Фамилия', first_name: 'Имя', login: 'Логин', password: 'Пароль', department: 'Отдел', old_password: 'Текущий пароль', new_password: 'Новый пароль' };
+  const TEXT_FIELDS = [
+    [/Неверный логин или пароль/, ['login', 'password']], [/Текущий пароль/, ['old']], [/Новый пароль/, ['new1']],
+    [/логин/i, ['login']], [/отдел/i, ['department']],
+  ];
+  const fieldIssues = (res, alias = {}) => {
+    const d = res.data && res.data.detail;
+    if (Array.isArray(d)) {
+      const items = d.map(x => {
+        const key = Array.isArray(x.loc) ? x.loc[x.loc.length - 1] : '';
+        const why = x.type === 'string_too_short' && x.ctx && x.ctx.min_length > 1 ? `не короче ${x.ctx.min_length} символов`
+          : x.type === 'string_too_short' || x.type === 'missing' ? 'заполните поле'
+            : x.type === 'string_too_long' && x.ctx ? `не длиннее ${x.ctx.max_length} символов` : 'неверное значение';
+        return { field: alias[key] || key, text: `${FIELD_LABELS[key] || key}: ${why}` };
+      });
+      return { text: items.map(i => i.text).join('; ') || errText(res), fields: items.map(i => i.field) };
+    }
+    const text = errText(res);
+    const hit = typeof d === 'string' ? TEXT_FIELDS.find(([re]) => re.test(d)) : null;
+    return { text, fields: hit ? hit[1] : [] };
+  };
+
+  const showApiError = (m, res, alias) => { const i = fieldIssues(res, alias); m.showError(i.text, i.fields); };
+
   function openModal(html, dismissible = true) {
     const m = document.createElement('div');
     m.className = 'kpi-modal';
@@ -39,9 +80,24 @@
     document.body.appendChild(m);
     const q = s => m.querySelector(s);
     const err = q('.auth-err');
+    const clearMarks = () => m.querySelectorAll('.invalid, .invalid-label').forEach(e => e.classList.remove('invalid', 'invalid-label'));
     return {
       close, q,
-      showError: text => { if (err) { err.textContent = text; err.hidden = false; } },
+      // text — сообщение под формой; fields — имена полей формы, которые нужно подсветить красным (курсор встаёт в первое)
+      showError: (text, fields = []) => {
+        clearMarks();
+        if (err) { err.textContent = text; err.hidden = false; }
+        fields.forEach((name, i) => {
+          const el = m.querySelector(`[name="${name}"]`);
+          if (!el) return;
+          el.classList.add('invalid');
+          const lab = el.previousElementSibling;
+          if (lab && lab.tagName === 'LABEL') lab.classList.add('invalid-label');
+          el.addEventListener('input', () => { el.classList.remove('invalid'); if (lab) lab.classList.remove('invalid-label'); }, { once: true });
+          el.addEventListener('change', () => { el.classList.remove('invalid'); if (lab) lab.classList.remove('invalid-label'); }, { once: true });
+          if (i === 0) el.focus();
+        });
+      },
       onCancel: fn => { const b = q('[data-act="cancel"]'); if (b) b.addEventListener('click', fn || close); },
     };
   }
@@ -70,6 +126,8 @@
         if (window.applyLastView) window.applyLastView(res.data.last_view);
       }
       state.user = res.data.user;
+      if (!res.data.user) { try { localStorage.removeItem("authToken"); } catch { /* без хранилища */ } }   // токен устарел
+      document.body.classList.toggle("logged-in", !!res.data.user);
       state.setupRequired = res.data.setup_required;
       state.roles = res.data.roles || {};
       state.departments = res.data.departments || {};
@@ -82,26 +140,38 @@
 
   function renderAuthBox() {
     if (!state.user) {
-      authBox.innerHTML = `<button type="button" class="auth-btn" id="auth-login" title="${state.setupRequired ? 'Первый запуск: создать учётную запись администратора' : 'Войти под своей учётной записью или отправить заявку на регистрацию, чтобы комментировать и менять настройки'}">🔑 ${state.setupRequired ? 'Создать администратора' : 'Войти или зарегистрироваться'}</button>`;
-      authBox.querySelector('#auth-login').addEventListener('click', showLogin);
+      if (state.setupRequired) {
+        authBox.innerHTML = `<button type="button" class="auth-btn" id="auth-login" title="Первый запуск: создать учётную запись администратора">🔑 Создать администратора</button>`;
+        authBox.querySelector('#auth-login').addEventListener('click', showLogin);
+      } else {
+        // выбор действия: у нового пользователя нет учётной записи, и кнопка «Вход» ему не подходит
+        authBox.innerHTML = `
+          <button type="button" class="auth-btn" id="auth-login" title="Выберите: войти под своей учётной записью или зарегистрироваться (заявку подтверждает администратор)">🔑 Вход / регистрация ▾</button>
+          <div class="auth-menu" hidden>
+            <button type="button" data-act="login" title="Войти под своим логином и паролем: нужно, чтобы комментировать и менять настройки">Вход</button>
+            <button type="button" data-act="register" title="У вас ещё нет учётной записи: отправьте заявку, администратор подтвердит её и назначит роль">Регистрация</button>
+          </div>`;
+        const menu = authBox.querySelector('.auth-menu');
+        authBox.querySelector('#auth-login').addEventListener('click', e => { e.stopPropagation(); menu.hidden = !menu.hidden; });
+        menu.querySelector('[data-act="login"]').addEventListener('click', () => { menu.hidden = true; showLogin(); });
+        menu.querySelector('[data-act="register"]').addEventListener('click', () => { menu.hidden = true; showRegister(); });
+      }
     } else {
       const u = state.user;
       authBox.innerHTML = `
         <button type="button" class="auth-btn" id="auth-user" title="Меню пользователя: смена пароля и выход"><span>${esc(shortName(u))}</span><small>${esc(u.role_name)}</small></button>
         <div class="auth-menu" hidden>
           <div class="who"><b>${esc(u.full_name)}</b><span>${esc(u.login)} · ${esc(u.role_name)}${u.department_name ? ' · ' + esc(u.department_name) : ''}</span></div>
-          <button type="button" data-act="stats" title="Сколько раз вы входили и сколько времени работали в системе по дням">Моя статистика</button>
           <button type="button" data-act="pw" title="Сменить свой пароль">Сменить пароль</button>
           <button type="button" data-act="logout" title="Выйти из системы на этом устройстве">Выйти</button>
         </div>`;
       const menu = authBox.querySelector('.auth-menu');
       authBox.querySelector('#auth-user').addEventListener('click', e => { e.stopPropagation(); menu.hidden = !menu.hidden; });
-      menu.querySelector('[data-act="stats"]').addEventListener('click', () => { menu.hidden = true; if (window.openMyStats) window.openMyStats(); });
       menu.querySelector('[data-act="pw"]').addEventListener('click', () => { menu.hidden = true; showChangePassword(false); });
       menu.querySelector('[data-act="logout"]').addEventListener('click', logout);
     }
     const isAdmin = !!state.user && state.user.role === 'admin';
-    const canSee = !!state.user && ['admin', 'chief', 'area_head'].includes(state.user.role);
+    const canSee = isAdmin;   // вкладка «Пользователи» со статистикой входов и времени работы: только администратору
     tabUsers.hidden = !canSee;
     tabUsers.textContent = '👥 Пользователи' + (isAdmin && state.pending ? ` (${state.pending})` : '');
     tabUsers.title = state.pending && isAdmin
@@ -117,7 +187,8 @@
   });
 
   async function logout() {
-    await api('POST', '/api/auth/logout');
+    await api("POST", "/api/auth/logout");
+    try { localStorage.removeItem("authToken"); } catch { /* без хранилища */ }
     await refresh();
     showToast('Вы вышли из системы');
   }
@@ -132,22 +203,25 @@
         <label>Пароль</label><input name="password" type="password" autocomplete="current-password" title="Ваш пароль">
         <div class="auth-err" hidden></div>
         <div class="kpi-modal-actions">
-          <button type="button" data-act="register" class="auth-link" title="Нет учётной записи? Отправьте заявку: после подтверждения администратором вы сможете войти">Зарегистрироваться</button>
-          <span style="flex:1"></span>
           <button type="button" data-act="cancel" style="background: var(--bg-tertiary); color: var(--fg-primary);" title="Закрыть окно без входа">Отмена</button>
           <button type="submit" title="Войти в систему">Войти</button>
         </div>
       </form>`);
     m.onCancel();
-    m.q('[data-act="register"]').addEventListener('click', () => { m.close(); showRegister(); });
     m.q('form').addEventListener('submit', async e => {
       e.preventDefault();
       const f = e.target;
       const res = await api('POST', '/api/auth/login', { login: f.login.value, password: f.password.value });
-      if (!res.ok) { m.showError(errText(res)); return; }
+      if (!res.ok) { showApiError(m, res); return; }
       m.close();
       viewApplied = false; forceApplyView = true;
       await refresh();
+      if (!state.user && res.data && res.data.token) {
+        // браузер не сохранил cookie (телевизоры и т.п.): запоминаем вход в браузере, токен уходит заголовком
+        try { localStorage.setItem("authToken", res.data.token); } catch { /* без хранилища */ }
+        await refresh();
+      }
+      if (!state.user) { showToast("Вход выполнен, но браузер не сохраняет сессию. Разрешите cookie или хранение данных сайта"); return; }
       showToast(`Добро пожаловать, ${state.user.full_name}`);
     });
   }
@@ -173,12 +247,15 @@
     m.q('form').addEventListener('submit', async e => {
       e.preventDefault();
       const f = e.target;
-      if (f.password.value !== f.password2.value) { m.showError('Пароли не совпадают'); return; }
+      const empty = [['last_name', 'Фамилия'], ['first_name', 'Имя'], ['login', 'Логин'], ['password', 'Пароль']].filter(([n]) => !f[n].value.trim());
+      if (empty.length) { m.showError('Заполните: ' + empty.map(x => x[1]).join(', '), empty.map(x => x[0])); return; }
+      if (f.password.value.length < 8) { m.showError('Пароль: не короче 8 символов', ['password']); return; }
+      if (f.password.value !== f.password2.value) { m.showError('Пароли не совпадают', ['password', 'password2']); return; }
       const res = await api('POST', '/api/auth/register', {
         login: f.login.value, last_name: f.last_name.value, first_name: f.first_name.value, password: f.password.value,
         department: f.department.value || null,
       });
-      if (!res.ok) { m.showError(errText(res)); return; }
+      if (!res.ok) { showApiError(m, res); return; }
       m.close();
       const done = openModal(`<h3>Заявка отправлена</h3><p class="hint">Администратор подтвердит её и назначит роль. После этого войдите под своим логином и паролем.</p><div class="kpi-modal-actions"><button type="button" data-act="cancel" title="Закрыть окно">Понятно</button></div>`);
       done.onCancel();
@@ -207,7 +284,7 @@
       const res = await api('POST', '/api/auth/setup', {
         login: f.login.value, last_name: f.last_name.value, first_name: f.first_name.value, password: f.password.value,
       });
-      if (!res.ok) { m.showError(errText(res)); return; }
+      if (!res.ok) { showApiError(m, res); return; }
       m.close();
       await refresh();
       showToast('Администратор создан');
@@ -232,9 +309,11 @@
     m.q('form').addEventListener('submit', async e => {
       e.preventDefault();
       const f = e.target;
-      if (f.new1.value !== f.new2.value) { m.showError('Новые пароли не совпадают'); return; }
+      if (!f.old.value) { m.showError('Укажите текущий пароль', ['old']); return; }
+      if (f.new1.value.length < 8) { m.showError('Новый пароль: не короче 8 символов', ['new1']); return; }
+      if (f.new1.value !== f.new2.value) { m.showError('Новые пароли не совпадают', ['new1', 'new2']); return; }
       const res = await api('POST', '/api/auth/change-password', { old_password: f.old.value, new_password: f.new1.value });
-      if (!res.ok) { m.showError(errText(res)); return; }
+      if (!res.ok) { showApiError(m, res, { old_password: 'old', new_password: 'new1' }); return; }
       m.close();
       await refresh();
       showToast('Пароль изменён');
@@ -255,7 +334,7 @@
 
   // ---------- вкладка «Пользователи»: список, статус «в сети», входы и время работы ----------
   let usersPeriod = '7';
-  const canSeeUsers = () => !!state.user && ['admin', 'chief', 'area_head'].includes(state.user.role);
+  const canSeeUsers = () => !!state.user && state.user.role === 'admin';
 
   // Статус: отключённая учётная запись или присутствие в системе (и где человек сейчас находится)
   function statusCell(u, on) {
@@ -367,7 +446,7 @@
       const res = isNew
         ? await api('POST', '/api/users', { login: f.login.value, last_name: f.last_name.value, first_name: f.first_name.value, role: f.role.value, password: f.password.value, department: f.department.value || null })
         : await api('PUT', `/api/users/${user.id}`, { last_name: f.last_name.value, first_name: f.first_name.value, role: f.role.value, is_active: f.is_active.checked, department: f.department.value || null });
-      if (!res.ok) { m.showError(errText(res)); return; }
+      if (!res.ok) { showApiError(m, res); return; }
       m.close();
       showToast(isNew ? 'Пользователь создан' : 'Изменения сохранены');
       loadUsers();
@@ -391,7 +470,7 @@
     m.q('form').addEventListener('submit', async e => {
       e.preventDefault();
       const res = await api('POST', `/api/users/${user.id}/reset-password`, { password: e.target.password.value });
-      if (!res.ok) { m.showError(errText(res)); return; }
+      if (!res.ok) { showApiError(m, res); return; }
       m.close();
       showToast('Пароль сброшен. Передайте пользователю временный пароль');
       loadUsers();

@@ -28,7 +28,7 @@
       <div class="andon-layout">
         <aside class="andon-side">
           <div class="tile" title="Данные подсборки вводятся вручную мастерами: нажмите на ячейку плана или факта, введите число и нажмите Enter">
-            <label>Ввод данных</label><b style="font-size:.5em">вручную</b><small>нажмите на ячейку «План» или «Факт»</small>
+            <label>Ввод данных</label><b style="font-size:var(--fs-small)">вручную</b><small>нажмите на ячейку «План» или «Факт»</small>
           </div>
           <div class="andon-clockbox" title="Дата и время сервиса на ПК (не часы телевизора или браузера)"><div class="andon-date" data-k="date"></div><div class="andon-time" data-k="time"></div></div>
         </aside>

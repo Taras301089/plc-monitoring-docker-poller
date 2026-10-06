@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 from auth import current_user, ensure_auth_schema, require_admin, require_editor, require_user, router as auth_router
 from downtime import ensure_downtime_schema, router as downtime_router
 from history import router as history_router
+from colwidths import ensure_colwidths_schema, router as colwidths_router
 from period import router as period_router
 from reports import ensure_reports_schema, reports_loop, router as reports_router
 from activity import ensure_activity_schema, router as activity_router
@@ -243,6 +244,7 @@ async def lifespan(app: FastAPI):
     await ensure_activity_schema(app.state.pool)
     await seed_manual_screens(app.state.pool)
     await ensure_reports_schema(app.state.pool)
+    await ensure_colwidths_schema(app.state.pool)
     reports_task = asyncio.create_task(reports_loop(app))
     try:
         yield
@@ -256,6 +258,7 @@ app.include_router(auth_router)
 app.include_router(dictionary_router)
 app.include_router(downtime_router)
 app.include_router(history_router)
+app.include_router(colwidths_router)
 app.include_router(period_router)
 app.include_router(reports_router)
 app.include_router(manual_router)
@@ -393,7 +396,7 @@ async def delete_plc(plc_id: int, _: dict[str, Any] = Depends(require_admin)) ->
 
 
 @app.get("/api/plcs/{plc_id}/opcua/meta")
-async def plc_scan_meta(plc_id: int) -> dict[str, Any]:
+async def plc_scan_meta(plc_id: int, _: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
     pool = await get_pool(app)
     row = await pool.fetchrow(
         """
@@ -637,7 +640,7 @@ async def plc_read_values(plc_id: int, request: ReadValuesRequest) -> Any:
 
 
 @app.get("/api/plcs/{plc_id}/opcua/node-info")
-async def plc_node_info(plc_id: int, node_id: str = Query(min_length=1)) -> Any:
+async def plc_node_info(plc_id: int, node_id: str = Query(min_length=1), _: dict[str, Any] = Depends(require_admin)) -> Any:
     url = f"{POLLER_URL}/internal/plcs/{plc_id}/opcua/node-info"
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(20.0, connect=10.0)) as client:
@@ -650,7 +653,7 @@ async def plc_node_info(plc_id: int, node_id: str = Query(min_length=1)) -> Any:
 
 
 @app.get("/api/plcs/{plc_id}/tags")
-async def list_plc_tags(plc_id: int) -> list[dict[str, Any]]:
+async def list_plc_tags(plc_id: int, _: dict[str, Any] = Depends(require_admin)) -> list[dict[str, Any]]:
     pool = await get_pool(app)
     rows = await pool.fetch(
         """
@@ -677,7 +680,7 @@ async def deactivate_plc_tag(
 
 
 @app.get("/api/plcs/{plc_id}/opcua/children")
-async def browse_plc_children(plc_id: int, node_id: str = Query(min_length=1)) -> Any:
+async def browse_plc_children(plc_id: int, node_id: str = Query(min_length=1), _: dict[str, Any] = Depends(require_admin)) -> Any:
     url = f"{POLLER_URL}/internal/plcs/{plc_id}/opcua/children"
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0)) as client:
@@ -696,7 +699,7 @@ async def browse_plc_variables(
     name: str | None = Query(default=None),
     include_system: bool = Query(default=False),
     refresh: bool = Query(default=False),
-    user: dict[str, Any] | None = Depends(current_user),
+    user: dict[str, Any] = Depends(require_admin),
 ) -> Any:
     pool = await get_pool(app)
     # Сканирование ПЛК (тяжёлая нагрузка на OPC UA) доступно только администратору; остальные читают кэш из БД

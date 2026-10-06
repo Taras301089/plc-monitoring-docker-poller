@@ -1,4 +1,4 @@
-"""Активность пользователей: кто сейчас в системе и статистика входов (видят администратор и начальники)."""
+"""Активность пользователей: кто сейчас в системе и статистика входов (видит только администратор)."""
 from __future__ import annotations
 
 import os
@@ -16,7 +16,7 @@ ONLINE_SEC = 120          # сигнал не старше этого време
 IDLE_SEC = 300            # без действий дольше этого = «неактивен»
 BEAT_GAP_SEC = 120        # пауза между сигналами дольше этого не засчитывается как время работы
 BEAT_CAP_SEC = 60         # один интервал между сигналами засчитывается не больше чем на минуту
-VIEW_ROLES = {"admin", "chief", "area_head"}
+VIEW_ROLES = {"admin"}
 
 router = APIRouter(prefix="/api/activity")
 
@@ -57,7 +57,7 @@ class BeatBody(BaseModel):
 
 def _require_viewer(user: dict[str, Any]) -> None:
     if user["role"] not in VIEW_ROLES:
-        raise HTTPException(status_code=403, detail="Статистику активности видят администратор и начальники")
+        raise HTTPException(status_code=403, detail="Статистику активности видит только администратор")
 
 
 @router.post("/beat")
@@ -147,10 +147,9 @@ async def days(
     user_id: int | None = Query(default=None),
     user: dict[str, Any] = Depends(require_user),
 ) -> dict[str, Any]:
-    """Статистика по дням: свою видит каждый, чужую — администратор и начальники."""
+    """Статистика по дням: только администратор."""
+    _require_viewer(user)
     target = user["id"] if user_id is None else user_id
-    if target != user["id"]:
-        _require_viewer(user)
     pool: asyncpg.Pool = request.app.state.pool
     who = await pool.fetchrow("SELECT last_name, first_name FROM app_users WHERE id = $1", target)
     if who is None:

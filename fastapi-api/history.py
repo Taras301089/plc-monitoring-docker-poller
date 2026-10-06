@@ -1,4 +1,4 @@
-"""История экрана Andon по дням: почасовая таблица за выбранный день и отчёт дня в Excel (.xlsx) с графиком план/факт."""
+"""История экрана Andon по дням: почасовая таблица за выбранный день и отчёт дня в Excel (.xlsx): один лист с итогами и графиком план/факт."""
 from __future__ import annotations
 
 import io
@@ -19,6 +19,14 @@ router = APIRouter(prefix="/api/kpi")
 
 DAY_HEADERS = ["Дата", "Линия", "№", "Начало", "Окончание", "Мин.", "План", "Факт", "±", "Такт-тайм за период",
                "Простой мин", "Участок", "Станция", "Причина", "Мин. по причине", "Описание", "Внёс", "Последний комментарий"]
+# имя файла начинается с названия экрана, откуда его скачали (правило в CLAUDE.md)
+SRC_NAMES = {"andon": "Andon", "charts": "Графики", "reports": "Отчёты", "downtimes": "Простои"}
+
+
+def download_name(src: str, fname: str) -> str:
+    return f"{SRC_NAMES.get(src, SRC_NAMES['reports'])}_{fname}"
+
+
 DAY_WIDTHS = [11, 22, 5, 9, 10, 6, 7, 7, 6, 14, 11, 16, 16, 20, 14, 36, 24, 44]
 
 
@@ -67,37 +75,83 @@ async def hourly(screen_id: int, request: Request, day: date | None = Query(defa
 
 
 def build_day_workbook(line: str, day: date, rows: list[list[Any]], intervals: list[tuple[str, int, int]]) -> bytes:
-    """Книга Excel: лист «День» (таблица с фильтром) и лист «План-факт» (почасовая таблица и столбчатая диаграмма)."""
+    """Книга Excel по виду как вкладка «Отчёты»: на листе «День» сверху плитки итогов, под ними график план/факт по часам,
+    ниже таблица отчёта (с фильтром и итогами). Данные для графика лежат на скрытом листе «График»."""
     buf = io.BytesIO()
     wb = xlsxwriter.Workbook(buf, {"in_memory": True})
     head = wb.add_format({"bold": True, "bg_color": "#D9E1F2", "text_wrap": True, "valign": "vcenter"})
+    bold = wb.add_format({"bold": True, "top": 1})
+    bold_n1 = wb.add_format({"bold": True, "top": 1, "num_format": "0.0"})
+    bold_pct = wb.add_format({"bold": True, "num_format": "0.0%"})
+    title = wb.add_format({"bold": True, "font_size": 14})
+    tile = {"font_size": 18, "bold": True, "align": "center", "valign": "vcenter", "border": 1, "border_color": "#D9D9D9"}
+    tile_l = wb.add_format({"font_size": 9, "bold": True, "font_color": "#6B7785", "bg_color": "#F2F4F7", "align": "center", "valign": "vcenter",
+                            "border": 1, "border_color": "#D9D9D9"})
+    tile_f = {"plain": wb.add_format(tile), "ok": wb.add_format({**tile, "font_color": "#1E8E5A"}),
+              "pct": wb.add_format({**tile, "num_format": "0.0%"}), "bad": wb.add_format({**tile, "num_format": "0.0", "font_color": "#C0392B"})}
 
     ws = wb.add_worksheet("День")
-    ws.write_row(0, 0, DAY_HEADERS, head)
-    for r, row in enumerate(rows, start=1):
-        ws.write_row(r, 0, row)
     for c, w in enumerate(DAY_WIDTHS):
         ws.set_column(c, c, w)
-    ws.freeze_panes(1, 0)
-    ws.autofilter(0, 0, max(len(rows), 1), len(DAY_HEADERS) - 1)
+    n_rows, n = len(rows), len(intervals)
 
-    cs = wb.add_worksheet("План-факт")
-    cs.write_row(0, 0, ["Интервал", "План", "Факт", "±"], head)
-    for r, (label, plan, fact) in enumerate(intervals, start=1):
-        cs.write(r, 0, label)
-        cs.write(r, 1, plan)
-        cs.write(r, 2, fact)
-        cs.write_formula(r, 3, f"=C{r + 1}-B{r + 1}", None, fact - plan)
-    cs.set_column(0, 0, 14)
-    cs.set_column(1, 3, 9)
-    n = len(intervals)
+    def total(col: int) -> float:
+        return round(sum(float(r[col] or 0) for r in rows), 1)
+
+    # 1. плитки итогов (как на экране)
+    ws.write(0, 0, f"{line}, {day.strftime('%d.%m.%Y')}", title)
+    tp, tf = total(6), total(7)
+    seen: set[Any] = set()
+    down = 0.0
+    for r in rows:
+        if r[2] not in seen:
+            seen.add(r[2])
+            down += float(r[10] or 0)
+    tiles = [((0, 1), "План", tp, "plain"), ((2, 4), "Факт", tf, "ok"), ((5, 7), "Выполнение", (tf / tp) if tp else "", "pct"),
+             ((8, 10), "Простой, мин", round(down, 1), "bad")]
+    for (c1, c2), label, val, kind in tiles:
+        ws.merge_range(2, c1, 2, c2, label, tile_l)
+        ws.merge_range(3, c1, 3, c2, val, tile_f[kind])
+    ws.set_row(2, 18)
+    ws.set_row(3, 32)
+
+    # 2. график план/факт по часам, под плитками
+    chart_row = 5
+    table_row = chart_row + (-(-400 // 20) + 2 if n else 0)
+
+    # 3. таблица отчёта: шапка с фильтром, строки, итоги
+    ws.write_row(table_row, 0, DAY_HEADERS, head)
+    for r, row in enumerate(rows, start=table_row + 1):
+        ws.write_row(r, 0, row)
+    ws.autofilter(table_row, 0, table_row + max(n_rows, 1), len(DAY_HEADERS) - 1)
+    if n_rows:
+        # значения интервала записаны один раз, поэтому суммы столбцов верные
+        t = table_row + n_rows + 1
+        first, last = table_row + 2, table_row + n_rows + 1
+        ws.write(t, 0, "Итого", bold)
+        for c in range(1, len(DAY_HEADERS)):
+            ws.write_blank(t, c, None, bold)
+        for col in (5, 6, 7, 10, 14):
+            letter = xlsxwriter.utility.xl_col_to_name(col)
+            ws.write_formula(t, col, f"=SUM({letter}{first}:{letter}{last})", bold_n1 if col in (10, 14) else bold, total(col))
+        ws.write_formula(t, 8, f"=H{t + 1}-G{t + 1}", bold, tf - tp)
+        ws.write(t + 1, 0, "Выполнение", bold_pct)
+        ws.write_formula(t + 1, 7, f'=IF(G{t + 1}=0,"",H{t + 1}/G{t + 1})', bold_pct, (tf / tp) if tp else "")
+
     if n:
+        cs = wb.add_worksheet("График")
+        cs.write_row(0, 0, ["Интервал", "План", "Факт"], head)
+        for r, (label, plan, fact) in enumerate(intervals, start=1):
+            cs.write(r, 0, label)
+            cs.write(r, 1, plan)
+            cs.write(r, 2, fact)
+        cs.hide()
         chart = wb.add_chart({"type": "column"})
         for col, name, color in ((1, "План", "#8FA3BF"), (2, "Факт", "#2F80ED")):
             chart.add_series({
                 "name": name,
-                "categories": ["План-факт", 1, 0, n, 0],
-                "values": ["План-факт", 1, col, n, col],
+                "categories": ["График", 1, 0, n, 0],
+                "values": ["График", 1, col, n, col],
                 "fill": {"color": color},
                 "data_labels": {"value": True},
                 "gap": 80,
@@ -106,14 +160,14 @@ def build_day_workbook(line: str, day: date, rows: list[list[Any]], intervals: l
         chart.set_x_axis({"name": "Интервал"})
         chart.set_y_axis({"name": "Кузовов", "major_gridlines": {"visible": True, "line": {"color": "#D9D9D9"}}})
         chart.set_legend({"position": "bottom"})
-        chart.set_size({"width": 860, "height": 400})
-        cs.insert_chart("F2", chart)
+        chart.set_size({"width": 1000, "height": 400})
+        ws.insert_chart(chart_row, 0, chart)
     wb.close()
     return buf.getvalue()
 
 
-async def build_day_report(pool: asyncpg.Pool, screen_id: int, day: date) -> tuple[bytes, str, str, int] | None:
-    """Отчёт дня по экрану: (книга, имя папки линии, имя файла, число интервалов с планом или фактом); None, если экрана нет."""
+async def build_day_data(pool: asyncpg.Pool, screen_id: int, day: date) -> dict[str, Any] | None:
+    """Данные отчёта дня: подпись линии, строки таблицы, интервалы для графика; None, если экрана нет."""
     scr = await pool.fetchrow("SELECT name, template, bindings FROM kpi_screens WHERE id = $1", screen_id)
     if scr is None:
         return None
@@ -135,26 +189,39 @@ async def build_day_report(pool: asyncpg.Pool, screen_id: int, day: date) -> tup
                 _mmss(h["takt_sec"])]
         d = dts.get(h["idx"])
         items = (d or {}).get("items") or []
+        part: list[list[Any]] = []
         if not d or (d["minutes"] <= 0 and not items):
             out.append(base + [0, "—", "—", "—", 0, "", "", ""])
             continue
         for it in items:
             lc = it.get("last_comment")
-            out.append(base + [d["minutes"], areas.get(it["area_id"], "—"), stations.get(it["station_id"], "—"),
+            part.append(base + [d["minutes"], areas.get(it["area_id"], "—"), stations.get(it["station_id"], "—"),
                                reasons.get(it["reason_id"], "—"), it["minutes"], it.get("note") or "", it.get("created_by_name") or "",
-                               f"{lc['user_name']}: {lc['text']}" if lc else ""])
+                               f"{lc['text']} · {lc.get('author') or lc['user_name']}" if lc else ""])
         rest = round(d["minutes"] - d["described"], 1)
         if rest > 0.5:
-            out.append(base + [d["minutes"], "—", "—", "не описан", rest, "", "", ""])
+            part.append(base + [d["minutes"], "—", "—", "не описан", rest, "", "", ""])
+        # значения интервала (минуты, план, факт, ±, такт-тайм, простой) пишутся один раз, на первой строке: так столбец суммируется верно
+        for i, row in enumerate(part):
+            if i:
+                row[5:11] = [""] * 6
+            out.append(row)
     intervals = [(f"{_hhmm(h['start_min'])}-{_hhmm(h['end_min'] if h['end_min'] is not None else h['start_min'])}", h["plan"], h["fact"])
                  for h in hours]
-    data = build_day_workbook(line, day, out, intervals)
     folder = safe_name(group if label in ("", "Main Line") else f"{group}_{label}")
-    return data, folder, f"{folder}_{day.isoformat()}.xlsx", len(hours)
+    return {"line": line, "folder": folder, "fname": f"{folder}_{day.isoformat()}.xlsx", "rows": out, "intervals": intervals, "n": len(hours)}
+
+
+async def build_day_report(pool: asyncpg.Pool, screen_id: int, day: date) -> tuple[bytes, str, str, int] | None:
+    """Отчёт дня по экрану: (книга, имя папки линии, имя файла, число интервалов с планом или фактом); None, если экрана нет."""
+    d = await build_day_data(pool, screen_id, day)
+    if d is None:
+        return None
+    return build_day_workbook(d["line"], day, d["rows"], d["intervals"]), d["folder"], d["fname"], d["n"]
 
 
 @router.get("/screens/{screen_id}/day.xlsx")
-async def day_xlsx(screen_id: int, request: Request, day: date | None = Query(default=None, alias="date")) -> Response:
+async def day_xlsx(screen_id: int, request: Request, day: date | None = Query(default=None, alias="date"), src: str = Query(default="reports")) -> Response:
     """Выгрузка дня экрана в Excel: по строке на каждую причину простоя, интервалы без простоя одной строкой, лист с графиком план/факт."""
     pool: asyncpg.Pool = request.app.state.pool
     if await pool.fetchval("SELECT 1 FROM kpi_screens WHERE id = $1", screen_id) is None:
@@ -167,5 +234,17 @@ async def day_xlsx(screen_id: int, request: Request, day: date | None = Query(de
     return Response(
         content=data,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote('andon_' + fname)}"},
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(download_name(src, fname))}"},
     )
+
+
+@router.get("/screens/{screen_id}/day-preview")
+async def day_preview(screen_id: int, request: Request, day: date = Query(alias="date")) -> dict[str, Any]:
+    """Что будет в отчёте дня: заголовки и строки таблицы листа «День» и интервалы для графика план/факт."""
+    d = await build_day_data(request.app.state.pool, screen_id, day)
+    if d is None:
+        raise HTTPException(status_code=404, detail="Экран не найден")
+    return {
+        "line": d["line"], "date": day.isoformat(), "file": download_name("reports", d["fname"]), "headers": DAY_HEADERS, "rows": d["rows"],
+        "intervals": [{"label": lbl, "plan": p, "fact": f} for lbl, p, f in d["intervals"]],
+    }

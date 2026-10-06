@@ -10,7 +10,7 @@ import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
-from auth import require_editor
+from auth import ROLES, require_editor
 from dictionary import SCOPES
 
 OTHER = "Другое"
@@ -61,6 +61,16 @@ async def ensure_downtime_schema(pool: asyncpg.Pool) -> None:
         """
     )
     await pool.execute("CREATE INDEX IF NOT EXISTS ix_kpi_downtime_items_dt ON kpi_downtime_items (downtime_id)")
+    # журнал удалённых строк описания: удаление не стирает историю (кто, когда, что было)
+    await pool.execute(
+        """
+        CREATE TABLE IF NOT EXISTS kpi_downtime_items_log (
+            id BIGSERIAL PRIMARY KEY, item_id INTEGER, downtime_id INTEGER NOT NULL, area_id INTEGER, station_id INTEGER, reason_id INTEGER,
+            minutes NUMERIC(6,1), note TEXT NOT NULL DEFAULT '', created_by INTEGER, created_by_name TEXT NOT NULL DEFAULT '',
+            created_at TIMESTAMPTZ, deleted_by INTEGER, deleted_by_name TEXT NOT NULL DEFAULT '', deleted_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+        """
+    )
 
 
 class ItemBody(BaseModel):
@@ -70,6 +80,7 @@ class ItemBody(BaseModel):
     reason_id: int
     minutes: float = Field(gt=0, le=999)
     note: str = Field(default="", max_length=500)
+    mentions: list[int] = Field(default_factory=list, max_length=10)   # кого отметили через @ в описании
 
 
 class ItemsBody(BaseModel):
@@ -92,6 +103,13 @@ async def _screen_scope(pool: asyncpg.Pool, screen_id: int) -> str | None:
     return next((k for k in SCOPES if k.lower() == s["name"].strip().lower()), None)
 
 
+def _author(last: str | None, role: str | None, fallback: str) -> str:
+    """Кто описал причину: «Фамилия, должность» (должность по роли пользователя)."""
+    name = last or (fallback or "").split(" ")[0]
+    pos = ROLES.get(role or "", "")
+    return f"{name}, {pos}" if name and pos else name
+
+
 @router.get("/screens/{screen_id}/downtimes")
 async def list_downtimes(screen_id: int, request: Request, day: date | None = Query(default=None, alias="date")) -> dict[str, Any]:
     pool: asyncpg.Pool = request.app.state.pool
@@ -112,8 +130,8 @@ async def list_downtimes(screen_id: int, request: Request, day: date | None = Qu
     )
     items = await pool.fetch(
         "SELECT i.id, i.downtime_id, i.area_id, i.station_id, i.reason_id, i.minutes, i.note, "
-        "i.created_by, i.created_by_name, i.updated_by_name, i.created_at, i.updated_at "
-        "FROM kpi_downtime_items i JOIN kpi_downtimes d ON d.id = i.downtime_id "
+        "i.created_by, i.created_by_name, i.updated_by_name, i.created_at, i.updated_at, u.last_name AS author_last, u.role AS author_role "
+        "FROM kpi_downtime_items i JOIN kpi_downtimes d ON d.id = i.downtime_id LEFT JOIN app_users u ON u.id = i.created_by "
         "WHERE d.screen_id = $1 AND d.prod_date = $2 ORDER BY i.id",
         screen_id, day,
     )
@@ -128,9 +146,11 @@ async def list_downtimes(screen_id: int, request: Request, day: date | None = Qu
     }
     # последний комментарий каждой строки: его текст показывается на экране Andon в колонке «Причина»
     last_comment = {
-        r["item_id"]: {"text": r["text"], "user_name": r["user_name"], "is_oto": r["is_oto"]}
+        r["item_id"]: {"text": r["text"], "user_name": r["user_name"], "is_oto": r["is_oto"],
+                       "author": _author(r["author_last"], r["author_role"], r["user_name"])}
         for r in await pool.fetch(
-            "SELECT DISTINCT ON (c.item_id) c.item_id, c.text, c.user_name, c.is_oto FROM kpi_downtime_comments c "
+            "SELECT DISTINCT ON (c.item_id) c.item_id, c.text, c.user_name, c.is_oto, u.last_name AS author_last, u.role AS author_role "
+            "FROM kpi_downtime_comments c LEFT JOIN app_users u ON u.id = c.user_id "
             "JOIN kpi_downtimes d ON d.id = c.downtime_id "
             "WHERE d.screen_id = $1 AND d.prod_date = $2 AND c.item_id IS NOT NULL AND c.deleted_at IS NULL "
             "ORDER BY c.item_id, c.created_at DESC, c.id DESC",
@@ -142,7 +162,8 @@ async def list_downtimes(screen_id: int, request: Request, day: date | None = Qu
         by_dt.setdefault(it["downtime_id"], []).append(
             {**{k: it[k] for k in ("id", "area_id", "station_id", "reason_id", "note", "created_by", "created_by_name", "updated_by_name")},
              "minutes": _num(it["minutes"]), "created_at": it["created_at"], "updated_at": it["updated_at"],
-             "comments": item_comments.get(it["id"], 0), "last_comment": last_comment.get(it["id"])}
+             "comments": item_comments.get(it["id"], 0), "last_comment": last_comment.get(it["id"]),
+             "author": _author(it["author_last"], it["author_role"], it["created_by_name"])}
         )
     out = []
     for r in rows:
@@ -301,6 +322,9 @@ async def save_items(
     def can_touch(old: asyncpg.Record) -> bool:
         return user["role"] in MODERATORS or old["created_by"] == user["id"]
 
+    def can_delete(old: asyncpg.Record) -> bool:
+        return user["role"] == "admin" or old["created_by"] == user["id"]
+
     submitted = {it.id for it in body.items if it.id in existing}
     for it in body.items:
         old = existing.get(it.id) if it.id else None
@@ -310,8 +334,8 @@ async def save_items(
             if not same:
                 raise HTTPException(status_code=403, detail=f"Строку описал(а) {old['created_by_name']}: изменить её может только автор. Вы можете её прокомментировать")
     for old_id, old in existing.items():
-        if old_id not in submitted and not can_touch(old):
-            raise HTTPException(status_code=403, detail=f"Строку описал(а) {old['created_by_name']}: удалить её может только автор")
+        if old_id not in submitted and not can_delete(old):
+            raise HTTPException(status_code=403, detail=f"Строку описал(а) {old['created_by_name']}: удалить её могут только автор и администратор")
 
     uname = user["full_name"]
     async with pool.acquire() as conn:
@@ -319,6 +343,10 @@ async def save_items(
             keep = {it.id for it in body.items if it.id in existing}
             for old_id in existing:
                 if old_id not in keep:
+                    await conn.execute(
+                        "INSERT INTO kpi_downtime_items_log (item_id, downtime_id, area_id, station_id, reason_id, minutes, note, created_by, created_by_name, created_at, deleted_by, deleted_by_name) "
+                        "SELECT id, downtime_id, area_id, station_id, reason_id, minutes, note, created_by, created_by_name, created_at, $2, $3 FROM kpi_downtime_items WHERE id = $1",
+                        old_id, user["id"], uname)
                     await conn.execute("DELETE FROM kpi_downtime_items WHERE id = $1", old_id)
             for it in body.items:
                 note = it.note.strip()
@@ -335,4 +363,15 @@ async def save_items(
                         "created_by, created_by_name, updated_by_name) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$8)",
                         downtime_id, it.area_id, it.station_id, it.reason_id, round(it.minutes, 1), note, user["id"], uname,
                     )
+                # @ в описании: отмеченные коллеги получают то же уведомление, что и при упоминании в комментарии
+                prev_note = existing[it.id]["note"] if it.id in existing else None
+                if it.mentions and note and note != prev_note:
+                    ids = [r["id"] for r in await conn.fetch(
+                        "SELECT id FROM app_users WHERE id = ANY($1::int[]) AND is_active AND status = 'active' AND id <> $2",
+                        list(dict.fromkeys(it.mentions)), user["id"])]
+                    snippet = " ".join(note.split())[:140]
+                    for uid in ids:
+                        await conn.execute(
+                            "INSERT INTO kpi_notifications (user_id, kind, downtime_id, comment_id, from_name, snippet) VALUES ($1,'mention',$2,NULL,$3,$4)",
+                            uid, downtime_id, uname, snippet)
     return {"status": "ok", "described": round(total, 1)}

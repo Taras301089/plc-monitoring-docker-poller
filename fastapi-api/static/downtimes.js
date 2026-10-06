@@ -268,6 +268,7 @@
       }).join('')}<td class="dl-act"><button type="button" class="dl-open" title="Открыть простой: описать, изменить или прокомментировать">›</button></td></tr>`;
     }).join('')}</tbody></table>`;
     bindHead(body);
+    window.attachColWidths(body.querySelector("table"), "downtimes");
     body.querySelectorAll('tbody tr').forEach(tr => {
       const r = view[Number(tr.dataset.i)];
       const open = () => { if (window.dtOpenById) window.dtOpenById(r.downtime_id, r.item_id, true); };

@@ -1,11 +1,11 @@
 /* Вход, пользователи, окна — стиль Flat Dark */
 .auth-wrap { position: relative; display: flex; align-items: center; }
 .auth-btn {
-  min-height: 32px; padding: 0 12px; margin-right: 4px; font-size: 12px; font-weight: 600; white-space: nowrap;
+  min-height: 32px; padding: 0 12px; margin-right: 4px; font-size: var(--fs-small); font-weight: 600; white-space: nowrap;
   display: flex; align-items: center; gap: 8px;
   background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line);
 }
-.auth-btn small { font-weight: 400; color: var(--fg-secondary); font-size: 10px; }
+.auth-btn small { font-weight: 400; color: var(--fg-secondary); font-size: var(--fs-small); }
 .auth-menu {
   position: absolute; right: 4px; top: calc(100% + 6px); z-index: 70; min-width: 200px; padding: 6px;
   background: var(--bg-primary); border-radius: 8px; box-shadow: 0 0 0 1px var(--line), 0 12px 28px rgba(0,0,0,.5);
@@ -42,17 +42,17 @@
 #users.active { display: block; }
 .users-top { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
 .users-top h2 { margin: 0; font-size: 18px; }
-.users-top .grow { flex: 1; color: var(--fg-secondary); font-size: 12px; }
+.users-top .grow { flex: 1; color: var(--fg-secondary); font-size: var(--fs-small); }
 .users-table { width: 100%; max-width: 1100px; border-collapse: separate; border-spacing: 0; background: var(--bg-primary); border-radius: 8px; overflow: hidden; box-shadow: var(--shadow-out); }
-.users-table th { padding: 9px 12px; text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-secondary); background: var(--bg-secondary); }
-.users-table td { padding: 9px 12px; font-size: 13px; border-top: 1px solid var(--line); }
+.users-table th { padding: 9px 12px; text-align: left; font-size: var(--fs-small); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-secondary); background: var(--bg-secondary); }
+.users-table td { padding: 9px 12px; font-size: var(--fs-small); border-top: 1px solid var(--line); }
 .users-table tbody tr:nth-child(even) { background: var(--zebra); }
 .users-table tr.off td { color: var(--fg-secondary); }
-.users-table .badge { display: inline-block; padding: 1px 9px; border-radius: 9px; font-size: 11px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.users-table .badge { display: inline-block; padding: 1px 9px; border-radius: 9px; font-size: var(--fs-small); background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
 .users-table .badge.off { background: var(--zebra); color: var(--fg-secondary); }
 .users-table .badge.on { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
 .users-table .acts { display: flex; gap: 4px; justify-content: flex-end; }
-.users-table .acts button { min-height: 28px; padding: 0 9px; font-size: 11px; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); }
+.users-table .acts button { min-height: 28px; padding: 0 9px; font-size: var(--fs-small); background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); }
 
 /* Справочники простоев */
 .dict-grid { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(420px, 1.6fr); gap: 16px; align-items: start; }
@@ -79,7 +79,7 @@
 .act-top { margin-top: 20px; }
 .act-top .act-h { margin: 0; }
 .act-periods { display: flex; gap: 4px; margin-left: auto; }
-.act-per { min-height: 28px; padding: 0 12px; font-size: 12px; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); }
+.act-per { min-height: 28px; padding: 0 12px; font-size: var(--fs-small); background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); }
 .act-per.active { background: var(--accent) !important; color: #fff; }
 .act-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
 .act-dot.on { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
@@ -87,17 +87,17 @@
 .users-table .badge.idle { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
 .users-table tr.u-row { cursor: pointer; }
 .users-table tr.u-row:hover { background: var(--hover); }
-.u-where { margin-top: 2px; font-size: 11px; color: var(--fg-secondary); }
+.u-where { margin-top: 2px; font-size: var(--fs-small); color: var(--fg-secondary); }
 
 /* Вкладка «Простои» */
 .dl-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
-.dl-filters select, .dl-filters input[type="date"] { min-height: 30px; font-size: 12px; }
-.dl-lbl { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--fg-secondary); }
-.dl-chk { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--fg-secondary); cursor: pointer; }
+.dl-filters select, .dl-filters input[type="date"] { min-height: 30px; font-size: var(--fs-small); }
+.dl-lbl { display: flex; align-items: center; gap: 4px; font-size: var(--fs-small); color: var(--fg-secondary); }
+.dl-chk { display: flex; align-items: center; gap: 4px; font-size: var(--fs-small); color: var(--fg-secondary); cursor: pointer; }
 .dl-chk input { width: auto; min-height: 0; }
-.dl-sum { font-size: 13px; color: var(--fg-secondary); margin: 4px 0 10px; }
+.dl-sum { font-size: var(--fs-small); color: var(--fg-secondary); margin: 4px 0 10px; }
 .dl-sum b { color: var(--fg-primary); }
-.dl-warn { color: var(--warn); }
+.dl-warn { color: var(--danger); }
 .dl-table { max-width: none; }
 .dl-table td { padding: 6px 10px; vertical-align: top; }
 .dl-table tr.dl-first td { border-top: 2px solid var(--line); }
@@ -105,21 +105,21 @@
 .dl-table tr.dl-row:hover { background: var(--hover); }
 .dl-table .dl-time { white-space: nowrap; }
 .dl-table .dl-note { max-width: 320px; word-break: break-word; color: var(--fg-secondary); }
-.dl-table .dl-who { color: var(--fg-secondary); font-size: 12px; }
-.dl-table tr.dl-rest td { background: color-mix(in srgb, var(--warn) 7%, transparent); }
+.dl-table .dl-who { color: var(--fg-secondary); font-size: var(--fs-small); }
+.dl-table tr.dl-rest td { background: color-mix(in srgb, var(--danger) 7%, transparent); }
 
 /* Простои: таблица как в Excel */
 .dl-body { outline: none; overflow-x: auto; }
 .dl-spacer { flex: 1; }
-.dl-btn { min-height: 28px; padding: 0 12px; font-size: 12px; }
+.dl-btn { min-height: 28px; padding: 0 12px; font-size: var(--fs-small); }
 .dl-table th { white-space: nowrap; position: relative; user-select: none; }
-.dl-table th.dl-num, .dl-table td.dl-num { text-align: right; }
+.dl-table th, .dl-table td { text-align: center; }
 .dl-sort { cursor: pointer; }
 .dl-sort:hover { color: var(--fg-primary); }
 .dl-arrow { font-style: normal; margin-left: 4px; color: var(--accent); }
-.dl-arrow sup { font-size: 9px; }
+.dl-arrow sup { font-size: inherit; line-height: 0; }
 .dl-sorted { color: var(--fg-primary); }
-.dl-fbtn { min-height: 0; margin-left: 4px; padding: 0 4px; font-size: 11px; line-height: 16px; background: transparent !important; color: var(--fg-secondary); box-shadow: none; }
+.dl-fbtn { min-height: 0; margin-left: 4px; padding: 0 4px; font-size: var(--fs-small); line-height: 16px; background: transparent !important; color: var(--fg-secondary); box-shadow: none; }
 .dl-fbtn:hover { color: var(--fg-primary); filter: none; }
 .dl-fbtn.on { color: #fff; background: var(--accent) !important; border-radius: 3px; }
 .dl-table td { user-select: none; cursor: cell; }
@@ -130,8 +130,15 @@
 .dl-open { min-height: 22px; padding: 0 8px; background: transparent !important; color: var(--accent); box-shadow: none; font-weight: 700; }
 .dl-open:hover { background: var(--hover) !important; filter: none; }
 .dl-pop { position: fixed; z-index: 90; width: 250px; padding: 8px; background: var(--bg-primary); border-radius: 8px; box-shadow: 0 0 0 1px var(--line), 0 12px 32px rgba(0,0,0,.5); }
-.dl-pop .dl-q { width: 100%; min-height: 30px; font-size: 12px; margin-bottom: 6px; text-align: left; }
+.dl-pop .dl-q { width: 100%; min-height: 30px; font-size: var(--fs-small); margin-bottom: 6px; text-align: left; }
 .dl-list { max-height: 240px; overflow: auto; margin: 4px 0; }
 .dl-list .dl-chk, .dl-all { padding: 3px 4px; }
-.dl-none { padding: 8px; font-size: 12px; color: var(--fg-secondary); }
+.dl-none { padding: 8px; font-size: var(--fs-small); color: var(--fg-secondary); }
 .dl-pop-act { display: flex; justify-content: space-between; gap: 6px; margin-top: 6px; }
+
+/* Подсветка неверного поля в окнах входа, регистрации и смены пароля */
+.auth-modal input.invalid, .auth-modal select.invalid { box-shadow: inset 0 0 0 1px var(--danger) !important; background: color-mix(in srgb, var(--danger) 10%, var(--bg-secondary)); }
+.auth-modal label.invalid-label { color: var(--danger); }
+
+/* Вкладка «Простои»: кнопки и поля фильтров одного размера */
+#downtimes button, #downtimes select, #downtimes input { font-size: var(--fs-small); }

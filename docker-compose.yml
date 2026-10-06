@@ -29,6 +29,7 @@ services:
       POSTGRES_DB: general_data_hub_BD
       POSTGRES_USER: n8n_user
       POSTGRES_PASSWORD: my_strong_password
+      KPI_UTC_OFFSET_HOURS: "5"   # смещение местного времени от UTC (часы), то же значение, что у fastapi-api
     depends_on:
       - postgres
     logging:
