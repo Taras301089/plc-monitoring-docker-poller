@@ -386,7 +386,8 @@ C:\plc-monitoring-docker-poller/
           <div class="code-block">'DROP DATABASE "general_data_hub_BD" WITH (FORCE);' | docker exec -i postgres_db psql -U n8n_user -d postgres</div>
           <div class="code-block">'CREATE DATABASE "general_data_hub_BD";' | docker exec -i postgres_db psql -U n8n_user -d postgres</div>
           <div class="code-block">docker exec postgres_db pg_restore -U n8n_user -d general_data_hub_BD --no-owner /tmp/hub.dump</div>
-          Предупреждения «errors ignored on restore» безвредны (служебные права). Для N8N повторите то же с <code>n8n_ДАТА.dump</code> и базой <code>n8n_db</code>.
+          <strong>Имя файла:</strong> <code>ДАТА</code> замените на дату из имени вашего файла. Если дамп снимали вручную без скрипта, файл называется просто <code>hub.dump</code> (и <code>n8n.dump</code> для N8N): тогда в первой команде пишите <code>C:\plc-backups\hub.dump</code>.
+          <br>Предупреждения «errors ignored on restore» безвредны (служебные права). Для N8N повторите то же с <code>n8n_ДАТА.dump</code> и базой <code>n8n_db</code>.
         </div>
       </div>
 
