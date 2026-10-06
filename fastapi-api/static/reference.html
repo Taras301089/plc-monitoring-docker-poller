@@ -108,6 +108,7 @@
     .warning { background: color-mix(in srgb, var(--danger) 12%, var(--bg-secondary)); color: var(--danger); }
     [data-theme] .success { background: color-mix(in srgb, var(--ok) 12%, var(--bg-secondary)); color: var(--ok); }
     [data-theme] .warning { background: color-mix(in srgb, var(--danger) 12%, var(--bg-secondary)); color: var(--danger); }
+    .warning-box { margin: 12px 0; padding: 10px 14px; border-radius: 4px; background: color-mix(in srgb, var(--danger) 12%, var(--bg-secondary)); box-shadow: inset 4px 0 0 var(--danger); }
     .step-num { background: var(--accent); }
     * { scrollbar-width: thin; scrollbar-color: rgba(125,135,148,.4) transparent; }  </style>
   <link rel="stylesheet" href="/static/auth.css">
@@ -249,13 +250,13 @@ C:\plc-monitoring-docker-poller/
           <td><strong>База <code>general_data_hub_BD</code></strong></td>
           <td>Пользователи и пароли, роли, сессии, ПЛК и теги, план и расписание, часовые данные, простои, комментарии, справочники, ширины столбцов, настройки отчётов, оповещения</td>
           <td>PostgreSQL, папка <code>./pg_data/</code></td>
-          <td>Дамп <code>pg_dump -Fc</code> в файл <code>hub.dump</code> (не копировать папку <code>pg_data</code> на ходу)</td>
+          <td>Дамп <code>pg_dump -Fc</code> в файл <code>hub_ДАТА.dump</code> (скрипт <code>backup.ps1</code>) (не копировать папку <code>pg_data</code> на ходу)</td>
         </tr>
         <tr>
           <td><strong>База <code>n8n_db</code></strong></td>
           <td>Данные N8N (если используется)</td>
           <td>PostgreSQL, папка <code>./pg_data/</code></td>
-          <td>Дамп в файл <code>n8n.dump</code></td>
+          <td>Дамп в файл <code>n8n_ДАТА.dump</code> (тот же скрипт)</td>
         </tr>
         <tr>
           <td><strong>Файл <code>python-async-poller/.env</code></strong></td>
@@ -300,18 +301,22 @@ C:\plc-monitoring-docker-poller/
         <li><strong>Местное время завода</strong> задаёт параметр <code>KPI_UTC_OFFSET_HOURS</code> в <code>docker-compose.yml</code>: на сколько часов местное время отличается от UTC (сейчас <code>5</code>, то есть UTC+5). Он определяет границы смен и суток (когда начинается новый день и интервалы), время на экранах Andon и время автосохранения отчётов. Часы самого ПК и пояс Windows на это не влияют. Если новый ПК стоит на том же заводе, ничего менять не нужно (значение переносится с кодом). Если пояс другой, измените число в обоих местах (<code>fastapi-api</code> и <code>plc-monitoring-docker-poller</code>) и перезапустите контейнеры</li>
       </ul>
 
+      <div class="warning-box">
+        <strong>⚠ Выполняйте команды по одной.</strong> Вставляйте и запускайте каждую строку отдельно и дожидайтесь результата. Если две команды склеились в одну строку (например, <code>git pushdocker compose stop …</code>), ни одна из них не выполнится, а на экране это легко не заметить.
+      </div>
+
       <h3>Часть А. На старом ПК (подготовка)</h3>
 
       <div class="step">
         <div class="step-num">1</div>
         <div>
           <strong>Сохранить код в Git</strong>
-          <div class="code-block">cd C:\plc-monitoring-docker-poller
-git status
-git add -A
-git commit -m "Перед переносом на новый ПК"
-git push</div>
+          <div class="code-block">cd C:\plc-monitoring-docker-poller</div>
+          <div class="code-block">git add -A</div>
+          <div class="code-block">git commit -m "Перед переносом на новый ПК"</div>
+          <div class="code-block">git push</div>
           Без этого на новом ПК будет старая версия. Файл <code>.env</code> в Git не попадает (см. шаг 4).
+          <br><strong>Проверка:</strong> <code>git status -sb</code> не должен показывать <code>ahead</code> (это значит, что отправлено не всё).
         </div>
       </div>
 
@@ -321,6 +326,7 @@ git push</div>
           <strong>Остановить запись данных</strong> (на время переноса, чтобы дамп был полным)
           <div class="code-block">docker compose stop fastapi-api plc-monitoring-docker-poller</div>
           Экраны Andon на это время недоступны: переносите в нерабочее время.
+          <br><strong>Проверка:</strong> выполните <code>docker ps</code>. Должны остаться только <code>postgres_db</code>, <code>n8n_app</code> и <code>grafana_app</code> (база должна работать, из неё снимается дамп). Если <code>fastapi_api</code> и <code>python-async-poller</code> всё ещё в списке, остановка не сработала: дамп сейчас снимать нельзя.
         </div>
       </div>
 
@@ -328,12 +334,8 @@ git push</div>
         <div class="step-num">3</div>
         <div>
           <strong>Снять дампы баз</strong>
-          <div class="code-block">mkdir C:\plc-backups
-docker exec postgres_db sh -c "pg_dump -U n8n_user -Fc general_data_hub_BD > /tmp/hub.dump"
-docker cp postgres_db:/tmp/hub.dump C:\plc-backups\hub.dump
-docker exec postgres_db sh -c "pg_dump -U n8n_user -Fc n8n_db > /tmp/n8n.dump"
-docker cp postgres_db:/tmp/n8n.dump C:\plc-backups\n8n.dump</div>
-          Проверьте, что <code>hub.dump</code> не пустой (около 3 МБ и более).
+          <div class="code-block">powershell -NoProfile -ExecutionPolicy Bypass -File C:\plc-monitoring-docker-poller\backup.ps1</div>
+          Одна команда снимает обе базы в <code>C:\plc-backups</code>: файлы <code>hub_ГГГГ-ММ-ДД.dump</code> (основная база) и <code>n8n_ГГГГ-ММ-ДД.dump</code>. Проверьте, что <code>hub_….dump</code> не пустой (около 3 МБ и более). Дамп для переключения снимается <strong>после</strong> остановки (шаг 2): снятый раньше не содержит последних изменений.
         </div>
       </div>
 
@@ -342,7 +344,7 @@ docker cp postgres_db:/tmp/n8n.dump C:\plc-backups\n8n.dump</div>
         <div>
           <strong>Собрать файлы для переноса</strong> в одну папку (флешка или сетевая папка):
           <ul>
-            <li><code>C:\plc-backups\hub.dump</code> и <code>n8n.dump</code></li>
+            <li>Файлы <code>hub_ДАТА.dump</code> и <code>n8n_ДАТА.dump</code> из <code>C:\plc-backups</code></li>
             <li><code>C:\plc-monitoring-docker-poller\python-async-poller\.env</code></li>
             <li>Папки <code>grafana_data</code> и <code>n8n_data</code> (если используются; перед копированием <code>docker compose stop grafana n8n</code>)</li>
             <li>Папка отчётов <code>C:\Andon-Reports</code></li>
@@ -356,12 +358,12 @@ docker cp postgres_db:/tmp/n8n.dump C:\plc-backups\n8n.dump</div>
         <div class="step-num">5</div>
         <div>
           <strong>Получить код и разложить файлы</strong>
-          <div class="code-block">git clone &lt;адрес вашего репозитория&gt; C:\plc-monitoring-docker-poller
-cd C:\plc-monitoring-docker-poller
-copy &lt;флешка&gt;\.env python-async-poller\.env
-xcopy &lt;флешка&gt;\grafana_data grafana_data /E /I
-xcopy &lt;флешка&gt;\n8n_data n8n_data /E /I
-xcopy &lt;флешка&gt;\Andon-Reports C:\Andon-Reports /E /I</div>
+          <div class="code-block">git clone &lt;адрес вашего репозитория&gt; C:\plc-monitoring-docker-poller</div>
+          <div class="code-block">cd C:\plc-monitoring-docker-poller</div>
+          <div class="code-block">copy &lt;флешка&gt;\.env python-async-poller\.env</div>
+          <div class="code-block">xcopy &lt;флешка&gt;\grafana_data grafana_data /E /I</div>
+          <div class="code-block">xcopy &lt;флешка&gt;\n8n_data n8n_data /E /I</div>
+          <div class="code-block">xcopy &lt;флешка&gt;\Andon-Reports C:\Andon-Reports /E /I</div>
           Если диска C: для отчётов нет или нужен другой путь, создайте в корне проекта файл <code>.env</code> со строкой <code>REPORTS_HOST_DIR=D:/Andon-Reports</code>.
         </div>
       </div>
@@ -370,8 +372,8 @@ xcopy &lt;флешка&gt;\Andon-Reports C:\Andon-Reports /E /I</div>
         <div class="step-num">6</div>
         <div>
           <strong>Запустить только базу данных</strong>
-          <div class="code-block">docker compose up -d postgres
-timeout /t 20</div>
+          <div class="code-block">docker compose up -d postgres</div>
+          <div class="code-block">timeout /t 20</div>
           На пустом томе PostgreSQL сам создаёт две пустые базы по <code>init.sql</code>.
         </div>
       </div>
@@ -380,11 +382,11 @@ timeout /t 20</div>
         <div class="step-num">7</div>
         <div>
           <strong>Восстановить данные</strong> (пересоздаём пустую базу и загружаем в неё дамп)
-          <div class="code-block">docker cp C:\plc-backups\hub.dump postgres_db:/tmp/hub.dump
-'DROP DATABASE "general_data_hub_BD" WITH (FORCE);' | docker exec -i postgres_db psql -U n8n_user -d postgres
-'CREATE DATABASE "general_data_hub_BD";' | docker exec -i postgres_db psql -U n8n_user -d postgres
-docker exec postgres_db pg_restore -U n8n_user -d general_data_hub_BD --no-owner /tmp/hub.dump</div>
-          Предупреждения «errors ignored on restore» безвредны (служебные права). Для N8N повторите то же с <code>n8n.dump</code> и базой <code>n8n_db</code>.
+          <div class="code-block">docker cp C:\plc-backups\hub_ДАТА.dump postgres_db:/tmp/hub.dump</div>
+          <div class="code-block">'DROP DATABASE "general_data_hub_BD" WITH (FORCE);' | docker exec -i postgres_db psql -U n8n_user -d postgres</div>
+          <div class="code-block">'CREATE DATABASE "general_data_hub_BD";' | docker exec -i postgres_db psql -U n8n_user -d postgres</div>
+          <div class="code-block">docker exec postgres_db pg_restore -U n8n_user -d general_data_hub_BD --no-owner /tmp/hub.dump</div>
+          Предупреждения «errors ignored on restore» безвредны (служебные права). Для N8N повторите то же с <code>n8n_ДАТА.dump</code> и базой <code>n8n_db</code>.
         </div>
       </div>
 
@@ -401,8 +403,8 @@ docker exec postgres_db pg_restore -U n8n_user -d general_data_hub_BD --no-owner
         <div class="step-num">9</div>
         <div>
           <strong>Запустить всё остальное</strong>
-          <div class="code-block">docker compose up -d --build
-docker compose ps</div>
+          <div class="code-block">docker compose up -d --build</div>
+          <div class="code-block">docker compose ps</div>
           Все контейнеры должны быть в состоянии <code>running</code>. Недостающие таблицы приложение создаёт само при запуске.
         </div>
       </div>
@@ -465,6 +467,18 @@ docker compose ps</div>
     <!-- ========== РЕШЕНИЕ ПРОБЛЕМ ========== -->
     <section>
       <h2>🔧 Решение проблем</h2>
+
+      <h3>❌ Команда «не сработала», хотя ошибки нет</h3>
+      <ul>
+        <li>Проверьте, не склеились ли две команды в одну строку (например, <code>git pushdocker compose stop</code>): вставляйте и запускайте по одной</li>
+        <li>После остановки проверьте результат: <code>docker ps</code>; после <code>git push</code>: <code>git status -sb</code> (не должно быть <code>ahead</code>)</li>
+      </ul>
+
+      <h3>❌ Команда «не сработала», хотя ошибки нет</h3>
+      <ul>
+        <li>Проверьте, не склеились ли две команды в одну строку (например, <code>git pushdocker compose stop</code>): вставляйте и запускайте по одной</li>
+        <li>После остановки проверьте результат: <code>docker ps</code>; после <code>git push</code>: <code>git status -sb</code> (не должно быть <code>ahead</code>)</li>
+      </ul>
 
       <h3>❌ Контейнеры не запускаются</h3>
       <ul>
