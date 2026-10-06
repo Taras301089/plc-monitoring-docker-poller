@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import os
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
@@ -12,13 +13,15 @@ from typing import Any
 import asyncpg
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from auth import current_user, ensure_auth_schema, require_admin, require_editor, require_user, router as auth_router
 from downtime import ensure_downtime_schema, router as downtime_router
 from history import router as history_router
+from period import router as period_router
+from reports import ensure_reports_schema, reports_loop, router as reports_router
 from activity import ensure_activity_schema, router as activity_router
 from comments import ensure_comments_schema, router as comments_router
 from manual import ensure_manual_schema, seed_manual_screens, router as manual_router
@@ -239,9 +242,12 @@ async def lifespan(app: FastAPI):
     await ensure_comments_schema(app.state.pool)
     await ensure_activity_schema(app.state.pool)
     await seed_manual_screens(app.state.pool)
+    await ensure_reports_schema(app.state.pool)
+    reports_task = asyncio.create_task(reports_loop(app))
     try:
         yield
     finally:
+        reports_task.cancel()
         await app.state.pool.close()
 
 
@@ -250,6 +256,8 @@ app.include_router(auth_router)
 app.include_router(dictionary_router)
 app.include_router(downtime_router)
 app.include_router(history_router)
+app.include_router(period_router)
+app.include_router(reports_router)
 app.include_router(manual_router)
 app.include_router(comments_router)
 app.include_router(activity_router)
@@ -265,9 +273,19 @@ async def no_stale_pages(request, call_next):
     return response
 
 
-@app.get("/", response_class=FileResponse)
-async def index() -> FileResponse:
-    return FileResponse(STATIC_DIR / "index.html")
+_ASSET = re.compile(r'(/static/[\w.\-]+\.(?:js|css))"')
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index() -> HTMLResponse:
+    """Главная страница: к адресам скриптов и стилей добавляется версия (время изменения файла), чтобы браузеры не держали старые копии."""
+    html = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+
+    def versioned(m: re.Match[str]) -> str:
+        path = STATIC_DIR / m.group(1).removeprefix("/static/")
+        return f'{m.group(1)}?v={int(path.stat().st_mtime) if path.is_file() else 0}"'
+
+    return HTMLResponse(_ASSET.sub(versioned, html))
 
 
 @app.get("/{filename}", response_class=FileResponse)
