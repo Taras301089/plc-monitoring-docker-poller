@@ -485,24 +485,28 @@
     .andon-side { display: flex; flex-direction: column; gap: 12px; }
     .tile { background: var(--bg-primary); border-radius: 8px; padding: 12px 14px; box-shadow: var(--shadow-out); }
     .tile label { display: block; margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-secondary); }
-    .tile b { display: block; font: 700 34px Consolas, 'Courier New', monospace; color: var(--fg-primary); text-align: center; background: var(--bg-secondary); border-radius: 6px; padding: 6px 4px; box-shadow: var(--shadow-in); }
+    .tile b { display: block; font: 700 34px 'Segoe UI', Roboto, Arial, sans-serif; color: var(--fg-primary); text-align: center; background: var(--bg-secondary); border-radius: 6px; padding: 6px 4px; box-shadow: var(--shadow-in); }
     .tile small { display: block; margin-top: 6px; font-size: 10px; color: var(--fg-secondary); text-align: center; }
     .andon-clockbox { text-align: center; padding: 6px 0; }
     .andon-date { font: 600 30px 'Segoe UI', sans-serif; color: var(--fg-primary); }
-    .andon-time { font: 700 34px Consolas, monospace; color: var(--accent); margin-top: 4px; }
+    .andon-time { font: 700 34px 'Segoe UI', Roboto, Arial, sans-serif; color: var(--fg-primary); margin-top: 4px; }
     .andon-main { min-width: 0; }
+    .andon-h .brand-logo { height: 1.2em; width: auto; max-width: 3.2em; object-fit: contain; vertical-align: middle; margin-right: .45em; border-radius: .22em; }
     .andon-h { margin: 0 0 10px; font-size: 16px; font-weight: 700; padding: 10px 14px; background: var(--bg-primary); border-radius: 8px; box-shadow: var(--shadow-out); }
     .kpi-table { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--bg-primary); border-radius: 8px; overflow: hidden; box-shadow: var(--shadow-out); }
     .kpi-table th { padding: 8px 10px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-secondary); background: var(--bg-secondary); text-align: center; border-bottom: 1px solid var(--line); }
-    .kpi-table td { padding: 0 10px; height: 36px; text-align: center; font: 600 16px Consolas, 'Courier New', monospace; border-bottom: 1px solid var(--line); }
+    .kpi-table td { padding: 0 10px; height: 36px; text-align: center; font: 600 16px 'Segoe UI', Roboto, Arial, sans-serif; border-bottom: 1px solid var(--line); }
     .kpi-table td.n { color: var(--fg-secondary); font-size: 12px; width: 44px; }
-    .kpi-table td.time { font-size: 16px; white-space: nowrap; }
+    .kpi-table td.time { white-space: nowrap; }
     .kpi-table td.dim { color: var(--fg-secondary); font-weight: 400; }
     .kpi-table tbody tr:nth-child(even) { background: var(--zebra); }
     .kpi-table tr.now { background: color-mix(in srgb, var(--ok) 18%, transparent) !important; box-shadow: inset 3px 0 0 var(--ok); }
     .kpi-table tr.future td { color: var(--fg-secondary); }
     .kpi-table td.fact { position: relative; }
-    .kpi-table td.delta { width: 64px; font-size: 14px; }
+    /* лёгкий акцент на колонке «Факт»: бледно-зелёная подсветка заголовка, ячеек и итога */
+    .kpi-table td.fact, .kpi-table thead th:nth-child(5), .kpi-table tfoot td:nth-child(4) { background-image: linear-gradient(color-mix(in srgb, var(--ok) 9%, transparent), color-mix(in srgb, var(--ok) 9%, transparent)); }
+    .kpi-table thead th:nth-child(5) { color: color-mix(in srgb, var(--ok) 70%, var(--fg-secondary)); }
+    .kpi-table td.delta { width: 64px; }
     .kpi-table .pos { color: var(--ok); }
     .kpi-table .neg { color: var(--danger); }
     .kpi-table tfoot td { background: var(--bg-secondary); font-weight: 700; height: 40px; border-bottom: 0; }
@@ -538,8 +542,7 @@
     .kpi-table th { font-size: clamp(10px, 1.5vh, 17px); padding: 0 6px; height: 1px; }
     .kpi-table td { font-size: clamp(13px, min(2.9vh, 1.9vw), 40px); }
     .kpi-table td.n { font-size: clamp(10px, min(1.7vh, 1.2vw), 20px); width: auto; }
-    .kpi-table td.time { font-size: clamp(13px, min(2.9vh, 1.75vw), 38px); }
-    .kpi-table td.delta { width: auto; font-size: clamp(12px, min(2.6vh, 1.7vw), 36px); }
+    .kpi-table td.delta { width: auto; }
     .kpi-table tfoot td { height: 1px; }
     .kpi-table tfoot td.lbl { font-size: clamp(13px, 2.2vh, 28px); }
     .tile b { font-size: clamp(30px, 15.5cqw, 110px); }
@@ -569,14 +572,26 @@
     .andon-side .tile small { display: none; }
     .andon-main .kpi-wrap { grid-column: 1 / -1; grid-row: 2; }
     /* цифры таблицы растут вместе с высотой строки: чем меньше интервалов (--rows), тем крупнее */
-    .kpi-table td { font-size: clamp(13px, min(calc(56vh / (var(--rows, 9) + 1.5)), 2.6vw), 72px); }
-    .kpi-table td.time { font-size: clamp(13px, min(calc(56vh / (var(--rows, 9) + 1.5)), 1.85vw), 64px); }
-    .kpi-table td.delta { font-size: clamp(12px, min(calc(52vh / (var(--rows, 9) + 1.5)), 2.4vw), 64px); }
+    .kpi-table td { font-size: clamp(13px, min(calc(56vh / (var(--rows, 9) + 1.5)), 1.85vw), 64px); }
     /* дата и время: плитка справа, зеркальная плитке такт-тайма, синий цвет отличает её от такт-тайма; отступ справа оставляет место для LIVE и кнопки (--cluster-w задаёт скрипт) */
     .andon-side .andon-clockbox { grid-column: 3; grid-row: 1; justify-self: end; align-self: center; margin-right: var(--cluster-w, 260px); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 14px; background: var(--bg-primary); border-radius: 8px; box-shadow: var(--shadow-out); }
-    .andon-clockbox .andon-date { font: 600 clamp(10px, 1.7vh, 20px) 'Segoe UI', sans-serif; color: var(--accent); white-space: nowrap; line-height: 1; }
-    .andon-clockbox .andon-time { font: 700 clamp(22px, 4.4vh, 56px) Consolas, 'Courier New', monospace; color: var(--accent); margin: 0; padding: 1px 16px; background: var(--bg-secondary); border-radius: 6px; box-shadow: var(--shadow-in); line-height: 1.1; letter-spacing: 0; }
+    .andon-clockbox .andon-date { font: 600 clamp(10px, 1.7vh, 20px) 'Segoe UI', sans-serif; color: var(--fg-secondary); white-space: nowrap; line-height: 1; }
+    .andon-clockbox .andon-time { font: 700 clamp(22px, 4.4vh, 56px) 'Segoe UI', Roboto, Arial, sans-serif; color: var(--fg-primary); margin: 0; padding: 1px 16px; background: var(--bg-secondary); border-radius: 6px; box-shadow: var(--shadow-in); line-height: 1.1; letter-spacing: 0; }
+    .kpi-table td, .tile b, .andon-time { font-variant-numeric: tabular-nums; }
     @media (max-width: 900px) { .andon-layout { grid-template-columns: 1fr; grid-template-rows: auto; } .andon-h, .andon-side .tile, .andon-main .kpi-wrap, .andon-side .andon-clockbox { grid-column: 1; grid-row: auto; margin-right: 0; justify-self: start; } #andon .andon-top { position: static; height: auto; } }
+    /* средняя ширина (окно на пол-экрана): кнопки идут отдельной строкой над таблицей, а не поверх шапки; заголовки колонок мельче */
+    .kpi-table th { font-size: clamp(9px, min(1.5vh, 1.15vw), 17px); }
+    @media (max-width: 1400px) {
+      #andon .andon-top { position: static; height: auto; flex-wrap: wrap; justify-content: flex-end; margin-bottom: 8px; }
+      #andon .andon-lines { flex: 1; }
+      .andon-side .andon-clockbox { margin-right: 0; }
+      .kpi-table th { letter-spacing: 0; padding: 0 2px; }
+      .andon-side .tile label { max-width: 9em; }
+    }
+    @media (max-width: 1100px) {
+      .andon-side .tile { flex-wrap: wrap; row-gap: 2px; }
+      .andon-side .tile label { max-width: none; flex: 1 0 100%; }
+    }
 
     /* Значения в реальном времени */
     .variables-panel .var-value { font-family: Consolas, 'Courier New', monospace; font-size: 11px; color: var(--vt-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -672,11 +687,12 @@
   <nav class="tabs">
     <button class="tab active" data-tab="browser" title="Просмотр всех переменных ПЛК в реальном времени с возможностью поиска и фильтрации">📊 Переменные ПЛК</button>
     <button class="tab" data-tab="saved" title="Переменные сохранённые в базе данных для дальнейшего анализа и мониторинга">💾 Переменные БД</button>
-    <button class="tab" data-tab="charts" title="Графики и визуализация исторических данных переменных">📈 Графики</button>
+    <button class="tab" data-tab="charts" title="Графики по линии за период: план и факт, простои, причины и станции; каждый график можно выгрузить в Excel">📈 Графики</button>
     <button class="tab" data-tab="notifications" title="Параметры подключения к ПЛК и настройки оповещений">🔔 Оповещения</button>
     <button class="tab" data-tab="andon" title="Dashboard. Информационная панель Andon / KPI: почасовые счётчики кузовов, такт-тайм и показатели производства в реальном времени. Наведите, чтобы выбрать бренд и участок">📺 Andon / KPI <span class="tab-caret">▾</span></button>
     <button class="tab" data-tab="downtimes" id="tab-downtimes" title="Все простои за период одним списком: по одной строке на каждую причину, с описаниями и комментариями">⏱ Простои</button>
     <button class="tab" data-tab="dictionary" id="tab-dictionary" hidden title="Справочники простоев: причины, участки и станции для описания простоев (редактируют администратор и начальники)">📚 Справочники</button>
+    <button class="tab" data-tab="reports" id="tab-reports" hidden title="Автосохранение отчётов дня по линиям в папку на ПК с сервисом: включить, указать время сохранения, сохранить сейчас (только администратор)">📁 Отчёты</button>
     <button class="tab" data-tab="users" id="tab-users" hidden title="Пользователи системы: создание учётных записей, роли, сброс паролей (только для администратора)">👥 Пользователи</button>
     <div class="tabs-divider"></div>
     <div class="tabs-tools">
@@ -782,6 +798,7 @@
     </div>
 
     <!-- TAB 6: Users (admin) -->
+    <div id="reports" class="tab-content"></div>
     <div id="users" class="tab-content"></div>
 
     <!-- TAB: Справочники простоев (админ и начальники) -->
@@ -799,7 +816,7 @@
           <input type="date" id="andon-day-date" title="Выберите день, чтобы посмотреть таблицу за него (по данным, сохранённым в базе)">
           <button type="button" id="andon-day-next" title="Следующий день">▶</button>
           <button type="button" id="andon-day-today" hidden title="Вернуться к живому экрану за сегодня">Сегодня</button>
-          <button type="button" id="andon-day-xlsx" title="Выгрузить таблицу выбранного дня в Excel (.xlsx): интервалы, план, факт, простои, причины и комментарии">⬇ Excel</button>
+          <button type="button" id="andon-excel" title="Выгрузить в Excel (.xlsx): один день (по умолчанию показанный на экране) или любой период с графиками, таблицами по дням, причинам и станциям">⬇ Excel</button>
         </div>
         <span id="andon-badge" class="live-badge off" title="Данные читаются из ПЛК раз в секунду, пока открыта эта вкладка">● пауза</span>
         <button type="button" id="andon-edit" class="andon-edit" title="Настроить время окончания часовых интервалов смены и плановое количество кузовов по интервалам для выбранной линии">⚙ Смена и план</button>
@@ -1683,6 +1700,18 @@
       } catch { /* повторим на следующем тике */ } finally { andonLoading = false; }
     }
 
+    // Логотип бренда рядом с названием: файл static/logos/<бренд>.svg|png|webp (gwm, chery, changan); нет файла — логотип не показывается; у AE логотипа нет
+    const LOGO_EXT = ['svg', 'png', 'webp'];
+    window.brandLogoNext = img => {
+      const i = Number(img.dataset.i) + 1;
+      if (i < LOGO_EXT.length) { img.dataset.i = i; img.src = `/static/logos/${img.dataset.k}.${LOGO_EXT[i]}`; } else img.remove();
+    };
+    window.brandLogo = name => {
+      const key = String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (!key || key === 'ae') return '';
+      return `<img class="brand-logo" alt="" data-k="${key}" data-i="0" src="/static/logos/${key}.${LOGO_EXT[0]}" onerror="brandLogoNext(this)">`;
+    };
+
     function buildKpiLayout(screen, n) {
       andonBody.innerHTML = `
         <div class="andon-layout">
@@ -1693,18 +1722,18 @@
             <div class="andon-clockbox" title="Дата и время сервиса на ПК (не часы телевизора или браузера)"><div class="andon-date" data-k="date"></div><div class="andon-time" data-k="time"></div></div>
           </aside>
           <div class="andon-main">
-            <h2 class="andon-h" title="Бренд (линия), по которому показаны данные">${screen.name}</h2>
+            <h2 class="andon-h" title="Бренд (линия), по которому показаны данные">${window.brandLogo(screen.name)}${screen.name}</h2>
             <div class="kpi-wrap"><table class="kpi-table">
-              <colgroup><col style="width:3%"><col style="width:14%"><col style="width:5%"><col style="width:5%"><col style="width:8%"><col style="width:5%"><col style="width:9%"><col style="width:10%"><col style="width:41%"></colgroup>
+              <colgroup><col style="width:3%"><col style="width:14%"><col style="width:5%"><col style="width:5%"><col style="width:8%"><col style="width:5%"><col style="width:13%"><col style="width:10%"><col style="width:37%"></colgroup>
               <thead><tr>
                 <th title="Номер часового интервала смены">№</th>
                 <th title="Время начала и окончания интервала: начало берётся из ПЛК, окончание из настроек смены">Время</th>
                 <th title="Длительность интервала в минутах">Мин.</th>
                 <th title="Плановое количество кузовов за интервал (задаётся в настройках «Смена и план»)">План</th>
-                <th title="Фактическое количество кузовов, прошедших линию за интервал">Кол-во кузовов</th>
+                <th title="Фактическое количество кузовов, прошедших линию за интервал">Факт</th>
                 <th title="Отклонение факта от плана: зелёный — выполнено, красный — отставание">±</th>
                 <th title="Такт-тайм за интервал: сколько минут:секунд в среднем уходит на один кузов">Такт-тайм за период</th>
-                <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой</th>
+                <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой, мин</th>
                 <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
               </tr></thead>
               <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td data-k="takt"></td><td class="dt" data-k="dt"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
@@ -1713,6 +1742,7 @@
           </div>
         </div>`;
       andonBody.querySelector('.plan-cell').addEventListener('click', () => openBrandPlanDialog(screen));
+      window.attachColWidths(andonBody.querySelector('.kpi-table'), 'andon-kpi');
       loadPlanLast(screen);
     }
 
@@ -1910,7 +1940,7 @@
           <div class="andon-main">
             <h2 class="andon-h" title="Линия Finish Line, по которой показаны данные">${screen.name}</h2>
             <div class="kpi-wrap"><table class="kpi-table">
-              <colgroup><col style="width:3%"><col style="width:10%"><col style="width:5%"><col style="width:5%"><col style="width:5%"><col style="width:5%">${FL_MODELS.map(() => '<col style="width:5%">').join('')}<col style="width:9%"><col style="width:11%"><col style="width:27%"></colgroup>
+              <colgroup><col style="width:3%"><col style="width:10%"><col style="width:5%"><col style="width:5%"><col style="width:5%"><col style="width:5%">${FL_MODELS.map(() => '<col style="width:5%">').join('')}<col style="width:13%"><col style="width:11%"><col style="width:23%"></colgroup>
               <thead><tr>
                 <th title="Номер часового интервала смены">№</th>
                 <th title="Время начала и окончания интервала: начало берётся из ПЛК, окончание из настроек">Время</th>
@@ -1920,7 +1950,7 @@
                 <th title="Отклонение факта от плана (по ПЛК) для завершённых интервалов: красный — отставание">±</th>
                 ${FL_MODELS.map(m => `<th title="Количество кузовов модели ${m} за интервал">${m}</th>`).join('')}
                 <th title="Такт-тайм за интервал: сколько минут:секунд в среднем уходит на один кузов">Такт-тайм за период</th>
-                <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой</th>
+                <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой, мин</th>
                 <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
               </tr></thead>
               <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td>${FL_MODELS.map(m => `<td data-k="m_${m}"></td>`).join('')}<td data-k="takt"></td><td class="dt" data-k="dt"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
@@ -1929,6 +1959,7 @@
           </div>
         </div>`;
       andonBody.querySelector('.plan-cell').addEventListener('click', () => openPlanDialog(screen));
+      window.attachColWidths(andonBody.querySelector('.kpi-table'), 'andon-fl');
       loadPlanLast(screen);
     }
 
@@ -2330,6 +2361,10 @@
   <script src="/static/dictionary.js"></script>
   <script src="/static/activity.js"></script>
   <script src="/static/downtime.js"></script>
+  <script src="/static/colwidths.js"></script>
+  <script src="/static/reports.js"></script>
+  <script src="/static/period.js"></script>
+  <script src="/static/charts.js"></script>
   <script src="/static/manual.js"></script>
   <script src="/static/downtimes.js"></script>
   <script src="/static/archive.js"></script>

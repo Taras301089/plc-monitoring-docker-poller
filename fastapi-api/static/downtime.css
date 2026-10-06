@@ -1,7 +1,7 @@
 /* Простои на экранах Andon */
 .dt-btn { min-height: 0; height: 78%; padding: 0 .7em; border-radius: 4px; font: 700 inherit 'Segoe UI', sans-serif; font-size: .8em; cursor: pointer; border: 0; box-shadow: none; }
-.dt-btn.bad { background: color-mix(in srgb, var(--danger) 22%, transparent) !important; color: var(--danger); box-shadow: inset 3px 0 0 var(--danger); }
-.dt-btn.part { background: color-mix(in srgb, var(--warn) 22%, transparent) !important; color: var(--warn); box-shadow: inset 3px 0 0 var(--warn); }
+.dt-btn.bad { background: color-mix(in srgb, var(--danger) 11%, transparent) !important; color: color-mix(in srgb, var(--danger) 72%, var(--fg-primary)); box-shadow: none; }
+.dt-btn.part { background: color-mix(in srgb, var(--danger) 11%, transparent) !important; color: color-mix(in srgb, var(--danger) 72%, var(--fg-primary)); box-shadow: none; }
 .dt-btn.ok { background: transparent !important; color: inherit; box-shadow: inset 0 0 0 1px var(--line); }
 .dt-btn { white-space: nowrap; }
 .dt-btn:hover { filter: brightness(1.2); }
@@ -107,14 +107,14 @@
 .kpi-table td.why { text-align: left; font-size: clamp(11px, min(2vh, 1.2vw), 26px); line-height: 1.2; overflow: hidden; }
 .kpi-table td.why > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kpi-table td.why .why-main { font-weight: 600; color: var(--fg-primary); }
-.kpi-table td.why .why-more { display: inline-block; margin-top: 2px; padding: 0 7px; border-radius: 9px; font-size: .8em; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.kpi-table td.why .why-more { display: inline-block; margin-top: 2px; padding: 0 7px; border-radius: 9px; font-size: .8em; font-weight: 700; color: var(--fg-primary); background: color-mix(in srgb, var(--fg-secondary) 24%, transparent); }
 .kpi-table td.why .why-none { color: var(--fg-secondary); font-size: .85em; }
 .kpi-table th:last-child { text-align: left; }
 .kpi-table td.why .why-row { display: flex; align-items: center; gap: 6px; }
 .kpi-table td.why .why-row .why-main { display: block; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kpi-table td.why .why-row .why-more { flex: none; margin-top: 0; }
 .kpi-table td.why .why-note { color: var(--fg-secondary); font-size: .88em; font-style: italic; }
-.kpi-table td.why .why-more { display: inline-block; margin: 0 0 0 6px; padding: 0 7px; border-radius: 9px; font-size: .85em; font-style: normal; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.kpi-table td.why .why-more { display: inline-block; margin: 0 0 0 6px; padding: 0 7px; border-radius: 9px; font-size: .85em; font-style: normal; font-weight: 700; color: var(--fg-primary); background: color-mix(in srgb, var(--fg-secondary) 24%, transparent); }
 
 /* Индикатор производства рядом с брендом: идёт работа, перерыв или обед */
 .andon-state { display: inline-block; vertical-align: middle; margin-left: 4px; padding: 3px 12px; border-radius: 12px; font: 700 clamp(11px, 1.9vh, 22px) 'Segoe UI', sans-serif; white-space: nowrap; letter-spacing: 0; }
@@ -129,10 +129,11 @@
 .kpi-table td.dt .dt-btn { max-width: 100%; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis; }
 .kpi-table td.why { padding-left: 16px; padding-right: 8px; }
 @media (max-width: 1300px) {
-  .kpi-table td.dt .dt-btn { padding: 0 .4em; font-size: .72em; }
+  .kpi-table td.dt .dt-btn { padding: 0 .4em; }
   .kpi-table td.dt .dt-go, .kpi-table td.dt .dt-cm { display: none; }
 }
-.kpi-table td.why .why-comment { color: var(--accent); font-size: .9em; }
+.kpi-table td.why .why-comment { color: var(--fg-secondary); font-size: .9em; }
+.kpi-table td.why .why-who { color: var(--fg-primary); font-weight: 700; }
 
 /* Навигация по дням и выгрузка в Excel в верхней строке Andon */
 .andon-day { display: flex; align-items: center; gap: 4px; }
@@ -143,8 +144,7 @@
 body.andon-archive .kpi-table .plan-cell { pointer-events: none; }
 body.andon-archive .andon-day input[type="date"] { box-shadow: inset 0 0 0 1px var(--warn); }
 /* надпись кнопки простоя не крупнее, чем помещается в её колонку (около 10% ширины окна) */
-.kpi-table td.dt .dt-btn { font-size: min(.8em, 1.3vw); }
-@media (max-width: 1300px) { .kpi-table td.dt .dt-btn { font-size: min(.72em, 1.3vw); } }
+.kpi-table td.dt .dt-btn { font-size: 1em; }
 
 /* Карандаш у плана на день: не переносится на вторую строку, не растягивает ячейку */
 .kpi-table td.plan-edit { position: relative; padding-right: 24px; }
@@ -152,3 +152,72 @@ body.andon-archive .andon-day input[type="date"] { box-shadow: inset 0 0 0 1px v
 
 /* Больше отступа между такт-тайма и простоя */
 .kpi-table td[data-k="takt"] { padding-right: 32px; }
+
+/* Ручка изменения ширины столбца в заголовке таблицы */
+.kpi-table th { position: relative; }
+.col-grip { position: absolute; top: 0; right: -4px; width: 9px; height: 100%; cursor: col-resize; z-index: 3; touch-action: none; }
+.col-grip::after { content: ''; position: absolute; top: 22%; bottom: 22%; left: 4px; width: 1px; background: var(--fg-secondary); opacity: .45; }
+.col-grip:hover::after, .col-grip.drag::after { opacity: 0; }
+.col-grip:hover, .col-grip.drag { background: color-mix(in srgb, var(--accent) 55%, transparent); }
+
+/* Окно автосохранения отчётов */
+.rep-box { width: min(900px, 96vw); }
+.rep-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+.rep-table td { padding: 6px 8px; font-size: 13px; text-align: left; border-top: 1px solid var(--line); }
+.rep-table input[type="time"] { width: 110px; min-height: 30px; text-align: center; }
+.rep-table input[type="checkbox"] { width: auto; min-height: 0; }
+.rep-table .rep-st { font-size: 12px; color: var(--fg-secondary); }
+.rep-table .rep-name { font-weight: 600; }
+.rep-err { color: var(--danger); }
+.rep-file { color: var(--fg-primary); word-break: break-all; }
+.rep-dir { color: var(--fg-primary); }
+
+/* Окно «Отчёт за период» */
+.per-box { width: min(520px, 94vw); }
+.per-row { display: flex; gap: 14px; margin-bottom: 10px; }
+.per-row label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.per-row input[type="date"] { min-height: 32px; text-align: center; }
+.per-presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+
+/* Вкладка «Графики» */
+.ch-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 12px; }
+.ch-bar label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--fg-secondary); }
+.ch-bar select, .ch-bar input[type="date"] { min-height: 32px; font-size: 13px; }
+.ch-presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.ch-tiles { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.ch-tile { min-width: 120px; padding: 8px 14px; background: var(--bg-primary); border-radius: 6px; box-shadow: var(--shadow-out); }
+.ch-tile span { display: block; font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-secondary); }
+.ch-tile b { display: block; margin-top: 2px; font-size: 22px; font-variant-numeric: tabular-nums; }
+.ch-tile.ch-ok b { color: var(--ok); }
+.ch-tile.ch-bad b { color: color-mix(in srgb, var(--danger) 72%, var(--fg-primary)); }
+.ch-grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); gap: 12px; }
+.ch-card { min-width: 0; padding: 10px 12px; background: var(--bg-primary); border-radius: 6px; box-shadow: var(--shadow-out); }
+.ch-card header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.ch-card h3 { margin: 0; font-size: 14px; font-weight: 700; }
+.ch-xl { min-height: 28px; padding: 0 12px; font-size: 12px; white-space: nowrap; }
+.ch-legend { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 12px; color: var(--fg-secondary); }
+.ch-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-left: 10px; }
+.ch-legend i:first-child { margin-left: 0; }
+.ch-l-plan { background: color-mix(in srgb, var(--fg-secondary) 55%, transparent); }
+.ch-l-fact { background: var(--accent); }
+.ch-l-pct { background: var(--ok); border-radius: 6px !important; height: 4px !important; }
+.ch-body { min-height: 60px; }
+.ch-svg { display: block; max-width: 100%; }
+.ch-svg .ch-grid { stroke: var(--line); stroke-width: 1; }
+.ch-svg .ch-tick { fill: var(--fg-secondary); font: 11px 'Segoe UI', Roboto, Arial, sans-serif; }
+.ch-svg .ch-val { fill: var(--fg-primary); font: 600 11px 'Segoe UI', Roboto, Arial, sans-serif; }
+.ch-svg .ch-plan { fill: color-mix(in srgb, var(--fg-secondary) 55%, transparent); }
+.ch-svg .ch-fact { fill: var(--accent); }
+.ch-svg .ch-down { fill: color-mix(in srgb, var(--danger) 70%, transparent); }
+.ch-svg .ch-line { fill: none; stroke: var(--ok); stroke-width: 2.2; stroke-linejoin: round; }
+.ch-svg .ch-line-b { stroke: var(--fg-secondary); }
+.ch-svg .ch-dot { fill: var(--bg-primary); stroke: var(--ok); stroke-width: 2; }
+.ch-svg .ch-dot-b { stroke: var(--fg-secondary); }
+.ch-svg .ch-hit { fill: transparent; }
+.ch-svg .ch-hit:hover { fill: color-mix(in srgb, var(--fg-primary) 6%, transparent); }
+.ch-empty { padding: 28px 8px; text-align: center; font-size: 13px; color: var(--fg-secondary); }
+
+/* Вкладка «Отчёты» */
+.rep-pane { max-width: 1000px; }
+.rep-pane .hint { margin: 0 0 12px; font-size: 12px; color: var(--fg-secondary); }
+.rep-actions { display: flex; justify-content: flex-end; }

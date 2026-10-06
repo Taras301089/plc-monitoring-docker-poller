@@ -33,7 +33,7 @@
           <div class="andon-clockbox" title="Дата и время сервиса на ПК (не часы телевизора или браузера)"><div class="andon-date" data-k="date"></div><div class="andon-time" data-k="time"></div></div>
         </aside>
         <div class="andon-main">
-          <h2 class="andon-h">${esc(screen.bindings.brand)}: ${esc(screen.bindings.area)}
+          <h2 class="andon-h">${window.brandLogo(screen.bindings.brand)}${esc(screen.bindings.brand)}: ${esc(screen.bindings.area)}
             <button type="button" class="man-log-btn" data-act="log" title="Журнал ввода: кто и когда менял план и факт по этому участку">📜 Журнал</button></h2>
           <div class="kpi-wrap"><table class="kpi-table">
             <colgroup><col style="width:4%"><col style="width:13%"><col style="width:6%"><col style="width:8%"><col style="width:10%"><col style="width:7%"><col style="width:12%"><col style="width:40%"></colgroup>
@@ -44,7 +44,7 @@
               <th title="Плановое количество подсборок за интервал: вводится вручную">План</th>
               <th title="Фактическое количество подсборок за интервал: вводится вручную. Пока не введено, простой не считается">Факт</th>
               <th title="Отклонение факта от плана для завершённых интервалов: красный — отставание">±</th>
-              <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой</th>
+              <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой, мин</th>
               <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
             </tr></thead>
             <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td class="man" data-k="plan"></td><td class="man fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td class="dt" data-k="dt"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
@@ -53,6 +53,7 @@
         </div>
       </div>`;
     root.querySelector('[data-act="log"]').addEventListener('click', () => openLog(screen));
+    window.attachColWidths(root.querySelector('.kpi-table'), 'andon-manual');
     root.querySelector('tbody').addEventListener('click', e => {
       const td = e.target.closest('td.man');
       if (td) startEdit(screen, td);

@@ -7,7 +7,6 @@
   const prev = document.querySelector('#andon-day-prev');
   const next = document.querySelector('#andon-day-next');
   const todayBtn = document.querySelector('#andon-day-today');
-  const xlsx = document.querySelector('#andon-day-xlsx');
   let data = null;
   let loadedKey = '';
   let loading = false;
@@ -41,14 +40,6 @@
   next.addEventListener('click', () => { if (window.andonDay) setDay(addDays(window.andonDay, 1)); });
   todayBtn.addEventListener('click', () => setDay(null));
   input.addEventListener('change', () => setDay(input.value || null));
-  xlsx.addEventListener('click', () => {
-    const id = andonScreenId;
-    if (typeof id !== 'number') return;
-    const a = document.createElement('a');
-    a.href = `/api/kpi/screens/${id}/day.xlsx?date=${window.andonDay || today()}`;
-    a.download = '';
-    document.body.appendChild(a); a.click(); a.remove();
-  });
   input.max = today();
   input.value = today();
   next.disabled = true;

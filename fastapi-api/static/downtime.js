@@ -69,7 +69,7 @@
             : `Простой ${fmt(d.minutes)} мин: факт ${d.fact} против плана ${d.plan}. Не описано ${fmt(left)} мин${state === 'part' ? ` (на кнопке: всего/не описано)` : ''}. Нажмите, чтобы указать станцию и причину`)
             + (d.comments ? `. Комментариев: ${d.comments}` : '');
           // частично описанный простой: «всего/не описано», например 50/25; иначе просто минуты
-          const label = state === 'part' ? `${fmt(d.minutes)}/${fmt(left)}` : `${fmt(d.minutes)} мин`;
+          const label = state === 'part' ? `${fmt(d.minutes)}/${fmt(left)}` : fmt(d.minutes);
           // число комментариев в кнопке не показываем: сами комментарии выводятся в колонке «Причина»
           td.innerHTML = `<button type="button" class="dt-btn ${state}" title="${esc(title)}">${label}<span class="dt-go" aria-hidden="true">›</span></button>`;
           td.querySelector('button').addEventListener('click', () => openPanel(screen, d.idx, tr));
@@ -112,11 +112,11 @@
           lines.push({ c: 'why-main', t: `${x.place ? x.place + ' · ' : ''}${x.reason}${all.length > 1 ? ' · ' + fmt(x.min) + ' мин' : ''}` });
           shown++;
           if (x.note && lines.length < MAX_LINES) lines.push({ c: 'why-note', t: x.note });
-          if (x.comment && lines.length < MAX_LINES) lines.push({ c: 'why-comment', t: `💬 ${x.comment.user_name}: ${x.comment.text}` });
+          if (x.comment && lines.length < MAX_LINES) lines.push({ c: 'why-comment', h: `💬 <b class="why-who">${esc(x.comment.user_name)}</b>: ${esc(x.comment.text)}` });
         }
         if (left > 0.5 && lines.length < MAX_LINES) lines.push({ c: 'why-none', t: `не описано ${fmt(left)} мин` });
         const hidden = all.length - shown;
-        html = lines.map((l, i) => `<span class="${l.c}">${esc(l.t)}${i === lines.length - 1 && hidden > 0 ? ` <span class="why-more">+${hidden}</span>` : ''}</span>`).join('');
+        html = lines.map((l, i) => `<span class="${l.c}">${l.h || esc(l.t)}${i === lines.length - 1 && hidden > 0 ? ` <span class="why-more">+${hidden}</span>` : ''}</span>`).join('');
         title = all.map(x => `${x.place ? x.place + ' · ' : ''}${x.reason}: ${fmt(x.min)} мин${x.note ? ' — ' + x.note : ''}${x.comment ? `\n   💬 ${x.comment.user_name}: ${x.comment.text}` : ''}`).join('\n')
           + (left > 0.5 ? `\nНе описано ${fmt(left)} мин` : '');
       }
