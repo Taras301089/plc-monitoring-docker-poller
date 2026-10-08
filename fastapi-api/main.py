@@ -4,11 +4,12 @@ import asyncio
 import json
 import re
 import os
+import time
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import asyncpg
 import httpx
@@ -26,6 +27,7 @@ from reports import ensure_reports_schema, reports_loop, router as reports_route
 from activity import ensure_activity_schema, router as activity_router
 from comments import ensure_comments_schema, router as comments_router
 from backups import router as backups_router
+from trends import ensure_trends_schema, router as trends_router
 from manual import ensure_manual_schema, seed_manual_screens, router as manual_router
 from dictionary import ensure_dictionary_schema, seed_dictionary, router as dictionary_router
 
@@ -83,6 +85,18 @@ BODY_COUNTER_ROLES = {
     "shMin": "stat_Shift_Takt_Min",
     "shSec": "stat_Shift_Takt_Sec",
 }
+
+
+async def ensure_plc_order(pool: asyncpg.Pool) -> None:
+    """Порядок ПЛК в списке (общий для всех): колонка sort_order; ПЛК без номера встают в конец по id."""
+    await pool.execute("ALTER TABLE plcs ADD COLUMN IF NOT EXISTS sort_order INTEGER")
+    await pool.execute(
+        """
+        UPDATE plcs p SET sort_order = (SELECT COALESCE(max(sort_order), 0) FROM plcs) + s.rn
+        FROM (SELECT id, row_number() OVER (ORDER BY id) AS rn FROM plcs WHERE sort_order IS NULL) s
+        WHERE p.id = s.id
+        """
+    )
 
 
 async def ensure_kpi_schema(pool: asyncpg.Pool) -> None:
@@ -234,6 +248,8 @@ async def ensure_kpi_schema(pool: asyncpg.Pool) -> None:
 async def lifespan(app: FastAPI):
     app.state.pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
     await ensure_kpi_schema(app.state.pool)
+    await ensure_plc_order(app.state.pool)
+    await ensure_trends_schema(app.state.pool)
     # Интервал, снятый галочкой в «Плане на день», не показывается на экране Andon (если в нём нет кузовов)
     await app.state.pool.execute("ALTER TABLE kpi_schedule ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE")
     await ensure_auth_schema(app.state.pool)
@@ -266,6 +282,7 @@ app.include_router(manual_router)
 app.include_router(comments_router)
 app.include_router(activity_router)
 app.include_router(backups_router)
+app.include_router(trends_router)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
@@ -319,19 +336,54 @@ async def server_time() -> dict[str, Any]:
     }
 
 
+PLC_STATUS_STALE_SEC = 180   # статус связи старше этого (поллер молчит) не считается подтверждением связи
+
+
+def plc_link_state(is_active: bool, is_connected: bool | None, status_age: int | None) -> str:
+    """ok: связь ЕСТЬ (свежий успешный опрос); no_link: поллер не может подключиться; stale: статус давно не обновлялся
+    (поллер не работает); unknown: записи статуса нет; off: ПЛК выключен из опроса."""
+    if not is_active:
+        return "off"
+    if is_connected is None or status_age is None:
+        return "unknown"
+    if status_age > PLC_STATUS_STALE_SEC:
+        return "stale"
+    return "ok" if is_connected else "no_link"
+
+
+_scan_cache: dict[str, Any] = {"at": 0.0, "ages": {}}
+
+
+async def plc_scan_ages(pool: asyncpg.Pool) -> dict[int, int]:
+    """Сколько секунд назад по каждому ПЛК обновляли список переменных («Обновить с ПЛК»); значение кэшируется на 30 с."""
+    if time.monotonic() - _scan_cache["at"] > 30:
+        rows = await pool.fetch(
+            "SELECT plc_id, extract(epoch FROM (now() - max(updated_at)))::int AS age FROM plc_discovered_nodes GROUP BY plc_id"
+        )
+        _scan_cache["ages"] = {r["plc_id"]: r["age"] for r in rows}
+        _scan_cache["at"] = time.monotonic()
+    return _scan_cache["ages"]
+
+
 @app.get("/api/plcs")
 async def list_plcs() -> list[dict[str, Any]]:
     pool = await get_pool(app)
+    scan_ages = await plc_scan_ages(pool)
     rows = await pool.fetch(
         """
-        SELECT id, name, opc_endpoint, is_active
-        FROM plcs
-        ORDER BY id
+        SELECT p.id, p.name, p.opc_endpoint, p.is_active,
+               s.is_connected, COALESCE(NULLIF(s.last_error, ''), '') AS link_error,
+               extract(epoch FROM (now() - s.last_successful_poll))::int AS poll_age_sec,
+               extract(epoch FROM (now() - s.updated_at))::int AS status_age_sec
+        FROM plcs p LEFT JOIN plc_connection_status s ON s.plc_id = p.id
+        ORDER BY p.sort_order NULLS LAST, p.id
         """
     )
     result = []
     for row in rows:
         d = dict(row)
+        d["link_state"] = plc_link_state(d["is_active"], d.pop("is_connected"), d["status_age_sec"])
+        d["scan_age_sec"] = scan_ages.get(d["id"])
         if d['opc_endpoint']:
             import re
             match = re.search(r'://([^:]+)', d['opc_endpoint'])
@@ -345,6 +397,7 @@ async def list_plcs() -> list[dict[str, Any]]:
 class CreatePlcRequest(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     opc_endpoint: str = Field(min_length=1, max_length=1024)
+    is_active: bool | None = None   # «Включён в опрос»: не задан — при создании включён, при правке остаётся как был
 
 
 @app.post("/api/plcs")
@@ -353,13 +406,14 @@ async def create_plc(request: CreatePlcRequest, _: dict[str, Any] = Depends(requ
     try:
         plc_id = await pool.fetchval(
             """
-            INSERT INTO plcs (name, opc_endpoint, is_active)
-            VALUES ($1, $2, TRUE)
+            INSERT INTO plcs (name, opc_endpoint, is_active, sort_order)
+            VALUES ($1, $2, $3, (SELECT COALESCE(max(sort_order), 0) + 1 FROM plcs))
             RETURNING id
             """,
-            request.name, request.opc_endpoint
+            request.name, request.opc_endpoint, True if request.is_active is None else request.is_active
         )
-        return {"id": plc_id, "name": request.name, "opc_endpoint": request.opc_endpoint, "is_active": True}
+        return {"id": plc_id, "name": request.name, "opc_endpoint": request.opc_endpoint,
+                "is_active": True if request.is_active is None else request.is_active}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -370,11 +424,11 @@ async def update_plc(plc_id: int, request: CreatePlcRequest, _: dict[str, Any] =
     try:
         result = await pool.fetchrow(
             """
-            UPDATE plcs SET name = $1, opc_endpoint = $2
+            UPDATE plcs SET name = $1, opc_endpoint = $2, is_active = COALESCE($4::boolean, is_active)
             WHERE id = $3
             RETURNING id, name, opc_endpoint, is_active
             """,
-            request.name, request.opc_endpoint, plc_id
+            request.name, request.opc_endpoint, plc_id, request.is_active
         )
         if not result:
             raise HTTPException(status_code=404, detail="ПЛК не найден")
@@ -386,6 +440,28 @@ async def update_plc(plc_id: int, request: CreatePlcRequest, _: dict[str, Any] =
         return d
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+class MovePlcRequest(BaseModel):
+    direction: Literal["up", "down"]
+
+
+@app.put("/api/plcs/{plc_id}/move")
+async def move_plc(plc_id: int, body: MovePlcRequest, _: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
+    """Сдвинуть ПЛК на одну позицию выше или ниже в общем списке (на краю списка ничего не меняется)."""
+    pool = await get_pool(app)
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute("LOCK TABLE plcs IN SHARE ROW EXCLUSIVE MODE")
+            ids = [r["id"] for r in await conn.fetch("SELECT id FROM plcs ORDER BY sort_order NULLS LAST, id")]
+            if plc_id not in ids:
+                raise HTTPException(status_code=404, detail="ПЛК не найден")
+            i = ids.index(plc_id)
+            j = i - 1 if body.direction == "up" else i + 1
+            if 0 <= j < len(ids):
+                ids[i], ids[j] = ids[j], ids[i]
+            await conn.executemany("UPDATE plcs SET sort_order = $2 WHERE id = $1", [(pid, n + 1) for n, pid in enumerate(ids)])
+    return {"order": ids}
 
 
 @app.delete("/api/plcs/{plc_id}")

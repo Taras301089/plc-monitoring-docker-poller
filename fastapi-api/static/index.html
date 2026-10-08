@@ -454,6 +454,12 @@
     .plc-picker-actions { position: absolute; right: 34px; top: 50%; transform: translateY(-50%); display: flex; gap: 2px; padding-left: 8px; border-left: 1px solid var(--line); }
     .plc-icon-btn { width: 28px; height: 28px; min-height: 0 !important; padding: 0 !important; display: flex; align-items: center; justify-content: center; background: transparent !important; color: var(--fg-secondary) !important; box-shadow: none !important; border-radius: 4px; }
     .plc-icon-btn:hover:not(:disabled) { filter: none; background: var(--bg-tertiary) !important; }
+    .plc-icon-btn:disabled { opacity: .25 !important; cursor: default; }
+    .plc-dd-row.off .plc-dd-name { opacity: .5; }
+    .kpi-table td.plan-cell-edit { cursor: pointer; }
+    .kpi-table td.plan-cell-edit:hover { background: var(--hover, rgba(76,154,255,.10)); }
+    .plan-inline { width: 3.4em; font: inherit; text-align: center; color: var(--fg-primary); background: var(--bg-primary); border: 1px solid var(--accent); border-radius: 4px; padding: 0 2px; }
+    .plc-link { font-size: var(--fs-small); white-space: nowrap; margin-left: 10px; color: var(--fg-tertiary); overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
     .plc-edit:hover { color: var(--accent) !important; }
     .plc-add:hover { color: var(--ok) !important; }
     .plc-delete:hover { color: var(--danger) !important; background: color-mix(in srgb, var(--danger) 15%, transparent) !important; }
@@ -644,6 +650,7 @@
     .plc-dd-trigger:hover:not(:disabled) { border-color: var(--accent) !important; filter: none; }
     .plc-dd-trigger svg { color: var(--accent); flex: none; }
     .plc-dd-current { display: flex; align-items: center; gap: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .plc-dd-num { flex: none; min-width: 2ch; text-align: right; color: var(--fg-tertiary); font-size: var(--fs-small); font-variant-numeric: tabular-nums; }
     .plc-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
     .plc-dot.on { background: var(--ok); box-shadow: 0 0 6px color-mix(in srgb, var(--ok) 60%, transparent); }
     .plc-dot.off { background: var(--danger); }
@@ -711,6 +718,7 @@
   <nav class="tabs">
     <button class="tab active" data-tab="andon" title="Dashboard. Информационная панель Andon / KPI: почасовые счётчики кузовов, такт-тайм и показатели производства в реальном времени. Наведите, чтобы выбрать бренд и участок">📺 Andon / KPI <span class="tab-caret">▾</span></button>
     <button class="tab" data-tab="charts" title="Графики по линии за период: план и факт, простои, причины и станции; каждый график можно выгрузить в Excel">📈 Графики</button>
+    <button class="tab" data-tab="trends" title="Технические графики за период: связь с ПЛК (когда связь была и когда пропадала), выгрузка в Excel">📉 Тренды</button>
     <button class="tab" data-tab="reports" id="tab-reports" title="Отчёт дня по линии: график план/факт и таблица как в файле Excel, выбор дня и скачивание; администратор здесь же настраивает автосохранение отчётов в папку">📁 Отчёты</button>
     <button class="tab" data-tab="downtimes" id="tab-downtimes" title="Все простои за период одним списком: по одной строке на каждую причину, с описаниями и комментариями">⏱ Простои</button>
     <button class="tab" data-tab="notifications" title="Параметры подключения к ПЛК и настройки оповещений">🔔 Оповещения</button>
@@ -759,6 +767,9 @@
           <input id="new-plc-ip" placeholder="IP адрес" title="IP адрес устройства ПЛК">
           <input id="new-plc-port" type="number" placeholder="Порт" value="4840" title="OPC UA порт (обычно 4840)">
         </div>
+        <label style="display: flex; gap: 6px; align-items: center; margin-top: 8px;" title="Если включено, сборщик данных опрашивает этот ПЛК; выключенный ПЛК остаётся в списке, но данные с него не собираются">
+          <input id="new-plc-active" type="checkbox" checked title="Включён в опрос: сборщик данных опрашивает этот ПЛК; снимите флажок, чтобы временно прекратить опрос, не удаляя ПЛК"> Включён в опрос
+        </label>
         <div style="display: flex; gap: 8px; margin-top: 8px;">
           <button id="add-plc" style="padding: 6px 12px; font-size: 12px; flex: 1;" title="Добавить новый ПЛК в систему">✓ Добавить</button>
           <button id="cancel-add-plc" style="padding: 6px 12px; font-size: 12px; background: var(--button-tertiary); border-color: var(--button-tertiary);" title="Отменить добавление">✕ Отмена</button>
@@ -772,6 +783,9 @@
           <input id="edit-plc-ip" placeholder="IP адрес" title="IP адрес устройства ПЛК">
           <input id="edit-plc-port" type="number" placeholder="Порт" title="OPC UA порт (обычно 4840)">
         </div>
+        <label style="display: flex; gap: 6px; align-items: center; margin-top: 8px;" title="Если включено, сборщик данных опрашивает этот ПЛК; выключенный ПЛК остаётся в списке, но данные с него не собираются">
+          <input id="edit-plc-active" type="checkbox" title="Включён в опрос: сборщик данных опрашивает этот ПЛК; снимите флажок, чтобы временно прекратить опрос, не удаляя ПЛК"> Включён в опрос
+        </label>
         <div style="display: flex; gap: 8px; margin-top: 8px;">
           <button id="save-plc" style="padding: 6px 12px; font-size: 12px; flex: 1; background: var(--button-secondary); border-color: var(--button-secondary);" title="Сохранить изменения">✓ Сохранить</button>
           <button id="cancel-edit-plc" style="padding: 6px 12px; font-size: 12px; background: var(--button-tertiary); border-color: var(--button-tertiary);" title="Отменить редактирование">✕ Отмена</button>
@@ -822,6 +836,7 @@
     </div>
 
     <!-- TAB 6: Users (admin) -->
+    <div id="trends" class="tab-content"></div>
     <div id="reports" class="tab-content"></div>
     <div id="users" class="tab-content"></div>
 
@@ -893,6 +908,8 @@
     const plcTrigger = document.querySelector('#plc-dd-trigger');
     const plcList = document.querySelector('#plc-dd-list');
     const iconEdit = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+    const iconUp = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>';
+    const iconDown = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
     const iconDelete = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
     const iconAdd = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
 
@@ -911,23 +928,81 @@
       plc.dispatchEvent(new Event('change'));
     }
 
-    function renderPlcDropdown() {
+    // Статус опроса рядом с ПЛК: зелёная точка = связь ЕСТЬ (свежий успешный опрос), красная = связи нет; флаг «Включён в опрос» точкой не показывается
+    function plcAge(sec) {
+      if (sec == null) return '';
+      if (sec < 60) return `${sec} с`;
+      if (sec < 3600) return `${Math.floor(sec / 60)} мин`;
+      if (sec < 172800) return `${Math.floor(sec / 3600)} ч`;
+      return `${Math.floor(sec / 86400)} дн`;
+    }
+    function plcStatusHtml(item) {
+      const safe = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      // справа только давность последнего обновления списка переменных с ПЛК; точка говорит о связи, причина ошибки в её подсказке
+      const scan = item.scan_age_sec == null ? 'не сканировался' : `${plcAge(item.scan_age_sec)} назад`;
+      const scanTitle = item.scan_age_sec == null
+        ? 'Список переменных этого ПЛК ещё ни разу не загружали (кнопка «Обновить с ПЛК»)'
+        : 'Когда последний раз обновляли список переменных с ПЛК (кнопка «Обновить с ПЛК»)';
+      const mk = (dot, dotTitle, text, textTitle) => ({
+        dot: dot ? `<span class="plc-dot ${dot}" title="${safe(dotTitle)}"></span>` : '',
+        text: `<span class="plc-link" title="${safe(textTitle)}">${safe(text)}</span>`
+      });
+      switch (item.link_state) {
+        case 'ok':
+          return mk('on', 'Связь есть: сборщик данных успешно опрашивает этот ПЛК', scan, scanTitle);
+        case 'no_link':
+          return mk('off', `Связи нет: сборщик данных не смог подключиться к ПЛК или прочитать данные. Причина: ${item.link_error || 'нет ответа'}`, scan, scanTitle);
+        case 'stale':
+          return mk('off', 'Связи нет: сборщик данных давно не обновлял статус этого ПЛК (остановлен или нет связи с базой)', scan, scanTitle);
+        case 'off':
+          return mk('', '', 'выключен', 'ПЛК выключен из опроса (флажок «Включён в опрос»): данные с него не собираются');
+        case 'lost':
+          return mk('', '', '—', 'Нет связи с сайтом: состояние ПЛК неизвестно');
+        default:
+          return mk('off', 'Связи нет: о связи с этим ПЛК нет записей, сборщик данных ещё не опрашивал его', scan, scanTitle);
+      }
+    }
+
+    // Статус опроса обновляется сам, не перезагружая переменные (после двух неудачных запросов подряд показывается «—»)
+    let plcStatusFails = 0;
+    async function refreshPlcStatus() {
+      if (document.hidden || !plcItems.length) return;
+      try {
+        const response = await fetch('/api/plcs', { signal: AbortSignal.timeout(6000) });
+        if (!response.ok) throw new Error('status');
+        plcItems = await response.json();
+        plcStatusFails = 0;
+      } catch {
+        if (++plcStatusFails < 2) return;
+        plcItems = plcItems.map(i => ({ ...i, link_state: 'lost' }));
+      }
+      renderPlcDropdown(!plcList.hidden);   // пока список открыт, перерисовывается только закрытое поле
+    }
+
+    function renderPlcDropdown(triggerOnly = false) {
       const current = plcItems.find(i => String(i.id) === plc.value);
       plcTrigger.querySelector('.plc-dd-current').innerHTML = current
-        ? `<span class="plc-dot ${current.is_active ? 'on' : 'off'}"></span>${current.name} - ${current.ip_address || 'N/A'}`
+        ? `<span class="plc-dd-num" title="Порядковый номер ПЛК в списке, только для удобства; меняется при добавлении, удалении и смене порядка">${plcItems.indexOf(current) + 1}</span>${plcStatusHtml(current).dot}${current.name} - ${current.ip_address || 'N/A'}${plcStatusHtml(current).text}`
         : 'Нет ПЛК';
-      plcList.replaceChildren(...plcItems.map(item => {
+      if (triggerOnly) return;
+      plcList.replaceChildren(...plcItems.map((item, idx) => {
         const li = document.createElement('li');
-        li.className = 'plc-dd-row' + (String(item.id) === plc.value ? ' selected' : '');
+        li.className = 'plc-dd-row' + (String(item.id) === plc.value ? ' selected' : '') + (item.is_active ? '' : ' off');
         li.setAttribute('role', 'option');
         const admin = isAdminUser();
         li.innerHTML = `
-          <span class="plc-dot ${item.is_active ? 'on' : 'off'}" title="${item.is_active ? 'На связи' : 'Отключён'}"></span>
+          <span class="plc-dd-num" title="Порядковый номер ПЛК в списке, только для удобства; меняется при добавлении, удалении и смене порядка">${idx + 1}</span>
+          ${plcStatusHtml(item).dot}
           <span class="plc-dd-name">${item.name} - ${item.ip_address || 'N/A'}</span>
-          ${admin ? `<button type="button" class="plc-icon-btn plc-edit" title="Редактировать ПЛК «${item.name}»: изменить имя, IP-адрес и порт OPC UA">${iconEdit}</button>
+          ${plcStatusHtml(item).text}
+          ${admin ? `<button type="button" class="plc-icon-btn plc-up"${idx === 0 ? ' disabled' : ''} title="Поднять ПЛК «${item.name}» на одну позицию выше в списке; порядок общий для всех пользователей">${iconUp}</button>
+          <button type="button" class="plc-icon-btn plc-down"${idx === plcItems.length - 1 ? ' disabled' : ''} title="Опустить ПЛК «${item.name}» на одну позицию ниже в списке; порядок общий для всех пользователей">${iconDown}</button>
+          <button type="button" class="plc-icon-btn plc-edit" title="Редактировать ПЛК «${item.name}»: изменить имя, IP-адрес и порт OPC UA">${iconEdit}</button>
           <button type="button" class="plc-icon-btn plc-delete" title="Удалить ПЛК «${item.name}» из системы вместе с его списком переменных">${iconDelete}</button>` : ''}`;
         li.addEventListener('click', () => selectPlc(item.id));
         if (admin) {
+          li.querySelector('.plc-up').addEventListener('click', e => { e.stopPropagation(); movePlc(item.id, 'up'); });
+          li.querySelector('.plc-down').addEventListener('click', e => { e.stopPropagation(); movePlc(item.id, 'down'); });
           li.querySelector('.plc-edit').addEventListener('click', e => { e.stopPropagation(); setPlcDdOpen(false); openEditPlc(item.id); });
           li.querySelector('.plc-delete').addEventListener('click', e => { e.stopPropagation(); setPlcDdOpen(false); deletePlc(item.id); });
         }
@@ -1005,13 +1080,14 @@
           body: JSON.stringify({
             name,
             opc_endpoint: `opc.tcp://${ip}:${port}`,
-            is_active: true
+            is_active: document.getElementById('new-plc-active').checked
           })
         });
         if (!response.ok) throw new Error('Ошибка добавления ПЛК');
         document.getElementById('new-plc-name').value = '';
         document.getElementById('new-plc-ip').value = '';
         document.getElementById('new-plc-port').value = '4840';
+        document.getElementById('new-plc-active').checked = true;
         document.getElementById('add-plc-form').style.display = 'none';
         loadPlcs();
         setStatus('success', 'Готово', 'Новый ПЛК добавлен');
@@ -1026,6 +1102,7 @@
       document.getElementById('new-plc-name').value = '';
       document.getElementById('new-plc-ip').value = '';
       document.getElementById('new-plc-port').value = '4840';
+      document.getElementById('new-plc-active').checked = true;
     });
 
     // Редактировать ПЛК
@@ -1038,6 +1115,7 @@
       document.getElementById('edit-plc-name').value = item.name;
       document.getElementById('edit-plc-ip').value = m ? m[1] : (item.ip_address || '');
       document.getElementById('edit-plc-port').value = m && m[2] ? m[2] : '4840';
+      document.getElementById('edit-plc-active').checked = item.is_active !== false;
       document.getElementById('edit-plc-form').style.display = 'block';
     }
 
@@ -1059,7 +1137,8 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name,
-            opc_endpoint: `opc.tcp://${ip}:${port}`
+            opc_endpoint: `opc.tcp://${ip}:${port}`,
+            is_active: document.getElementById('edit-plc-active').checked
           })
         });
         if (!response.ok) throw new Error('Ошибка сохранения ПЛК');
@@ -1077,6 +1156,29 @@
     });
 
     // Удалить ПЛК
+    setInterval(refreshPlcStatus, 5000);
+
+    // Сдвиг ПЛК выше/ниже: порядок общий для всех, сохраняется на сервере; список остаётся открытым, переменные не перезагружаются
+    async function movePlc(id, direction) {
+      try {
+        const response = await fetch(`/api/plcs/${id}/move`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ direction })
+        });
+        if (!response.ok) throw new Error('Не удалось изменить порядок ПЛК');
+        const { order } = await response.json();
+        const byId = new Map(plcItems.map(i => [i.id, i]));
+        plcItems = order.map(i => byId.get(i)).filter(Boolean);
+        const previous = plc.value;
+        plc.replaceChildren(...plcItems.map(item => new Option(item.name, item.id)));
+        plc.value = previous;
+        renderPlcDropdown();
+      } catch (error) {
+        setStatus('error', 'Ошибка', error.message);
+      }
+    }
+
     async function deletePlc(id) {
       const item = plcItems.find(i => i.id === id);
       if (!confirm(`Удалить ПЛК «${item ? item.name : id}» из системы?`)) return;
@@ -1776,7 +1878,7 @@
                 <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой, мин</th>
                 <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
               </tr></thead>
-              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td data-k="takt"></td><td class="dt" data-k="dt"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
+              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan" class="plan-cell-edit" title="Нажмите, чтобы изменить план этого интервала: Enter сохраняет, Esc отменяет (кто может менять план, определяется ролью)"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td data-k="takt"></td><td class="dt" data-k="dt"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
               <tfoot><tr><td></td><td class="lbl" colspan="2">Итого</td><td class="plan-cell" data-k="planSum" title="План на день"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td><td data-k="shTakt"></td><td></td><td></td></tr></tfoot>
             </table></div>
           </div>
@@ -1787,19 +1889,63 @@
     }
 
     // ----- План на день у линий брендов: хранится на сайте и раскладывается по интервалам -----
-    // Пропорционально длительности интервалов (остатки округления — интервалам с наибольшей дробной частью),
-    // затем первый интервал на 1 меньше (раскачка смены), пятый — на 1 больше (после обеда)
+    // Пропорционально длительности интервалов; первый интервал на 1 меньше (раскачка смены, как делает мастер на бумаге);
+    // остатки округления получают интервалы с наибольшей дробной частью (первый интервал остатков не получает)
     function distributePlan(total, mins) {
       const sum = mins.reduce((s, m) => s + m, 0);
       if (!sum || total <= 0) return mins.map(() => 0);
       const raw = mins.map(m => (total * m) / sum);
       const out = raw.map(Math.floor);
+      const cut = out.length >= 2 && out[0] > 0 ? 1 : 0;
+      out[0] -= cut;
       let left = total - out.reduce((s, x) => s + x, 0);
-      raw.map((x, i) => [x - Math.floor(x), i]).sort((a, b) => b[0] - a[0] || a[1] - b[1])
-        .forEach(([, i]) => { if (left > 0) { out[i] += 1; left -= 1; } });
-      if (out.length >= 5 && out[0] > 0) { out[0] -= 1; out[4] += 1; }
+      const order = raw.map((x, i) => [x - Math.floor(x), i]).filter(([, i]) => !(cut && i === 0))
+        .sort((a, b) => b[0] - a[0] || a[1] - b[1]).map(([, i]) => i);
+      for (let k = 0; left > 0 && order.length; k = (k + 1) % order.length) { out[order[k]] += 1; left -= 1; }
       return out;
     }
+
+    // Правка плана одного интервала прямо в таблице Andon: клик по числу плана, Enter сохраняет, Esc отменяет;
+    // сохраняется тем же запросом, что и окно «Смена и план» (изменение попадает в журнал изменений плана)
+    function editIntervalPlan(td) {
+      if (!canEditPlan()) { showToast('Менять план могут вошедшие пользователи (роль, кроме «Просмотр»)'); return; }
+      const screen = selectedScreen();
+      if (!screen || screen.template !== 'body_counter' || !andonLast || td.querySelector('input')) return;
+      const i = Number(td.closest('tr').dataset.i);
+      const old = intervalCfg(screen.id, i, andonLast.starts).plan;
+      const inp = document.createElement('input');
+      inp.type = 'number'; inp.min = '0'; inp.max = '999'; inp.step = '1'; inp.value = String(old); inp.className = 'plan-inline';
+      inp.title = `План интервала ${i + 1}: введите число и нажмите Enter, чтобы сохранить, или Esc, чтобы отменить`;
+      td.textContent = ''; td.appendChild(inp); inp.focus(); inp.select();
+      let done = false;
+      const finish = async save => {
+        if (done) return;
+        done = true;
+        const v = parseInt(inp.value, 10);
+        if (!save || !Number.isInteger(v) || v < 0 || v > 999 || v === old) { td.textContent = String(old); return; }
+        try {
+          const items = Array.from({ length: andonLast.n }, (_, k) => {
+            const c = intervalCfg(screen.id, k, andonLast.starts);
+            return { idx: k + 1, end_min: c.end, plan: k === i ? v : c.plan, active: c.active };
+          });
+          const r = await fetch(`/api/kpi/screens/${screen.id}/schedule`, {
+            method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items }), signal: AbortSignal.timeout(6000),
+          });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Не удалось сохранить план интервала');
+          await loadKpiCfg(screen.id, true);
+          loadPlanLast(screen);
+          showToast(`План интервала ${i + 1}: ${old} → ${v}`);
+        } catch (ex) { td.textContent = String(old); showToast(ex.message); }
+      };
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') finish(true); else if (e.key === 'Escape') finish(false); });
+      inp.addEventListener('blur', () => finish(true));
+    }
+    document.addEventListener('click', e => {
+      const td = e.target.closest && e.target.closest('td[data-k="plan"]');
+      if (td && td.closest('tbody') && andonBody.contains(td)) editIntervalPlan(td);
+    });
 
     // Одно окно «Смена и план» линии бренда (открывается кликом по «Итого»): план на день с распределением,
     // время окончания интервалов, ручная правка плана интервала и галочки «показывать интервал на экране»
@@ -1824,7 +1970,7 @@
       modal.innerHTML = `
         <div class="kpi-modal-box auth-modal bp-box" role="dialog" aria-label="Смена и план">
           <h3>Смена и план — ${screen.name}</h3>
-          <p class="hint">Введите план на день: он разложится по отмеченным интервалам пропорционально их длительности, первый интервал на 1 меньше, пятый (после обеда) на 1 больше. План интервала можно поправить вручную. Начало интервала берётся из ПЛК, окончание можно изменить. Интервалы без галочки не показываются на экране.</p>
+          <p class="hint">Введите план на день: он разложится по отмеченным интервалам пропорционально их длительности, первый интервал на 1 меньше (раскачка смены), остатки округления получают интервалы с наибольшей дробной частью. План интервала можно поправить вручную. Начало интервала берётся из ПЛК, окончание можно изменить. Интервалы без галочки не показываются на экране.</p>
           <form>
             <label>План на день, кузовов</label>
             <input name="value" type="number" min="0" max="500" step="1" value="${current}" title="Сколько кузовов линия должна сделать за день: число разложится по отмеченным интервалам">
@@ -1921,7 +2067,7 @@
       const q = k => andonBody.querySelector(`[data-k="${k}"]`);
       const set = (el, text) => { if (el && el.textContent !== text) el.textContent = text; };
       paintTakt(screen, val('curMin'), val('curSec'));
-      let planSum = 0, deltaSum = 0, hasDelta = false;
+      let planSum = 0;
       andonBody.querySelectorAll('tbody tr').forEach(tr => {
         const i = Number(tr.dataset.i);
         const cfg = intervalCfg(screen.id, i, starts);
@@ -1933,12 +2079,11 @@
         const c = k => tr.querySelector(`[data-k="${k}"]`);
         set(c('time'), `${hhmm(starts[i] ?? 0)}-${hhmm(cfg.end)}`);
         set(c('min'), String(Math.max(0, cfg.end - (starts[i] ?? 0))));
-        set(c('plan'), String(cfg.plan));
+        if (!c('plan').querySelector('input')) set(c('plan'), String(cfg.plan));   // пока интервал правят, перерисовка не затирает поле
         set(c('fact'), String(fact));
         const dc = c('delta');
         if (idx && i + 1 < idx && (cfg.plan || fact)) {
           const d = fact - cfg.plan;
-          deltaSum += d; hasDelta = true;
           set(dc, d > 0 ? `+${d}` : String(d));
           dc.className = 'delta ' + (d >= 0 ? 'pos' : 'neg');
         } else { set(dc, ''); dc.className = 'delta'; }
@@ -1953,10 +2098,12 @@
       pc.classList.toggle('plan-edit', canEditPlan());
       pc.title = (canEditPlan() ? 'Нажмите, чтобы ввести план на день: он разложится по интервалам. ' : 'План на день. Чтобы изменить, войдите в систему (роль кроме «Просмотр»). ') + (planLast[screen.id] || '');
       set(q('tot'), tot === null ? '—' : String(tot));
+      // «ИТОГО ±» живое: итоговый факт минус итоговый план, не дожидаясь закрытия текущего интервала (по строкам «±» ставится после закрытия)
       const ds = q('deltaSum');
-      if (hasDelta) {
-        set(ds, deltaSum > 0 ? `+${deltaSum}` : String(deltaSum));
-        ds.className = 'delta ' + (deltaSum >= 0 ? 'pos' : 'neg');
+      if (tot !== null && tot !== undefined) {
+        const live = tot - planSum;
+        set(ds, live > 0 ? `+${live}` : String(live));
+        ds.className = 'delta ' + (live >= 0 ? 'pos' : 'neg');
       } else set(ds, '');
       set(q('shTakt'), val('shMin') === null ? '—' : mmss(val('shMin'), val('shSec') || 0));
       andonLast = { starts, n };
@@ -2421,6 +2568,7 @@
   <script src="/static/reports.js"></script>
   <script src="/static/period.js"></script>
   <script src="/static/charts.js"></script>
+  <script src="/static/trends.js"></script>
   <script src="/static/manual.js"></script>
   <script src="/static/downtimes.js"></script>
   <script src="/static/archive.js"></script>
