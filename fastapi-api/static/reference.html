@@ -110,7 +110,16 @@
     [data-theme] .warning { background: color-mix(in srgb, var(--danger) 12%, var(--bg-secondary)); color: var(--danger); }
     .warning-box { margin: 12px 0; padding: 10px 14px; border-radius: 4px; background: color-mix(in srgb, var(--danger) 12%, var(--bg-secondary)); box-shadow: inset 4px 0 0 var(--danger); }
     .step-num { background: var(--accent); }
-    * { scrollbar-width: thin; scrollbar-color: rgba(125,135,148,.4) transparent; }  </style>
+    * { scrollbar-width: thin; scrollbar-color: rgba(125,135,148,.4) transparent; }    /* Раздел «Бэкапы» */
+    .bk-tiles { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+    .bk-tile { flex: 1 1 180px; padding: 10px 14px; border-radius: 4px; background: var(--bg-secondary); box-shadow: inset 4px 0 0 var(--accent); }
+    .bk-tile.ok { box-shadow: inset 4px 0 0 var(--ok); }
+    .bk-tile.bad { box-shadow: inset 4px 0 0 var(--danger); background: color-mix(in srgb, var(--danger) 12%, var(--bg-secondary)); }
+    .bk-tile small { display: block; color: var(--fg-tertiary); }
+    .bk-tile b { display: block; font-size: 16px; font-variant-numeric: tabular-nums; }
+    .bk-num { text-align: right; font-variant-numeric: tabular-nums; }
+    #backups-section table td.bk-num { text-align: right; }
+  </style>
   <link rel="stylesheet" href="/static/auth.css">
   <link rel="stylesheet" href="/static/downtime.css">
 </head>
@@ -286,6 +295,30 @@ C:\plc-monitoring-docker-poller/
 
       <h3>Регулярный бэкап</h3>
       <p>Автоматического бэкапа в проекте <strong>нет</strong>: его нужно настроить. Рекомендуется ежедневно снимать дамп обеих баз в папку <span class="highlight">C:\plc-backups</span> (вне папки проекта) через «Планировщик заданий» Windows и раз в неделю копировать эту папку на другой диск или сетевую папку. Команды дампа даны в шаге 3 плана переноса ниже.</p>
+    </section>
+
+    <!-- ========== БЭКАПЫ (только администратор, данные из GET /api/backups) ========== -->
+    <section id="backups-section" hidden>
+      <h2>💽 Бэкапы и место на диске</h2>
+      <p id="bk-summary" title="Сводка по бэкапам: когда сняты последние дампы, каков их статус и сколько места осталось на диске C:"></p>
+      <div id="bk-tiles" class="bk-tiles"></div>
+      <h3>Дампы в папке бэкапов</h3>
+      <table id="bk-files">
+        <thead><tr>
+          <th title="Имя файла дампа: hub — основная база, n8n — база сценариев; в имени дата снятия">Файл</th>
+          <th title="Когда файл был создан или изменён (время этого ПК)">Создан</th>
+          <th class="bk-num" title="Размер файла дампа на диске">Размер</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+      <h3>Самые большие таблицы базы</h3>
+      <table id="bk-tables">
+        <thead><tr>
+          <th title="Имя таблицы в основной базе данных">Таблица</th>
+          <th class="bk-num" title="Размер таблицы вместе с индексами">Размер</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
     </section>
 
     <!-- ========== ПЕРЕНОС НА ДРУГОЙ ПК ========== -->
@@ -523,6 +556,7 @@ C:\plc-monitoring-docker-poller/
 
   </main>
   <script src="/static/refnav.js"></script>
+  <script src="/static/backups.js"></script>
   <script>
 function initTheme() {
       const saved = localStorage.getItem('theme');

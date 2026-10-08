@@ -25,6 +25,7 @@ from period import router as period_router
 from reports import ensure_reports_schema, reports_loop, router as reports_router
 from activity import ensure_activity_schema, router as activity_router
 from comments import ensure_comments_schema, router as comments_router
+from backups import router as backups_router
 from manual import ensure_manual_schema, seed_manual_screens, router as manual_router
 from dictionary import ensure_dictionary_schema, seed_dictionary, router as dictionary_router
 
@@ -264,6 +265,7 @@ app.include_router(reports_router)
 app.include_router(manual_router)
 app.include_router(comments_router)
 app.include_router(activity_router)
+app.include_router(backups_router)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 

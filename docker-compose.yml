@@ -48,10 +48,12 @@ services:
       KPI_UTC_OFFSET_HOURS: "5"
       REPORTS_DIR: /reports
       REPORTS_HOST_DIR: ${REPORTS_HOST_DIR:-C:/Andon-Reports}
+      BACKUP_DIR: /backups
     ports:
       - "8000:8000"
     volumes:
       - ${REPORTS_HOST_DIR:-C:/Andon-Reports}:/reports
+      - ${BACKUP_HOST_DIR:-C:/plc-backups}:/backups:ro
     depends_on:
       - postgres
       - plc-monitoring-docker-poller
