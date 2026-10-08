@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
 
 from downtime import _screen_path
-from history import download_name, safe_name
+from history import cumulative_day, download_name, safe_name
 
 router = APIRouter(prefix="/api/kpi")
 
@@ -20,8 +20,8 @@ MAX_DAYS = 366
 UNDESCRIBED = "не описан"
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 GRID = {"visible": True, "line": {"color": "#D9D9D9"}}
-KIND_FILE = {"plan_fact": "план-факт", "downtime": "простои", "reasons": "причины", "stations": "станции"}
-KINDS = {"plan_fact": "план-факт по дням", "downtime": "простои по дням", "reasons": "парето причин", "stations": "станции"}
+KIND_FILE = {"plan_fact": "план-факт", "downtime": "простои", "reasons": "причины", "stations": "станции", "cumulative": "накопленный"}
+KINDS = {"plan_fact": "план-факт по дням", "downtime": "простои по дням", "reasons": "парето причин", "stations": "станции", "cumulative": "накопленное производство за день"}
 
 
 async def _load(pool: asyncpg.Pool, screen_id: int, d1: date, d2: date) -> dict[str, Any]:
@@ -144,6 +144,51 @@ def _chart_stations(wb, sheet: str, n: int, c_name=1, c_min=2, r0=0):
     ch.set_legend({"none": True})
     ch.set_size({"width": 640, "height": 420})
     return ch
+
+
+def _chart_cumulative(wb, sheet: str, n: int, r0=0):
+    """Накопленные план и факт линиями, разница (факт минус план) столбцами на той же шкале."""
+    cats = [sheet, r0 + 1, 0, r0 + n, 0]
+    col = wb.add_chart({"type": "column"})
+    col.add_series({"name": "Разница (факт − план)", "categories": cats, "values": [sheet, r0 + 1, 5, r0 + n, 5], "fill": {"color": "#E88B8B"},
+                    "invert_if_negative": False, "gap": 80})
+    ln = wb.add_chart({"type": "line"})
+    ln.add_series({"name": "Накопленный план", "categories": cats, "values": [sheet, r0 + 1, 3, r0 + n, 3],
+                   "line": {"color": "#8FA3BF", "width": 2.25}, "marker": {"type": "circle", "size": 5}})
+    ln.add_series({"name": "Накопленный факт", "categories": cats, "values": [sheet, r0 + 1, 4, r0 + n, 4],
+                   "line": {"color": "#2F80ED", "width": 2.25}, "marker": {"type": "circle", "size": 5}})
+    col.combine(ln)
+    col.set_title({"name": "Накопленное производство за день"})
+    col.set_x_axis({"name": "Интервал", "label_position": "low"})
+    col.set_y_axis({"name": "Кузовов", "major_gridlines": GRID})
+    col.set_legend({"position": "bottom"})
+    col.set_size({"width": 860, "height": 340})
+    return col
+
+
+def build_cumulative_workbook(line: str, day: date, rows: list[dict[str, Any]]) -> bytes:
+    """Книга одного графика «накопленное производство за день»: таблица данных и диаграмма как на экране."""
+    buf = io.BytesIO()
+    wb = xlsxwriter.Workbook(buf, {"in_memory": True})
+    f = _fmts(wb)
+    ws = wb.add_worksheet("Данные")
+    ws.write_row(0, 0, ["Интервал", "План", "Факт", "Накопленный план", "Накопленный факт", "Разница (факт − план)"], f["head"])
+    for r, d in enumerate(rows, start=1):
+        ws.write(r, 0, d["label"])
+        ws.write(r, 1, d["plan"])
+        ws.write(r, 2, d["fact"])
+        ws.write_formula(r, 3, f"=SUM(B$2:B{r + 1})", None, d["cum_plan"])
+        ws.write_formula(r, 4, f"=SUM(C$2:C{r + 1})", None, d["cum_fact"])
+        ws.write_formula(r, 5, f"=E{r + 1}-D{r + 1}", None, d["diff"])
+    ws.set_column(0, 0, 14)
+    ws.set_column(1, 5, 18)
+    ws.freeze_panes(1, 0)
+    n = len(rows)
+    ws.write(n + 3, 0, f"{line}, {day.strftime('%d.%m.%Y')}", f["bold"])
+    if n:
+        ws.insert_chart("H2", _chart_cumulative(wb, "Данные", n))
+    wb.close()
+    return buf.getvalue()
 
 
 def _fmts(wb) -> dict[str, Any]:
@@ -411,6 +456,14 @@ async def charts_data(
     }
 
 
+@router.get("/charts/cumulative")
+async def cumulative_data(request: Request, screen_id: int = Query(), day: date = Query(alias="date")) -> dict[str, Any]:
+    """Накопленный план и факт по интервалам за один день для вкладки «Графики»; доступны всем."""
+    pool: asyncpg.Pool = request.app.state.pool
+    line, _ = await _screen_line(pool, screen_id)
+    return {"line": line, "date": day.isoformat(), "intervals": await cumulative_day(pool, screen_id, day)}
+
+
 @router.get("/screens/{screen_id}/chart.xlsx")
 async def chart_xlsx(
     screen_id: int, request: Request, kind: str = Query(),
@@ -422,6 +475,13 @@ async def chart_xlsx(
     _check_period(date_from, date_to)
     pool: asyncpg.Pool = request.app.state.pool
     line, folder = await _screen_line(pool, screen_id)
+    if kind == "cumulative":
+        if date_from != date_to:
+            raise HTTPException(status_code=400, detail="График показывается за один день")
+        rows = await cumulative_day(pool, screen_id, date_from)
+        if not rows:
+            raise HTTPException(status_code=404, detail="За выбранный день нет данных по этой линии")
+        return _xlsx_response(build_cumulative_workbook(line, date_from, rows), f"{folder}_{KIND_FILE[kind]}_{date_from.isoformat()}.xlsx", src)
     data = await _load(pool, screen_id, date_from, date_to)
     if not data["days"] and not data["items"]:
         raise HTTPException(status_code=404, detail="За выбранный период нет данных по этой линии")

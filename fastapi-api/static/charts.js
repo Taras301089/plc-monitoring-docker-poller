@@ -19,6 +19,7 @@
   const state = { screen: null, from: '', to: '' };
   let screens = [];
   let data = null;
+  let cum = null;
   let built = false;
   let loadToken = 0;
   let loadedAt = 0;
@@ -28,6 +29,7 @@
     { kind: 'downtime', title: 'Простой по дням, мин', tip: 'Сколько минут линия простаивала в каждый день (отставание от плана)' },
     { kind: 'reasons', title: 'Парето причин простоя (топ-10)', tip: 'Причины по убыванию минут простоя; линия показывает накопленную долю: сколько простоя дают первые причины' },
     { kind: 'stations', title: 'Простой по станциям (топ-15)', tip: 'Станции с наибольшими минутами простоя за период' },
+    { kind: 'cumulative', title: 'Накопленное производство за день', tip: 'Линии: накопленные план и факт по интервалам смены; столбцы: разница факта и плана (ниже нуля: отстаём от плана)' },
   ];
 
   const presets = () => {
@@ -161,6 +163,34 @@
     return frame(W, H, g);
   }
 
+  // накопленный план и факт линиями, разница столбцами от нулевой линии (одна шкала)
+  function chartCumulative(rows, W) {
+    if (!rows.length) return empty('Нет данных за выбранный день');
+    const H = 300, m = { l: 46, r: 16, t: 22, b: 34 };
+    const n = rows.length, iw = W - m.l - m.r, ih = H - m.t - m.b, gw = iw / n, bw = Math.max(4, Math.min(30, gw * 0.5));
+    const top = Math.max(...rows.map(r => Math.max(r.cum_plan, r.cum_fact)), 1);
+    const low = Math.min(0, ...rows.map(r => r.diff));
+    const step = niceStep((top - low) / 5);
+    const max = Math.ceil(top / step) * step, min = Math.floor(low / step) * step;
+    const ticks = [];
+    for (let v = min; v <= max + step / 1000; v += step) ticks.push(v);
+    const yv = v => m.t + ih * (1 - (v - min) / (max - min));
+    let g = ticks.map(v => `<line class="ch-grid" x1="${m.l}" x2="${W - m.r}" y1="${yv(v)}" y2="${yv(v)}"/><text class="ch-tick" x="${m.l - 6}" y="${yv(v) + 4}" text-anchor="end">${v}</text>`).join('');
+    const pp = [], pf = [];
+    let bars = '', dots = '';
+    rows.forEach((r, i) => {
+      const x0 = m.l + gw * i + gw / 2;
+      const y0 = yv(0), yd = yv(r.diff);
+      const tip = `${r.label}: план ${r.plan}, факт ${r.fact}; накоплено план ${r.cum_plan}, факт ${r.cum_fact}, разница ${r.diff > 0 ? '+' : ''}${r.diff}`;
+      bars += `<rect class="${r.diff < 0 ? 'ch-down' : 'ch-ahead'}" x="${x0 - bw / 2}" y="${Math.min(y0, yd)}" width="${bw}" height="${Math.max(1, Math.abs(y0 - yd))}"/>`;
+      pp.push(`${x0},${yv(r.cum_plan)}`); pf.push(`${x0},${yv(r.cum_fact)}`);
+      dots += `<circle class="ch-dot ch-dot-b" cx="${x0}" cy="${yv(r.cum_plan)}" r="3.5"/><circle class="ch-dot ch-dot-f" cx="${x0}" cy="${yv(r.cum_fact)}" r="3.5"/>`;
+      if (gw >= 46) dots += `<text class="ch-val" x="${x0}" y="${yv(Math.max(r.cum_plan, r.cum_fact)) - 8}" text-anchor="middle">${r.cum_fact}</text>`;
+      dots += `<rect class="ch-hit" x="${x0 - gw / 2}" y="${m.t}" width="${gw}" height="${ih}"><title>${esc(tip)}</title></rect>`;
+    });
+    return frame(W, H, g + bars + `<polyline class="ch-line ch-line-b" points="${pp.join(' ')}"/><polyline class="ch-line ch-line-f" points="${pf.join(' ')}"/>` + dots + xLabels(rows.map(r => r.label), m, W, H));
+  }
+
   // ---------- каркас вкладки ----------
   function summaryTiles(d) {
     const tp = d.days.reduce((s, x) => s + x.plan, 0), tf = d.days.reduce((s, x) => s + x.fact, 0);
@@ -194,6 +224,7 @@
         <section class="ch-card" data-kind="${c.kind}">
           <header><h3 title="${esc(c.tip)}">${esc(c.title)}</h3>
             <button type="button" class="dt-sec ch-xl" data-kind="${c.kind}" title="Выгрузить в Excel данные этого графика и сам график (диаграмма Excel) за выбранный период">⬇ Excel</button></header>
+          ${c.kind === 'cumulative' ? '<div class="ch-legend"><i class="ch-l-plan"></i>Накопленный план<i class="ch-l-fact"></i>Накопленный факт<i class="ch-l-down"></i>Отставание от плана<i class="ch-l-ahead"></i>Опережение плана</div>' : ''}
           ${c.kind === 'plan_fact' ? '<div class="ch-legend"><i class="ch-l-plan"></i>План<i class="ch-l-fact"></i>Факт<i class="ch-l-pct"></i>% выполнения</div>' : ''}
           <div class="ch-body" data-body="${c.kind}"></div>
         </section>`).join('')}</div>`;
@@ -237,6 +268,29 @@
     body('downtime').innerHTML = chartDowntime(data.days, W);
     body('reasons').innerHTML = chartPareto(data.reasons, W);
     body('stations').innerHTML = chartStations(data.stations, W);
+    drawCumulative(W);
+  }
+
+  // график за один день: при периоде из нескольких дней скрыт, вместо него пояснение
+  function drawCumulative(W) {
+    const card = pane.querySelector('[data-kind="cumulative"]'), b = card.querySelector('[data-body="cumulative"]');
+    const one = state.from === state.to;
+    card.querySelector('.ch-xl').hidden = !one;
+    card.querySelector('.ch-legend').hidden = !one;
+    if (!one) { b.innerHTML = empty('График показывается за один день: выберите «День» или одну и ту же дату в полях «С» и «По»'); return; }
+    b.innerHTML = cum && cum.date === state.from ? chartCumulative(cum.intervals, W) : empty('Загрузка…');
+  }
+
+  async function loadCumulative(token) {
+    cum = null;
+    if (state.from !== state.to) return;
+    try {
+      const r = await fetch(`/api/kpi/charts/cumulative?screen_id=${state.screen}&date=${state.from}`);
+      if (!r.ok) throw new Error(`Ошибка ${r.status}`);
+      const d = await r.json();
+      if (token !== loadToken) return;
+      cum = d; draw();
+    } catch (ex) { if (token === loadToken) toast(ex.message); }
   }
 
   function markPreset() {
@@ -248,6 +302,7 @@
     markPreset();
     if (!built || state.screen === null) return;
     const token = ++loadToken;
+    cum = null;
     try {
       const r = await fetch(`/api/kpi/charts?screen_id=${state.screen}&from=${state.from}&to=${state.to}`);
       if (!r.ok) {
@@ -259,6 +314,7 @@
       if (token !== loadToken) return;
       data = d; loadedAt = Date.now();
       draw();
+      loadCumulative(token);
     } catch (ex) { if (token === loadToken) toast(ex.message); }
   }
 

@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/kpi")
 DAY_HEADERS = ["Дата", "Линия", "№", "Начало", "Окончание", "Мин.", "План", "Факт", "±", "Такт-тайм за период",
                "Простой мин", "Участок", "Станция", "Причина", "Мин. по причине", "Описание", "Внёс", "Последний комментарий"]
 # имя файла начинается с названия экрана, откуда его скачали (правило в CLAUDE.md)
-SRC_NAMES = {"andon": "Andon", "charts": "Графики", "reports": "Отчёты", "downtimes": "Простои"}
+SRC_NAMES = {"andon": "Andon", "charts": "Графики", "reports": "Отчёты", "downtimes": "Простои", "trends": "Тренды"}
 
 
 def download_name(src: str, fname: str) -> str:
@@ -164,6 +164,22 @@ def build_day_workbook(line: str, day: date, rows: list[list[Any]], intervals: l
         ws.insert_chart(chart_row, 0, chart)
     wb.close()
     return buf.getvalue()
+
+
+async def cumulative_day(pool: asyncpg.Pool, screen_id: int, day: date) -> list[dict[str, Any]]:
+    """Накопленный за день план и факт по интервалам (как таблица Andon: только интервалы с планом или фактом).
+    Строка: интервал, план, факт, накопленные план и факт, разница накопленных (факт минус план). Последние накопленные = «Итого» дня."""
+    out: list[dict[str, Any]] = []
+    cp = cf = 0
+    for h in await _day_rows(pool, screen_id, day):
+        if not (h["plan"] > 0 or h["fact"] > 0):
+            continue
+        cp += h["plan"]
+        cf += h["fact"]
+        end = h["end_min"] if h["end_min"] is not None else h["start_min"]
+        out.append({"idx": h["idx"], "label": f"{_hhmm(h['start_min'])}-{_hhmm(end)}", "plan": h["plan"], "fact": h["fact"],
+                    "cum_plan": cp, "cum_fact": cf, "diff": cf - cp})
+    return out
 
 
 async def build_day_data(pool: asyncpg.Pool, screen_id: int, day: date) -> dict[str, Any] | None:
