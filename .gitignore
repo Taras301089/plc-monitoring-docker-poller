@@ -3,3 +3,5 @@
 grafana_data/
 n8n_data/
 .env
+
+tasks/img/
