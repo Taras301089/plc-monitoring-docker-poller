@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git worktree list:*)",
+      "Bash(git worktree add:*)",
+      "Bash(git worktree remove:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker compose ps:*)",
+      "Bash(docker compose build fastapi-api:*)",
+      "Bash(docker compose up -d fastapi-api:*)",
+      "Bash(docker compose up -d postgres:*)",
+      "Edit(tests/**)",
+      "Edit(tasks/**)",
+      "Edit(fastapi-api/**)",
+      "Edit(orchestrator-log.md)",
+      "mcp__ccd_session_mgmt__get_usage"
+    ],
+    "ask": [
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git reset:*)",
+      "Bash(git clean:*)",
+      "Bash(git checkout:*)",
+      "Bash(docker compose down:*)",
+      "Bash(docker volume:*)",
+      "Bash(docker rm:*)",
+      "Bash(docker exec:*)",
+      "Bash(rm:*)",
+      "Bash(pip install:*)",
+      "PowerShell(Remove-Item:*)",
+      "PowerShell(schtasks:*)",
+      "Edit(.env)",
+      "Edit(docker-compose.yml)",
+      "Edit(init.sql)",
+      "Edit(backup.ps1)"
+    ]
+  }
+}
