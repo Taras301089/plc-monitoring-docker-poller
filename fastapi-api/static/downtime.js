@@ -38,13 +38,20 @@
     } catch { /* повторим позже, пока показываем последние известные данные */ } finally { c.loading = false; }
   }
 
-  async function loadDict() {
-    if (dict && Date.now() - dictAt < 30000) return dict;
-    const r = await fetch('/api/kpi/dictionary');
-    if (!r.ok) throw new Error('Не удалось загрузить справочники');
-    dict = await r.json();
-    dictAt = Date.now();
-    return dict;
+  let dictBusy = null;
+  async function loadDict(maxAge = 30000) {
+    if (dict && Date.now() - dictAt < maxAge) return dict;
+    if (dictBusy) return dictBusy;
+    dictBusy = (async () => {
+      try {
+        const r = await fetch('/api/kpi/dictionary', { signal: AbortSignal.timeout(6000) });
+        if (!r.ok) throw new Error('Не удалось загрузить справочники');
+        dict = await r.json();
+        dictAt = Date.now();
+        return dict;
+      } finally { dictBusy = null; }
+    })();
+    return dictBusy;
   }
 
   // Вызывается после каждой отрисовки таблицы экрана: заполняет колонку «Простой»
@@ -77,9 +84,16 @@
         }
       } else if (td.dataset.sig) { td.textContent = ''; td.dataset.sig = ''; }
       fillWhy(tr, d && (d.minutes > 0 || d.comments > 0) ? d : null);
+      // клик по «не описан» открывает тот же редактор простоя, что и кнопка с минутами в этой строке
+      const whyTd = tr.querySelector('[data-k="why"]');
+      if (whyTd) whyTd.onclick = e => {
+        if (!e.target.closest('.why-none-click') || !d) return;
+        openPanel(screen, d.idx, tr);
+      };
     });
     // названия станций и причин берём из справочника: когда загрузится, перерисовываем колонку
-    if (!dict) loadDict().then(() => window.dtApply(screen, root)).catch(() => {});
+    // табло открыто сутками: справочник перечитываем не реже раза в 10 секунд, иначе новая причина показывается как «—»
+    if (!dict || Date.now() - dictAt >= 10000) loadDict(10000).then(() => window.dtApply(screen, root)).catch(() => {});
   };
 
   // Подгонка по ширине: показываем столько колонок-причин, сколько помещается; остальные прячем и пишем «+N»
@@ -113,7 +127,7 @@
     if (d && dict) {
       const its = d.items || [];
       if (!its.length) {
-        html = '<span class="why-none">не описан</span>';
+        html = '<span class="why-none why-none-click" title="Простой не описан: нажмите, чтобы открыть редактор и указать станцию и причину этого интервала">не описан</span>';
         title = 'Простой ещё не описан: нажмите на простой, чтобы указать станцию и причину';
       } else {
         const name = it => {
