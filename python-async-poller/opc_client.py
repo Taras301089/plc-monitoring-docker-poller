@@ -190,6 +190,7 @@ class PlcOpcClient:
                     )
 
                 results = await asyncio.gather(*tasks, return_exceptions=True)
+                pending_vars: list[tuple[dict[str, Any], Any]] = []   # переменные пакета: тип (структура, массив) определяется по детям
 
                 for (node, path), ref_res in zip(batch, results, strict=False):
                     if isinstance(ref_res, Exception) or not ref_res:
@@ -237,18 +238,19 @@ class PlcOpcClient:
                                     or db_name in {"Server", "ServerCapabilities"}
                                     or "opcfoundation.org/UA" in db_name
                                 )
-                                result.append(
-                                    {
-                                        "db_name": db_name,
-                                        "variable_name": browse_name,
-                                        "node_id": child_node_id,
-                                        "namespace_index": reference.NodeId.NamespaceIndex,
-                                        "node_class": "Variable",
-                                        "data_type": "Unknown",
-                                        "browse_path": ".".join(current_path),
-                                        "is_system": is_system,
-                                    }
-                                )
+                                item = {
+                                    "db_name": db_name,
+                                    "variable_name": browse_name,
+                                    "node_id": child_node_id,
+                                    "namespace_index": reference.NodeId.NamespaceIndex,
+                                    "node_class": "Variable",
+                                    "data_type": "Unknown",
+                                    "browse_path": ".".join(current_path),
+                                    "is_system": is_system,
+                                }
+                                result.append(item)
+                                if not is_system:
+                                    pending_vars.append((item, reference))
                         elif node_class == ua.NodeClass.Object:
                             # DEBUG: логируем ВСЕ узлы на уровне 1-2 для диагностики структуры
                             if len(current_path) <= 2:
@@ -286,6 +288,12 @@ class PlcOpcClient:
                             if db_value is None or current_matched_db or len(current_path) <= 10:
                                 child_node = client.get_node(reference.NodeId)
                                 queue.append((child_node, current_path))
+
+                if pending_vars:
+                    kinds = await self._has_children_batch(client, [ref for _, ref in pending_vars])
+                    for (item, _ref), kind in zip(pending_vars, kinds, strict=False):
+                        if kind:
+                            item["data_type"] = kind
 
             # ===== ДОПОЛНИТЕЛЬНО: Получение Global Data Blocks напрямую по NodeID (Namespace 3) =====
             # Папка DataBlocksGlobal отображается как пустая при стандартном обходе,
