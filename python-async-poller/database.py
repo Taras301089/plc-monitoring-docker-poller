@@ -38,7 +38,16 @@ ORDER BY id
 """
 
 _LOAD_TAGS = """
-SELECT id, plc_id, name, node_id, tag_type, is_alarm_enabled, alarm_message
+SELECT id, plc_id, name, node_id, tag_type, is_alarm_enabled, alarm_message, deadband, limit_low, limit_high
+FROM plc_tags
+WHERE plc_id = $1 AND is_active = TRUE
+ORDER BY id
+"""
+
+# Если API ещё не добавил колонки порогов (поллер стартовал раньше), теги грузятся по-старому, без мёртвой зоны
+_LOAD_TAGS_LEGACY = """
+SELECT id, plc_id, name, node_id, tag_type, is_alarm_enabled, alarm_message,
+       NULL::double precision AS deadband, NULL::double precision AS limit_low, NULL::double precision AS limit_high
 FROM plc_tags
 WHERE plc_id = $1 AND is_active = TRUE
 ORDER BY id
@@ -113,6 +122,13 @@ ON CONFLICT (plc_id) DO UPDATE SET
     last_successful_poll = COALESCE(EXCLUDED.last_successful_poll, plc_connection_status.last_successful_poll),
     last_error = EXCLUDED.last_error,
     updated_at = NOW()
+"""
+
+# История связи: событие пишется только при смене состояния (потеря и восстановление), а не при каждом опросе
+_INSERT_LINK_EVENT = """
+INSERT INTO plc_link_events (plc_id, state, reason)
+SELECT $1, $2, $3
+WHERE COALESCE((SELECT state FROM plc_link_events WHERE plc_id = $1 ORDER BY id DESC LIMIT 1), '') <> $2
 """
 
 _UPSERT_SERVICE_CONNECTION_STATUS = """
@@ -197,7 +213,10 @@ class Database:
 
     async def load_tags(self, plc_id: int) -> list[Tag]:
         """Загрузка активных тегов для конкретного ПЛК."""
-        rows = await self._pool_or_fail().fetch(_LOAD_TAGS, plc_id)
+        try:
+            rows = await self._pool_or_fail().fetch(_LOAD_TAGS, plc_id)
+        except asyncpg.UndefinedColumnError:
+            rows = await self._pool_or_fail().fetch(_LOAD_TAGS_LEGACY, plc_id)
         return [
             Tag(
                 id=row["id"],
@@ -207,6 +226,9 @@ class Database:
                 tag_type=row["tag_type"].upper(),
                 is_alarm_enabled=row["is_alarm_enabled"],
                 alarm_message=row["alarm_message"],
+                deadband=row["deadband"],
+                limit_low=row["limit_low"],
+                limit_high=row["limit_high"],
             )
             for row in rows
         ]
@@ -291,12 +313,19 @@ class Database:
         self, plc_id: int, is_connected: bool, last_error: str | None = None
     ) -> None:
         """Сохранение или обновление статуса связи ПЛК в таблице plc_connection_status."""
-        await self._pool_or_fail().execute(
+        pool = self._pool_or_fail()
+        await pool.execute(
             _UPSERT_PLC_CONNECTION_STATUS,
             plc_id,
             is_connected,
             last_error,
         )
+        try:
+            await pool.execute(
+                _INSERT_LINK_EVENT, plc_id, "ok" if is_connected else "no_link", (last_error or "")[:500]
+            )
+        except asyncpg.UndefinedTableError:
+            log.debug("Таблица plc_link_events ещё не создана (её создаёт API при запуске)")
 
     async def update_service_status(
         self,

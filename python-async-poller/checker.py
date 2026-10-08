@@ -9,6 +9,7 @@ log = logging.getLogger(__name__)
 
 ANALOG = "ANALOG"
 DIGITAL = "DIGITAL"
+ANALOG_HEARTBEAT_SEC = 60.0   # аналог с мёртвой зоной пишется не реже этого, даже если не менялся
 
 
 def _as_float(value: Any) -> float | None:
@@ -39,12 +40,15 @@ class TagChecker:
 
     def __init__(self) -> None:
         self._last_digital: dict[int, bool] = {}
+        # аналог с мёртвой зоной: последнее записанное значение, его время и была ли запись вне порогов
+        self._last_analog: dict[int, tuple[float, Any, bool]] = {}
 
     def drop_tag(self, tag_id: int) -> None:
         self._last_digital.pop(tag_id, None)
+        self._last_analog.pop(tag_id, None)
 
     def retain_tags(self, tag_ids: set[int]) -> None:
-        stale = [tag_id for tag_id in self._last_digital if tag_id not in tag_ids]
+        stale = [tag_id for tag_id in {*self._last_digital, *self._last_analog} if tag_id not in tag_ids]
         for tag_id in stale:
             self.drop_tag(tag_id)
 
@@ -100,9 +104,25 @@ class TagChecker:
         if value is None:
             log.warning("ANALOG тег %s: нечисловое значение %r", reading.tag.name, reading.value)
             return None
+        tag = reading.tag
+        if tag.deadband is not None:
+            out = (tag.limit_low is not None and value < tag.limit_low) or (
+                tag.limit_high is not None and value > tag.limit_high
+            )
+            last = self._last_analog.get(tag.id)
+            write = (
+                last is None                                    # первое значение
+                or out                                          # просадка или превышение: пишем каждый опрос
+                or last[2]                                      # возврат из просадки в норму
+                or abs(value - last[0]) >= tag.deadband         # изменение не меньше мёртвой зоны
+                or (reading.source_ts - last[1]).total_seconds() >= ANALOG_HEARTBEAT_SEC   # контрольная запись
+            )
+            if not write:
+                return None
+            self._last_analog[tag.id] = (value, reading.source_ts, out)
         return TelemetryPoint(
-            plc_id=reading.tag.plc_id,
-            tag_id=reading.tag.id,
+            plc_id=tag.plc_id,
+            tag_id=tag.id,
             value=value,
             ts=reading.source_ts,
         )

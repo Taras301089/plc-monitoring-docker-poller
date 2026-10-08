@@ -24,6 +24,9 @@ class Tag:
     tag_type: str
     is_alarm_enabled: bool
     alarm_message: str | None = None
+    deadband: float | None = None     # мёртвая зона записи аналога; None: писать каждый опрос
+    limit_low: float | None = None    # ниже: просадка, писать каждый опрос
+    limit_high: float | None = None   # выше: превышение, писать каждый опрос
 
 
 @dataclass(slots=True)
