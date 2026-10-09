@@ -140,11 +140,13 @@ def build_day_workbook(line: str, day: date, rows: list[list[Any]], intervals: l
 
     if n:
         cs = wb.add_worksheet("График")
-        cs.write_row(0, 0, ["Интервал", "План", "Факт"], head)
+        cs.write_row(0, 0, ["Интервал", "План", "Факт", "% выполнения"], head)
         for r, (label, plan, fact) in enumerate(intervals, start=1):
             cs.write(r, 0, label)
             cs.write(r, 1, plan)
             cs.write(r, 2, fact)
+            if plan:   # без плана процента нет (на экране точки нет)
+                cs.write_formula(r, 3, f"=C{r + 1}/B{r + 1}", None, fact / plan)
         cs.hide()
         chart = wb.add_chart({"type": "column"})
         for col, name, color in ((1, "План", "#8FA3BF"), (2, "Факт", "#2F80ED")):
@@ -156,7 +158,12 @@ def build_day_workbook(line: str, day: date, rows: list[list[Any]], intervals: l
                 "data_labels": {"value": True},
                 "gap": 80,
             })
-        chart.set_title({"name": f"План и факт по часам: {line}, {day.strftime('%d.%m.%Y')}"})
+        ln = wb.add_chart({"type": "line"})
+        ln.add_series({"name": "% выполнения", "categories": ["График", 1, 0, n, 0], "values": ["График", 1, 3, n, 3], "y2_axis": True,
+                       "line": {"color": "#27AE60", "width": 2.25}, "marker": {"type": "circle", "size": 5}})
+        chart.combine(ln)
+        ln.set_y2_axis({"name": "% выполнения", "num_format": "0%"})
+        chart.set_title({"name": "План и факт по часам"})
         chart.set_x_axis({"name": "Интервал"})
         chart.set_y_axis({"name": "Кузовов", "major_gridlines": {"visible": True, "line": {"color": "#D9D9D9"}}})
         chart.set_legend({"position": "bottom"})

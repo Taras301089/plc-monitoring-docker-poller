@@ -206,6 +206,27 @@ def build_link_workbook(rep: dict[str, Any]) -> bytes:
     ws.write_formula(last, 3, f"=SUM(D{top + 2}:D{last})" if rows else "=0", f["bn1"], round(sum(sg["minutes"] for _, sg in rows), 1))
     for c, w in enumerate([26, 20, 20, 16, 40]):
         ws.set_column(c, c, w)
+    if plcs:
+        # диаграмма «Связь с ПЛК»: по ПЛК минуты со связью, без связи и без данных (цвета как у лент на экране); данные на скрытом листе
+        cs = wb.add_worksheet("График")
+        cs.write_row(0, 0, ["ПЛК", "Связь есть", "Связи нет", "Нет данных"], f["head"])
+        for i, p in enumerate(plcs, start=1):
+            mins = {"ok": 0.0, "no_link": 0.0, "unknown": 0.0}
+            for sg in p["segments"]:
+                mins[sg["state"]] += sg["minutes"]
+            cs.write(i, 0, p["name"])
+            cs.write_row(i, 1, [round(mins["ok"], 1), round(mins["no_link"], 1), round(mins["unknown"], 1)], f["n1"])
+        cs.hide()
+        ch = wb.add_chart({"type": "bar", "subtype": "stacked"})
+        for col, name, color in ((1, "Связь есть", "#27AE60"), (2, "Связи нет", "#E88B8B"), (3, "Нет данных", "#B8C0CC")):
+            ch.add_series({"name": name, "categories": ["График", 1, 0, len(plcs), 0], "values": ["График", 1, col, len(plcs), col],
+                           "fill": {"color": color}, "gap": 40})
+        ch.set_title({"name": "Связь с ПЛК"})
+        ch.set_y_axis({"reverse": True})
+        ch.set_x_axis({"name": "Минут", "major_gridlines": {"visible": True, "line": {"color": "#D9D9D9"}}})
+        ch.set_legend({"position": "bottom"})
+        ch.set_size({"width": 640, "height": max(200, 60 + 30 * len(plcs))})
+        ws.insert_chart(2, 6, ch)
     wb.close()
     return buf.getvalue()
 

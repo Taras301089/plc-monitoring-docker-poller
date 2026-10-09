@@ -125,7 +125,7 @@ def _chart_pareto(wb, sheet: str, n: int, c_min=1, c_cum=3, r0=0):
     ln.add_series({"name": "Накопленная доля", "categories": cats, "values": [sheet, r0 + 1, c_cum, r0 + n, c_cum], "y2_axis": True,
                    "line": {"color": "#4F5B6B", "width": 2}, "marker": {"type": "circle", "size": 5}})
     ch.combine(ln)
-    ch.set_title({"name": "Парето: простои по причинам (топ-10)"})
+    ch.set_title({"name": "Парето причин простоя (топ-10)"})
     ch.set_y_axis({"name": "Минут", "major_gridlines": GRID})
     ln.set_y2_axis({"num_format": "0%", "max": 1, "min": 0})
     ch.set_x_axis({"num_font": {"rotation": -30}})
@@ -138,7 +138,7 @@ def _chart_stations(wb, sheet: str, n: int, c_name=1, c_min=2, r0=0):
     ch = wb.add_chart({"type": "bar"})
     ch.add_series({"name": "Минут", "categories": [sheet, r0 + 1, c_name, r0 + n, c_name], "values": [sheet, r0 + 1, c_min, r0 + n, c_min],
                    "fill": {"color": "#2F80ED"}, "data_labels": {"value": True}, "gap": 40})
-    ch.set_title({"name": "Простои по станциям (топ-15), мин"})
+    ch.set_title({"name": "Простой по станциям (топ-15)"})
     ch.set_y_axis({"reverse": True})
     ch.set_x_axis({"major_gridlines": GRID})
     ch.set_legend({"none": True})
@@ -147,11 +147,12 @@ def _chart_stations(wb, sheet: str, n: int, c_name=1, c_min=2, r0=0):
 
 
 def _chart_cumulative(wb, sheet: str, n: int, r0=0):
-    """Накопленные план и факт линиями, разница (факт минус план) столбцами на той же шкале."""
+    """Как на экране: накопленные план и факт линиями, разница столбцами на той же шкале
+    (отставание от плана красным, опережение зелёным)."""
     cats = [sheet, r0 + 1, 0, r0 + n, 0]
-    col = wb.add_chart({"type": "column"})
-    col.add_series({"name": "Разница (факт − план)", "categories": cats, "values": [sheet, r0 + 1, 5, r0 + n, 5], "fill": {"color": "#E88B8B"},
-                    "invert_if_negative": False, "gap": 80})
+    col = wb.add_chart({"type": "column", "subtype": "stacked"})
+    col.add_series({"name": "Отставание от плана", "categories": cats, "values": [sheet, r0 + 1, 7, r0 + n, 7], "fill": {"color": "#E88B8B"}, "gap": 80})
+    col.add_series({"name": "Опережение плана", "categories": cats, "values": [sheet, r0 + 1, 6, r0 + n, 6], "fill": {"color": "#27AE60"}})
     ln = wb.add_chart({"type": "line"})
     ln.add_series({"name": "Накопленный план", "categories": cats, "values": [sheet, r0 + 1, 3, r0 + n, 3],
                    "line": {"color": "#8FA3BF", "width": 2.25}, "marker": {"type": "circle", "size": 5}})
@@ -166,13 +167,10 @@ def _chart_cumulative(wb, sheet: str, n: int, r0=0):
     return col
 
 
-def build_cumulative_workbook(line: str, day: date, rows: list[dict[str, Any]]) -> bytes:
-    """Книга одного графика «накопленное производство за день»: таблица данных и диаграмма как на экране."""
-    buf = io.BytesIO()
-    wb = xlsxwriter.Workbook(buf, {"in_memory": True})
-    f = _fmts(wb)
-    ws = wb.add_worksheet("Данные")
-    ws.write_row(0, 0, ["Интервал", "План", "Факт", "Накопленный план", "Накопленный факт", "Разница (факт − план)"], f["head"])
+def _write_cumulative(ws, f, rows: list[dict[str, Any]]) -> None:
+    """Таблица данных графика «накопленное производство за день» (A:H); столбцы G и H делят разницу на опережение и отставание."""
+    ws.write_row(0, 0, ["Интервал", "План", "Факт", "Накопленный план", "Накопленный факт", "Разница (факт − план)",
+                        "Опережение плана", "Отставание от плана"], f["head"])
     for r, d in enumerate(rows, start=1):
         ws.write(r, 0, d["label"])
         ws.write(r, 1, d["plan"])
@@ -180,13 +178,24 @@ def build_cumulative_workbook(line: str, day: date, rows: list[dict[str, Any]]) 
         ws.write_formula(r, 3, f"=SUM(B$2:B{r + 1})", None, d["cum_plan"])
         ws.write_formula(r, 4, f"=SUM(C$2:C{r + 1})", None, d["cum_fact"])
         ws.write_formula(r, 5, f"=E{r + 1}-D{r + 1}", None, d["diff"])
+        ws.write_formula(r, 6, f"=MAX(0,F{r + 1})", None, max(0, d["diff"]))
+        ws.write_formula(r, 7, f"=MIN(0,F{r + 1})", None, min(0, d["diff"]))
     ws.set_column(0, 0, 14)
-    ws.set_column(1, 5, 18)
+    ws.set_column(1, 7, 18)
     ws.freeze_panes(1, 0)
+
+
+def build_cumulative_workbook(line: str, day: date, rows: list[dict[str, Any]]) -> bytes:
+    """Книга одного графика «накопленное производство за день»: таблица данных и диаграмма как на экране."""
+    buf = io.BytesIO()
+    wb = xlsxwriter.Workbook(buf, {"in_memory": True})
+    f = _fmts(wb)
+    ws = wb.add_worksheet("Данные")
+    _write_cumulative(ws, f, rows)
     n = len(rows)
     ws.write(n + 3, 0, f"{line}, {day.strftime('%d.%m.%Y')}", f["bold"])
     if n:
-        ws.insert_chart("H2", _chart_cumulative(wb, "Данные", n))
+        ws.insert_chart("J2", _chart_cumulative(wb, "Данные", n))
     wb.close()
     return buf.getvalue()
 
@@ -265,9 +274,10 @@ def _rows_for(px: int) -> int:
     return -(-px // 20) + 2
 
 
-def build_period_workbook(line: str, d1: date, d2: date, data: dict[str, Any]) -> bytes:
+def build_period_workbook(line: str, d1: date, d2: date, data: dict[str, Any], cum: list[dict[str, Any]] | None = None) -> bytes:
     """Книга по виду как вкладка «Отчёты»: плитки итогов, график, затем таблицы по дням, причинам и станциям на одном листе «Отчёт»;
-    полный список простоев на листе «Простои»."""
+    полный список простоев на листе «Простои».
+    cum: интервалы дня для графика «Накопленное производство за день» (только когда период равен одному дню, как на экране)."""
     sm = summarize(data)
     items, areas, stations, reasons, starts = data["items"], data["areas"], data["stations"], data["reasons"], data["starts"]
     days, reason_rows, station_rows = sm["days"], sm["reasons"], sm["stations"]
@@ -328,6 +338,12 @@ def build_period_workbook(line: str, d1: date, d2: date, data: dict[str, Any]) -
     _write_stations(ws, f, station_rows, r0=t_st)
     if station_rows:
         ws.insert_chart(t_st, 9, _chart_stations(wb, "Отчёт", min(len(station_rows), 15), r0=t_st))
+    if cum:
+        # 5-й график экрана: данные на скрытом листе «График», диаграмма под таблицей станций
+        cs = wb.add_worksheet("График")
+        _write_cumulative(cs, f, cum)
+        cs.hide()
+        ws.insert_chart(t_st + max(len(station_rows) + 3, _rows_for(420)) + 1, 0, _chart_cumulative(wb, "График", len(cum)))
 
     # 3. полный список простоев (на экране его нет)
     heads = ["Дата", "№", "Начало", "Окончание", "Участок", "Станция", "Причина", "Минут", "Описание", "Внёс"]
@@ -414,7 +430,8 @@ async def build_period_report(pool: asyncpg.Pool, screen_id: int, d1: date, d2: 
         return None
     line, folder = await _screen_line(pool, screen_id)
     data = await _load(pool, screen_id, d1, d2)
-    return build_period_workbook(line, d1, d2, data), folder, f"{folder}_{d1.isoformat()}_{d2.isoformat()}.xlsx", len(data["days"])
+    cum = await cumulative_day(pool, screen_id, d1) if d1 == d2 else None
+    return build_period_workbook(line, d1, d2, data, cum), folder, f"{folder}_{d1.isoformat()}_{d2.isoformat()}.xlsx", len(data["days"])
 
 
 def _xlsx_response(data: bytes, fname: str, src: str = "reports") -> Response:
