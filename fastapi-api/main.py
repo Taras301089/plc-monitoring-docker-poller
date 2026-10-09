@@ -643,6 +643,16 @@ async def put_kpi_schedule(
     return await put_screen_schedule(screen_id, KpiScreenScheduleRequest(items=request.items), user)
 
 
+def app_env() -> str:
+    """Среда запуска: prod только при APP_ENV=prod, любое другое значение (и пустое) считается разработкой (запись в ПЛК запрещена)."""
+    return "prod" if os.getenv("APP_ENV", "dev").strip().lower() == "prod" else "dev"
+
+
+@app.get("/api/env")
+async def get_env() -> dict[str, str]:
+    return {"env": app_env()}
+
+
 class PlanDayBody(BaseModel):
     value: int = Field(ge=0, le=500)
 
@@ -661,6 +671,14 @@ async def write_plan_day(screen_id: int, body: PlanDayBody, user: dict[str, Any]
     raw = screen["bindings"]
     node_id = (json.loads(raw) if isinstance(raw, str) else dict(raw or {})).get("plan_day", "")
     ok, error, result = False, None, {}
+    if app_env() != "prod":
+        error = "Режим разработки: запись в ПЛК отключена"
+        await pool.execute(
+            "INSERT INTO kpi_plan_writes (screen_id, screen_name, plc_id, node_id, user_id, user_name, "
+            "old_value, new_value, readback_value, ok, error) VALUES ($1, $2, $3, $4, $5, $6, NULL, $7, NULL, FALSE, $8)",
+            screen_id, screen["name"], screen["plc_id"], node_id, user["id"], user["full_name"], body.value, error,
+        )
+        raise HTTPException(status_code=403, detail=error)
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(20.0, connect=5.0)) as client:
             response = await client.post(

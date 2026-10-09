@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PLC Monitoring System</title>
+  <title>PMM — Production Monitoring &amp; Management</title>
   <style>
     :root {
       font-family: "Segoe UI", sans-serif;
@@ -456,6 +456,7 @@
     .plc-icon-btn:hover:not(:disabled) { filter: none; background: var(--bg-tertiary) !important; }
     .plc-icon-btn:disabled { opacity: .25 !important; cursor: default; }
     .plc-dd-row.off .plc-dd-name { opacity: .5; }
+    .env-badge { align-self: center; margin-right: 8px; padding: 2px 10px; border-radius: 4px; font-size: var(--fs-small); font-weight: 600; white-space: nowrap; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--bg-secondary)); box-shadow: inset 3px 0 0 var(--accent); }
     .kpi-table td.plan-cell-edit { cursor: pointer; }
     .kpi-table td.plan-cell-edit:hover { background: var(--hover, rgba(76,154,255,.10)); }
     .plan-inline { width: 3.4em; font: inherit; text-align: center; color: var(--fg-primary); background: var(--bg-primary); border: 1px solid var(--accent); border-radius: 4px; padding: 0 2px; }
@@ -729,6 +730,7 @@
     <div class="tabs-divider"></div>
     <div class="tabs-tools">
       <div id="auth-box" class="auth-wrap"></div>
+      <span id="env-badge" class="env-badge" hidden title="Это среда разработки: запись в ПЛК отключена, данные могут отличаться от рабочей системы. На сервере (рабочая среда) этой метки нет">Среда: разработка</span>
       <button id="theme-toggle" class="theme-toggle" title="Переключить между тёмной и светлой темой (сохраняется автоматически)">🌙</button>
       <a href="reference.html" class="tab" style="text-decoration: none; display: flex; align-items: center;" title="Справочная информация о системе, архитектуре и развёртывании">📖 Справка</a>
     </div>
@@ -2556,6 +2558,10 @@
       updateThemeButton();
     });
     initTheme();
+    // Метка среды: показывается, когда APP_ENV не prod (среда разработки; запись в ПЛК отключена)
+    fetch('/api/env', { signal: AbortSignal.timeout(6000) }).then(r => r.ok ? r.json() : null).then(d => {
+      if (d && d.env !== 'prod') document.getElementById('env-badge').hidden = false;
+    }).catch(() => {});
 
     // Load initial data
     loadPlcs().catch(error => setStatus('error', 'API Error', error.message));

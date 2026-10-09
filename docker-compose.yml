@@ -30,6 +30,7 @@ services:
       POSTGRES_USER: n8n_user
       POSTGRES_PASSWORD: my_strong_password
       KPI_UTC_OFFSET_HOURS: "5"   # смещение местного времени от UTC (часы), то же значение, что у fastapi-api
+      APP_ENV: ${APP_ENV:-dev}   # prod только на сервере (файл .env рядом с docker-compose.yml); иначе запись в ПЛК запрещена
     depends_on:
       - postgres
     logging:
@@ -46,6 +47,7 @@ services:
       DATABASE_URL: postgresql://n8n_user:my_strong_password@postgres_db:5432/general_data_hub_BD
       POLLER_URL: http://plc-monitoring-docker-poller:8080
       KPI_UTC_OFFSET_HOURS: "5"
+      APP_ENV: ${APP_ENV:-dev}
       REPORTS_DIR: /reports
       REPORTS_HOST_DIR: ${REPORTS_HOST_DIR:-C:/Andon-Reports}
       BACKUP_DIR: /backups

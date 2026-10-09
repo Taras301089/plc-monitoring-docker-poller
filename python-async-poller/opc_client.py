@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Any
 
@@ -531,7 +532,11 @@ class PlcOpcClient:
         return out
 
     async def write_int(self, node_id: str, value: int) -> dict[str, Any]:
-        """Запись целого числа в одну переменную ПЛК с чтением значения до и после (для плана на день)."""
+        """Запись целого числа в одну переменную ПЛК с чтением значения до и после (для плана на день).
+
+        Единственная точка записи в ПЛК: работает только при APP_ENV=prod (на сервере); в разработке запись запрещена."""
+        if os.getenv("APP_ENV", "dev").strip().lower() != "prod":
+            raise PermissionError("Режим разработки: запись в ПЛК отключена")
         async with self._lock:
             if not await self._ensure_connected_unlocked():
                 raise ConnectionError("OPC UA connection is unavailable")
