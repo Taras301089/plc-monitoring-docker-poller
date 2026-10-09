@@ -593,6 +593,10 @@
     @media (max-width: 900px) { .andon-layout { grid-template-columns: 1fr; grid-template-rows: auto; } .andon-h, .andon-side .tile, .andon-main .kpi-wrap, .andon-side .andon-clockbox { grid-column: 1; grid-row: auto; margin-right: 0; justify-self: start; } #andon .andon-top { position: static; height: auto; } }
     /* средняя ширина (окно на пол-экрана): кнопки идут отдельной строкой над таблицей, а не поверх шапки; заголовки колонок мельче */
     .kpi-table th { font-size: var(--fs-small); }
+    /* до 1700px шапка делится на колонки auto / 1fr / auto: симметричная раскладка не вмещает часы вместе с кнопками «архива» и плитка линии наезжала на часы */
+    @media (max-width: 1700px) {
+      .andon-layout, body.tv-mode .andon-layout { grid-template-columns: auto minmax(0, 1fr) auto; }
+    }
     @media (max-width: 1400px) {
       /* узкое окно: шапка остаётся одной строкой, элементы справа компактнее */
       .andon-layout, body.tv-mode .andon-layout { grid-template-columns: auto minmax(0, 1fr) auto; }
@@ -2069,7 +2073,7 @@
       const q = k => andonBody.querySelector(`[data-k="${k}"]`);
       const set = (el, text) => { if (el && el.textContent !== text) el.textContent = text; };
       paintTakt(screen, val('curMin'), val('curSec'));
-      let planSum = 0;
+      let planSum = 0, deltaSum = 0, hasDelta = false;
       andonBody.querySelectorAll('tbody tr').forEach(tr => {
         const i = Number(tr.dataset.i);
         const cfg = intervalCfg(screen.id, i, starts);
@@ -2086,6 +2090,7 @@
         const dc = c('delta');
         if (idx && i + 1 < idx && (cfg.plan || fact)) {
           const d = fact - cfg.plan;
+          deltaSum += d; hasDelta = true;
           set(dc, d > 0 ? `+${d}` : String(d));
           dc.className = 'delta ' + (d >= 0 ? 'pos' : 'neg');
         } else { set(dc, ''); dc.className = 'delta'; }
@@ -2100,12 +2105,11 @@
       pc.classList.toggle('plan-edit', canEditPlan());
       pc.title = (canEditPlan() ? 'Нажмите, чтобы ввести план на день: он разложится по интервалам. ' : 'План на день. Чтобы изменить, войдите в систему (роль кроме «Просмотр»). ') + (planLast[screen.id] || '');
       set(q('tot'), tot === null ? '—' : String(tot));
-      // «ИТОГО ±» живое: итоговый факт минус итоговый план, не дожидаясь закрытия текущего интервала (по строкам «±» ставится после закрытия)
+      // «ИТОГО ±» — сумма «±» закрытых интервалов (как «±» по строкам, текущий и будущие интервалы не считаются)
       const ds = q('deltaSum');
-      if (tot !== null && tot !== undefined) {
-        const live = tot - planSum;
-        set(ds, live > 0 ? `+${live}` : String(live));
-        ds.className = 'delta ' + (live >= 0 ? 'pos' : 'neg');
+      if (hasDelta) {
+        set(ds, deltaSum > 0 ? `+${deltaSum}` : String(deltaSum));
+        ds.className = 'delta ' + (deltaSum >= 0 ? 'pos' : 'neg');
       } else set(ds, '');
       set(q('shTakt'), val('shMin') === null ? '—' : mmss(val('shMin'), val('shSec') || 0));
       andonLast = { starts, n };
@@ -2574,6 +2578,7 @@
   <script src="/static/reports.js"></script>
   <script src="/static/period.js"></script>
   <script src="/static/charts.js"></script>
+  <script src="/static/xlgrid.js"></script>
   <script src="/static/trends.js"></script>
   <script src="/static/manual.js"></script>
   <script src="/static/downtimes.js"></script>

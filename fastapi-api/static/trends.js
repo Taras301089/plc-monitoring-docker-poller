@@ -121,9 +121,12 @@
         <div class="ch-body" id="tr-body"></div>
       </section>
       <section class="ch-card tr-rec" id="tr-rec" hidden>
-        <header><h3 title="Настройка записи аналоговых переменных, отмеченных «Архив»: как часто сборщик данных пишет их значения в базу">Запись переменных</h3></header>
-        <p class="hint" title="Мёртвая зона экономит место в базе: малые колебания значения не пишутся, но контрольная запись делается раз в минуту">Мёртвая зона: значение пишется, только если изменилось не меньше этой величины; вне порогов пишется каждый опрос.</p>
-        <div class="tr-rec-body" id="tr-rec-body"></div>
+        <header><h3 title="Настройка записи аналоговых переменных, отмеченных «Архив»: как часто сборщик данных пишет их значения в базу">Запись переменных</h3>
+          <span class="tr-rec-btns"><button type="button" id="tr-rec-save" class="dt-sec" disabled title="Сохранить все изменённые строки: каждая проверяется и отправляется на сервер, сборщик данных применит значения со следующего опроса">Сохранить изменения</button>
+          <button type="button" id="tr-rec-undo" class="dt-sec" disabled title="Отменить несохранённые правки и вернуть в таблицу значения, сохранённые на сервере">Отменить изменения</button></span></header>
+        <p class="hint" title="Мёртвая зона экономит место в базе: малые колебания значения не пишутся, но контрольная запись делается раз в минуту. Ячейки выделяются мышью, как в Excel; Ctrl+C и Ctrl+V работают с Excel">Мёртвая зона: значение пишется, только если изменилось не меньше этой величины; вне порогов пишется каждый опрос. Потяните квадрат в углу ячейки вниз, чтобы заполнить строки ниже.</p>
+        <div class="tr-rec-body" id="tr-rec-body" tabindex="0" title="Таблица как в Excel: стрелки, Tab, Enter, F2, Delete, Ctrl+C, Ctrl+V, Ctrl+D, Ctrl+A"></div>
+        <div class="tr-rec-msg" id="tr-rec-msg" aria-live="polite"></div>
       </section>`;
     pane.querySelector('#tr-from').value = state.from;
     pane.querySelector('#tr-to').value = state.to;
@@ -153,15 +156,7 @@
       try { await window.xlsxDownload(`/api/trends/link.xlsx?from=${state.from}&to=${state.to}&src=trends`); } catch (ex) { toast(ex.message); }
       b.disabled = false;
     });
-    pane.querySelector('#tr-rec-body').addEventListener('click', e => {
-      const tr = e.target.closest('tr[data-id]');
-      if (!tr) return;
-      if (e.target.closest('.tr-volt')) {
-        tr.querySelector('.tr-db').value = '1'; tr.querySelector('.tr-lo').value = '207'; tr.querySelector('.tr-hi').value = '253';
-      } else if (e.target.closest('.tr-save')) {
-        saveTag(tr, e.target.closest('.tr-save'));
-      }
-    });
+    initGrid();
     built = true;
     syncAdmin();
   }
@@ -179,29 +174,244 @@
     return msg;
   }
 
+  // ---- Excel-подобная таблица настроек записи
+  const XG = window.xlgrid;
+  const FIELDS = ['deadband', 'limit_low', 'limit_high'];
+  let draft = [];              // правки: по строке объект с текстами трёх полей
+  let srvErr = {};             // tag_id -> текст ошибки сервера
+  let anchor = { r: 0, c: 0 }, focus = { r: 0, c: 0 };
+  let fillTo = null;           // строка, до которой тянут маркер заполнения
+  let editing = null;          // { r, c, input }
+  let drag = null;             // 'sel' | 'fill'
+  let saving = false;
+
+  const rowsN = () => (tags ? tags.length : 0);
+  const rng = () => ({ r0: Math.min(anchor.r, focus.r), r1: Math.max(anchor.r, focus.r), c0: Math.min(anchor.c, focus.c), c1: Math.max(anchor.c, focus.c) });
+  const cellAt = (r, c) => pane.querySelector(`#tr-rec-body td[data-r="${r}"][data-c="${c}"]`);
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const setDraft = (r, c, v) => { if (draft[r]) { draft[r][FIELDS[c]] = v; delete srvErr[tags[r].tag_id]; } };
+  const rowChanged = r => FIELDS.some(f => !XG.sameValue(draft[r][f], tags[r][f]));
+  const resetDraft = () => { draft = (tags || []).map(t => ({ deadband: numVal(t.deadband), limit_low: numVal(t.limit_low), limit_high: numVal(t.limit_high) })); srvErr = {}; };
+  const changedRows = () => (tags || []).map((t, r) => r).filter(rowChanged);
+
   function drawTags() {
     const box = pane.querySelector('#tr-rec-body');
     if (!box) return;
-    if (tagsErr) { box.innerHTML = `<div class="ch-empty">${esc(tagsErr)}</div>`; return; }
-    if (!tags) { box.innerHTML = '<div class="ch-empty">Загрузка…</div>'; return; }
-    if (!tags.length) { box.innerHTML = '<div class="ch-empty">Отметьте переменные галочкой «Архив» в «Переменные ПЛК», и здесь появятся аналоговые для настройки записи.</div>'; return; }
-    const inp = (cls, v, tip) => `<input type="text" inputmode="decimal" class="tr-in ${cls}" value="${esc(numVal(v))}" title="${esc(tip)}">`;
+    editing = null;
+    if (tagsErr) { box.innerHTML = `<div class="ch-empty">${esc(tagsErr)}</div>`; updateButtons(); return; }
+    if (!tags) { box.innerHTML = '<div class="ch-empty">Загрузка…</div>'; updateButtons(); return; }
+    if (!tags.length) { box.innerHTML = '<div class="ch-empty">Отметьте переменные галочкой «Архив» в «Переменные ПЛК», и здесь появятся аналоговые для настройки записи.</div>'; updateButtons(); return; }
+    const cell = (r, c, tip) => `<td class="xg" data-r="${r}" data-c="${c}" data-tip="${esc(tip)}" title="${esc(tip)}"></td>`;
     box.innerHTML = `<table class="tr-rec-t"><thead><tr>
       <th title="ПЛК, которому принадлежит переменная">ПЛК</th>
       <th title="Имя аналоговой переменной, отмеченной «Архив»">Переменная</th>
       <th title="Минимальное изменение значения, при котором делается запись; пусто: писать каждый опрос">Мёртвая зона</th>
       <th title="Ниже этого значения (например, просадка напряжения) запись идёт каждый опрос; пусто: порог не задан">Нижний порог</th>
       <th title="Выше этого значения запись идёт каждый опрос; пусто: порог не задан">Верхний порог</th>
-      <th title="Действия со строкой: подставить типовые значения для напряжения и сохранить настройку"></th></tr></thead><tbody>` +
-      tags.map(t => `<tr data-id="${t.tag_id}">
+      <th title="Действия со строкой: подставить типовые значения для напряжения (без сохранения)">Действия</th></tr></thead><tbody>` +
+      tags.map((t, r) => `<tr data-id="${t.tag_id}">
         <td title="${esc(t.plc_name)}">${esc(t.plc_name)}</td>
         <td title="${esc(t.node_id)}">${esc(t.name)}</td>
-        <td>${inp('tr-db', t.deadband, 'Мёртвая зона: не отрицательное число; значение пишется, только если изменилось не меньше; пусто: писать каждый опрос')}</td>
-        <td>${inp('tr-lo', t.limit_low, 'Нижний порог: ниже него значение пишется каждый опрос; пусто: порог не задан')}</td>
-        <td>${inp('tr-hi', t.limit_high, 'Верхний порог: выше него значение пишется каждый опрос; пусто: порог не задан')}</td>
-        <td class="tr-act"><button type="button" class="dt-sec tr-volt" title="Подставить для напряжения: мёртвая зона 1, нижний порог 207, верхний 253; сохраняется кнопкой «Сохранить»">Для напряжения</button>
-          <button type="button" class="tr-save" title="Сохранить мёртвую зону и пороги этой переменной; сборщик данных применит их со следующего опроса">Сохранить</button></td></tr>`).join('') +
+        ${cell(r, 0, 'Мёртвая зона: не отрицательное число; значение пишется, только если изменилось не меньше; пусто: писать каждый опрос')}
+        ${cell(r, 1, 'Нижний порог: ниже него значение пишется каждый опрос; пусто: порог не задан')}
+        ${cell(r, 2, 'Верхний порог: выше него значение пишется каждый опрос; пусто: порог не задан')}
+        <td class="tr-act"><button type="button" class="dt-sec tr-volt" title="Подставить для напряжения: мёртвая зона 1, нижний порог 207, верхний 253; сохраняется кнопкой «Сохранить изменения»">Для напряжения</button></td></tr>`).join('') +
       '</tbody></table>';
+    if (window.attachColWidths) window.attachColWidths(box.querySelector('table'), 'trends-rec');
+    anchor = { r: clamp(anchor.r, 0, rowsN() - 1), c: clamp(anchor.c, 0, 2) };
+    focus = { r: clamp(focus.r, 0, rowsN() - 1), c: clamp(focus.c, 0, 2) };
+    updateView();
+  }
+
+  function updateButtons() {
+    const chg = changedRows().length;
+    const sv = pane.querySelector('#tr-rec-save'), un = pane.querySelector('#tr-rec-undo');
+    if (sv) sv.disabled = !chg || saving;
+    if (un) un.disabled = !chg || saving;
+  }
+
+  // Подсветка выделения, правок и ошибок без пересборки таблицы
+  function updateView() {
+    const box = pane.querySelector('#tr-rec-body');
+    if (!box || !rowsN()) { updateButtons(); return; }
+    const sel = rng();
+    const fillR1 = fillTo !== null && fillTo > sel.r1 ? fillTo : sel.r1;
+    box.querySelectorAll('td.xg').forEach(td => {
+      const r = +td.dataset.r, c = +td.dataset.c, f = FIELDS[c];
+      const inSel = r >= sel.r0 && r <= sel.r1 && c >= sel.c0 && c <= sel.c1;
+      const inFill = fillTo !== null && r > sel.r1 && r <= fillR1 && c >= sel.c0 && c <= sel.c1;
+      const on = inSel || inFill;
+      const err = XG.validateRow(draft[r])[f] || srvErr[tags[r].tag_id] || '';
+      td.classList.toggle('xg-sel', on);
+      td.classList.toggle('xg-act', r === focus.r && c === focus.c);
+      td.classList.toggle('xg-chg', !XG.sameValue(draft[r][f], tags[r][f]));
+      td.classList.toggle('xg-bad', !!err);
+      td.classList.toggle('xg-t', on && r === sel.r0);
+      td.classList.toggle('xg-b', on && r === fillR1);
+      td.classList.toggle('xg-l', on && c === sel.c0);
+      td.classList.toggle('xg-r', on && c === sel.c1);
+      td.title = err || td.dataset.tip;
+      if (editing && editing.r === r && editing.c === c) return;
+      td.textContent = draft[r][f];
+      if (r === sel.r1 && c === sel.c1 && !editing && drag !== 'sel') {
+        const h = document.createElement('span');
+        h.className = 'xg-handle';
+        h.title = 'Маркер заполнения: потяните вниз, чтобы скопировать выделенные значения в строки ниже, как в Excel';
+        td.appendChild(h);
+      }
+    });
+    box.querySelectorAll('tbody tr').forEach((tr, r) => tr.classList.toggle('xg-rowchg', rowChanged(r)));
+    updateButtons();
+  }
+
+  function msg(t) { const m = pane.querySelector('#tr-rec-msg'); if (m) m.textContent = t || ''; }
+
+  function setSel(a, f) {
+    anchor = { r: clamp(a.r, 0, rowsN() - 1), c: clamp(a.c, 0, 2) };
+    focus = f ? { r: clamp(f.r, 0, rowsN() - 1), c: clamp(f.c, 0, 2) } : { ...anchor };
+    updateView();
+    const td = cellAt(focus.r, focus.c);
+    if (td && td.scrollIntoView) td.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+
+  function applyCells(list) { list.forEach(x => { if (x.r < rowsN() && x.c < 3) setDraft(x.r, x.c, x.v); }); updateView(); }
+
+  function startEdit(init) {
+    if (editing || !rowsN()) return;
+    const td = cellAt(focus.r, focus.c);
+    if (!td) return;
+    const input = document.createElement('input');
+    input.type = 'text'; input.inputMode = 'decimal'; input.className = 'tr-in';
+    input.title = 'Значение ячейки: число, запятая или точка; Enter подтверждает, Esc отменяет, пусто: не задано';
+    input.value = init === undefined ? draft[focus.r][FIELDS[focus.c]] : init;
+    editing = { r: focus.r, c: focus.c, input };
+    td.textContent = '';
+    td.appendChild(input);
+    input.focus();
+    input.addEventListener('keydown', e => {
+      e.stopPropagation();
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        commitEdit(true);
+        if (e.key === 'Enter') move(e.shiftKey ? -1 : 1, 0, false); else move(0, e.shiftKey ? -1 : 1, false);
+      } else if (e.key === 'Escape') {
+        e.preventDefault(); commitEdit(false);
+      }
+    });
+    input.addEventListener('blur', () => { if (editing && editing.input === input) commitEdit(true); });
+  }
+
+  function commitEdit(keep) {
+    if (!editing) return;
+    const e = editing; editing = null;
+    if (keep) setDraft(e.r, e.c, e.input.value.trim());
+    updateView();
+    pane.querySelector('#tr-rec-body').focus({ preventScroll: true });
+  }
+
+  function move(dr, dc, extend) {
+    let r = focus.r + dr, c = focus.c + dc;
+    if (dc) {
+      if (c > 2) { c = 0; r++; } else if (c < 0) { c = 2; r--; }
+    }
+    r = clamp(r, 0, rowsN() - 1);
+    setSel(extend ? anchor : { r, c: clamp(c, 0, 2) }, { r, c: clamp(c, 0, 2) });
+  }
+
+  function selMatrix() {
+    const s = rng(), out = [];
+    for (let r = s.r0; r <= s.r1; r++) { const row = []; for (let c = s.c0; c <= s.c1; c++) row.push(draft[r][FIELDS[c]]); out.push(row); }
+    return out;
+  }
+
+  function fillSel(toRow) {
+    const s = rng();
+    if (toRow <= s.r1) return;
+    const cells = [];
+    XG.fillDown(selMatrix(), toRow - s.r1).forEach((row, i) => row.forEach((v, j) => cells.push({ r: s.r1 + 1 + i, c: s.c0 + j, v })));
+    applyCells(cells);
+    anchor = { r: s.r0, c: s.c0 }; focus = { r: toRow, c: s.c1 };
+    updateView();
+  }
+
+  const isKey = (e, latin, cyr) => e.key === latin || e.key === latin.toUpperCase() || e.key === cyr || e.key === cyr.toUpperCase();
+
+  function onKey(e) {
+    if (editing || !rowsN()) return;
+    const ctrl = e.ctrlKey || e.metaKey;
+    const k = e.key;
+    const nav = { ArrowDown: [1, 0], ArrowUp: [-1, 0], ArrowRight: [0, 1], ArrowLeft: [0, -1] }[k];
+    if (nav) { e.preventDefault(); move(nav[0], nav[1], e.shiftKey); }
+    else if (k === 'Tab') { e.preventDefault(); move(0, e.shiftKey ? -1 : 1, false); }
+    else if (k === 'Enter') { e.preventDefault(); move(e.shiftKey ? -1 : 1, 0, false); }
+    else if (k === 'F2') { e.preventDefault(); startEdit(); }
+    else if (k === 'Delete' || k === 'Backspace') { e.preventDefault(); const s = rng(); applyCells(XG.clearCells(s.r0, s.r1, s.c0, s.c1)); }
+    else if (ctrl && isKey(e, 'a', 'ф')) { e.preventDefault(); setSel({ r: 0, c: 0 }, { r: rowsN() - 1, c: 2 }); }
+    else if (ctrl && isKey(e, 'd', 'в')) {
+      e.preventDefault();
+      const s = rng(), cells = [];
+      for (let r = s.r0 + 1; r <= s.r1; r++) for (let c = s.c0; c <= s.c1; c++) cells.push({ r, c, v: draft[s.r0][FIELDS[c]] });
+      applyCells(cells);
+    }
+    else if (!ctrl && !e.altKey && /^[0-9.,+-]$/.test(k)) { e.preventDefault(); startEdit(k); }
+  }
+
+  function cellFromEvent(e) {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const td = el && el.closest ? el.closest('#tr-rec-body td.xg') : null;
+    return td ? { r: +td.dataset.r, c: +td.dataset.c } : null;
+  }
+
+  function initGrid() {
+    const box = pane.querySelector('#tr-rec-body');
+    box.addEventListener('keydown', onKey);
+    box.addEventListener('mousedown', e => {
+      if (e.button !== 0 || e.target.closest('input')) return;
+      if (editing) commitEdit(true);
+      const td = e.target.closest('td.xg');
+      if (!td) return;
+      e.preventDefault();
+      box.focus({ preventScroll: true });
+      if (e.target.closest('.xg-handle')) { drag = 'fill'; fillTo = rng().r1; return; }
+      const p = { r: +td.dataset.r, c: +td.dataset.c };
+      drag = 'sel';
+      if (e.shiftKey) setSel(anchor, p); else setSel(p);
+    });
+    document.addEventListener('mousemove', e => {
+      if (!drag) return;
+      const p = cellFromEvent(e);
+      if (!p) return;
+      if (drag === 'sel') { if (p.r !== focus.r || p.c !== focus.c) { focus = p; updateView(); } }
+      else if (p.r !== fillTo) { fillTo = Math.max(p.r, rng().r1); updateView(); }
+    });
+    document.addEventListener('mouseup', () => {
+      if (!drag) return;
+      const was = drag, to = fillTo;
+      drag = null; fillTo = null;
+      if (was === 'fill' && to !== null) fillSel(to); else updateView();
+    });
+    box.addEventListener('dblclick', e => { if (e.target.closest('td.xg')) startEdit(); });
+    box.addEventListener('click', e => {
+      const b = e.target.closest('.tr-volt');
+      if (!b) return;
+      const r = [...box.querySelectorAll('tbody tr')].indexOf(b.closest('tr'));
+      if (r >= 0) { setDraft(r, 0, '1'); setDraft(r, 1, '207'); setDraft(r, 2, '253'); updateView(); }
+    });
+    box.addEventListener('copy', e => {
+      if (editing || !rowsN()) return;
+      e.preventDefault();
+      e.clipboardData.setData('text/plain', XG.toTsv(selMatrix().map(row => row.map(v => { const n = XG.parseNum(v); return Number.isNaN(n) ? v : n; }))));
+    });
+    box.addEventListener('paste', e => {
+      if (editing || !rowsN()) return;
+      e.preventDefault();
+      const m = XG.parseTsv((e.clipboardData || window.clipboardData).getData('text'));
+      const s = rng();
+      applyCells(XG.pasteCells(m, s.r0, s.c0, rowsN(), 3));
+      setSel({ r: s.r0, c: s.c0 }, { r: s.r0 + m.length - 1, c: s.c0 + Math.max(...m.map(x => x.length)) - 1 });
+    });
+    pane.querySelector('#tr-rec-save').addEventListener('click', saveAll);
+    pane.querySelector('#tr-rec-undo').addEventListener('click', () => { resetDraft(); msg(''); updateView(); });
   }
 
   async function loadTags() {
@@ -210,31 +420,39 @@
       const r = await fetch('/api/trends/tags', { signal: AbortSignal.timeout(6000) });
       if (!r.ok) throw new Error(await errText(r));
       tags = await r.json(); tagsErr = '';
+      resetDraft();
     } catch (ex) {
       tagsErr = ex.name === 'TimeoutError' ? 'Сервер не ответил за 6 секунд' : ex.message;
     }
     drawTags();
   }
 
-  async function saveTag(tr, btn) {
-    const v = c => parseNum(tr.querySelector(c).value);
-    const body = { deadband: v('.tr-db'), limit_low: v('.tr-lo'), limit_high: v('.tr-hi') };
-    if (Object.values(body).some(x => x !== null && !Number.isFinite(x))) { toast('Введите числа (пустое поле: не задано)'); return; }
-    btn.disabled = true;
-    try {
-      const r = await fetch(`/api/trends/tags/${tr.dataset.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(6000) });
-      if (!r.ok) throw new Error(await errText(r));
-      const upd = await r.json();
-      const i = tags.findIndex(t => t.tag_id === upd.tag_id);
-      if (i >= 0) tags[i] = upd;
-      tr.querySelector('.tr-db').value = numVal(upd.deadband);
-      tr.querySelector('.tr-lo').value = numVal(upd.limit_low);
-      tr.querySelector('.tr-hi').value = numVal(upd.limit_high);
-      toast(`Сохранено: ${upd.name}`);
-    } catch (ex) {
-      toast(ex.name === 'TimeoutError' ? 'Сервер не ответил за 6 секунд' : ex.message);
+  async function saveAll() {
+    if (saving) return;
+    const rows = changedRows();
+    if (!rows.length) return;
+    saving = true; updateView();
+    let ok = 0, invalid = 0, failed = 0;
+    for (const r of rows) {
+      const d = draft[r];
+      if (Object.keys(XG.validateRow(d)).length) { invalid++; continue; }
+      const body = { deadband: XG.parseNum(d.deadband), limit_low: XG.parseNum(d.limit_low), limit_high: XG.parseNum(d.limit_high) };
+      try {
+        const resp = await fetch(`/api/trends/tags/${tags[r].tag_id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(6000) });
+        if (!resp.ok) throw new Error(await errText(resp));
+        const upd = await resp.json();
+        tags[r] = upd;
+        draft[r] = { deadband: numVal(upd.deadband), limit_low: numVal(upd.limit_low), limit_high: numVal(upd.limit_high) };
+        ok++;
+      } catch (ex) {
+        srvErr[tags[r].tag_id] = ex.name === 'TimeoutError' ? 'Сервер не ответил за 6 секунд' : ex.message;
+        failed++;
+      }
     }
-    btn.disabled = false;
+    saving = false;
+    msg(`Сохранено ${ok}` + (invalid ? `; не отправлено из-за ошибок в значениях: ${invalid}` : '') + (failed ? `; отклонено сервером: ${failed}` : ''));
+    toast(`Сохранено ${ok}`);
+    updateView();
   }
 
   function syncAdmin() {

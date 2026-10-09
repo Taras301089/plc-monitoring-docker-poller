@@ -283,3 +283,22 @@ body.andon-archive .andon-day input[type="date"] { box-shadow: inset 0 0 0 1px v
 .tr-act { white-space: nowrap; text-align: right; }
 .tr-act button { min-height: 28px; padding: 0 12px; }
 @media (max-width: 700px) { .tr-act { white-space: normal; } }
+
+/* Блок «Запись переменных» работает как таблица Excel */
+.tr-rec-btns { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+.tr-rec-btns button:disabled { opacity: .5; cursor: default; }
+.tr-rec-body:focus { outline: none; }
+.tr-rec-msg { min-height: 1.2em; margin-top: 6px; font-size: var(--fs-small); color: var(--fg-secondary); }
+.tr-rec-t td.xg { position: relative; text-align: right; cursor: cell; user-select: none; font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 70px; height: 28px; }
+.tr-rec-t td.xg-sel { background: var(--hover); }
+.tr-rec-t td.xg-chg { background: var(--zebra); box-shadow: inset 3px 0 0 var(--accent); }
+.tr-rec-t td.xg-sel.xg-chg { background: var(--hover); }
+.tr-rec-t td.xg-bad { background: color-mix(in srgb, var(--danger) 18%, transparent); box-shadow: inset 3px 0 0 var(--danger); }
+.tr-rec-t td.xg-t { border-top: 1px solid var(--accent); }
+.tr-rec-t td.xg-b { border-bottom: 1px solid var(--accent); }
+.tr-rec-t td.xg-l { border-left: 1px solid var(--accent); }
+.tr-rec-t td.xg-r { border-right: 1px solid var(--accent); }
+.tr-rec-t td.xg-act { outline: 2px solid var(--accent); outline-offset: -2px; }
+.tr-rec-t td.xg .tr-in { width: 100%; box-sizing: border-box; }
+.xg-handle { position: absolute; right: -3px; bottom: -3px; width: 7px; height: 7px; background: var(--accent); border: 1px solid var(--bg-primary); cursor: crosshair; z-index: 1; }
+@media (max-width: 700px) { .tr-rec-t td.xg { min-width: 56px; } }
