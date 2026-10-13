@@ -5,3 +5,5 @@ n8n_data/
 .env
 
 tasks/img/
+
+tasks/data/
