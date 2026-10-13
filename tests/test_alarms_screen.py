@@ -85,7 +85,8 @@ def test_no_hard_colors():
 
 def test_reference_has_alarms():
     assert 'href="index.html#alarms"' in REF and "alarms.js" in REF
-    assert "<strong>2026-10-12</strong>" in REF and "вкладка Аварии" in REF
+    log = REF[REF.index('id="changelog"'):]
+    assert re.search(r'<li data-date="\d{4}-\d{2}-\d{2}">', log) and "вкладка Аварии" in log
 
 
 @pytest.mark.skipif(not NODE, reason="нет node")

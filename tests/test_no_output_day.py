@@ -282,4 +282,4 @@ def test_every_consumer_goes_through_the_single_rule():
     for name in ("downtime.py", "period.py", "history.py"):
         assert "dayflags" in (api / name).read_text(encoding="utf-8"), name
     assert "ensure_dayflags_schema" in (api / "main.py").read_text(encoding="utf-8")
-    assert "dayflags.py" in (api / "Dockerfile").read_text(encoding="utf-8")
+    assert "COPY *.py ./" in (api / "Dockerfile").read_text(encoding="utf-8")   # dayflags.py попадает в образ общим COPY

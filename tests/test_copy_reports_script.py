@@ -98,5 +98,6 @@ def test_reference_commands_one_per_block_with_copy_buttons():
 def test_reference_date_and_structure():
     t = REFERENCE.read_text(encoding="utf-8")
     assert "copy-reports.ps1" in t.split("<h3>Копирование отчётов")[0], "строка в структуре каталогов"
-    assert "Справка обновлена: <strong>2026-10-12</strong>" in t
+    import re
+    assert 'id="changelog"' in t and re.search(r'<li data-date="\d{4}-\d{2}-\d{2}">', t)
     assert "автосохранение одним листом и копирование в сетевую папку" in t
