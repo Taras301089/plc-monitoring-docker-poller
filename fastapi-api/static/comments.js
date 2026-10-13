@@ -90,11 +90,11 @@
   };
 
   // ---------- блок комментариев в панели простоя ----------
-  function mount(box, itemId, onChange) {
+  function mount(box, itemId, onChange, opts = {}) {
     let comments = [];
     box.innerHTML = '<div class="cm-title">Комментарии</div><div class="cm-list"></div><div class="cm-new"></div>';
     const listEl = box.querySelector('.cm-list'), newEl = box.querySelector('.cm-new'), titleEl = box.querySelector('.cm-title');
-    let mainComposer = null, composerOpen = false;
+    let mainComposer = null, composerOpen = !!opts.open;   // opts.open: поле ввода сразу открыто (окно комментария на Andon)
     box._flushDraft = async () => (mainComposer && mainComposer._flush ? mainComposer._flush() : true);   // «Сохранить» окна простоя отправляет и набранный комментарий
 
     async function reload() {

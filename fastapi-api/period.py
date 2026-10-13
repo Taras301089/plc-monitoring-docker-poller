@@ -100,8 +100,10 @@ def summarize(data: dict[str, Any]) -> dict[str, Any]:
 def _chart_plan_fact(wb, sheet: str, n: int, c_plan=1, c_fact=2, c_pct=4, r0=0):
     cats = [sheet, r0 + 1, 0, r0 + n, 0]
     col = wb.add_chart({"type": "column"})
-    col.add_series({"name": "План", "categories": cats, "values": [sheet, r0 + 1, c_plan, r0 + n, c_plan], "fill": {"color": "#8FA3BF"}, "gap": 60})
-    col.add_series({"name": "Факт", "categories": cats, "values": [sheet, r0 + 1, c_fact, r0 + n, c_fact], "fill": {"color": "#2F80ED"}})
+    col.add_series({"name": "План", "categories": cats, "values": [sheet, r0 + 1, c_plan, r0 + n, c_plan], "fill": {"color": "#8FA3BF"}, "gap": 60,
+                    "data_labels": {"value": True, "font": {"color": "#6B7785"}}})
+    col.add_series({"name": "Факт", "categories": cats, "values": [sheet, r0 + 1, c_fact, r0 + n, c_fact], "fill": {"color": "#2F80ED"},
+                    "data_labels": {"value": True}})
     ln = wb.add_chart({"type": "line"})
     ln.add_series({"name": "% выполнения", "categories": cats, "values": [sheet, r0 + 1, c_pct, r0 + n, c_pct], "y2_axis": True,
                    "line": {"color": "#27AE60", "width": 2.25}, "marker": {"type": "circle", "size": 5}})
@@ -130,9 +132,9 @@ def _chart_downtime(wb, sheet: str, n: int, c_min=5, r0=0):
 def _chart_pareto(wb, sheet: str, n: int, c_min=1, c_cum=3, r0=0):
     cats = [sheet, r0 + 1, 0, r0 + n, 0]
     ch = wb.add_chart({"type": "column"})
-    ch.add_series({"name": "Минут", "categories": cats, "values": [sheet, r0 + 1, c_min, r0 + n, c_min], "fill": {"color": "#E88B8B"}, "gap": 50})
+    ch.add_series({"name": "Простой, мин", "categories": cats, "values": [sheet, r0 + 1, c_min, r0 + n, c_min], "fill": {"color": "#E88B8B"}, "gap": 50})
     ln = wb.add_chart({"type": "line"})
-    ln.add_series({"name": "Накопленная доля", "categories": cats, "values": [sheet, r0 + 1, c_cum, r0 + n, c_cum], "y2_axis": True,
+    ln.add_series({"name": "Накопленный %", "categories": cats, "values": [sheet, r0 + 1, c_cum, r0 + n, c_cum], "y2_axis": True,
                    "line": {"color": "#4F5B6B", "width": 2}, "marker": {"type": "circle", "size": 5}})
     ch.combine(ln)
     ch.set_title({"name": "Парето причин простоя (топ-10)"})

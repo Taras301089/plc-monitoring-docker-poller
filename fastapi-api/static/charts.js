@@ -2,13 +2,13 @@
 (() => {
   'use strict';
 
-  const pane = document.querySelector('#charts');
-  const tabBtn = document.querySelector('.tab[data-tab="charts"]');
-  if (!pane || !tabBtn) return;
+  const hasDom = typeof document !== 'undefined';
+  const pane = hasDom ? document.querySelector('#charts') : null;
+  const tabBtn = hasDom ? document.querySelector('.tab[data-tab="charts"]') : null;
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const toast = t => (typeof showToast === 'function' ? showToast(t) : alert(t));
-  const today = () => window.plantClock.isoDate();
+  const today = () => window.plantClock.isoDate();   // «сегодня» по времени сервера
   const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
   const firstOfMonth = iso => iso.slice(0, 8) + '01';
   const fmtDay = iso => { const [, m, d] = iso.split('-'); return `${d}.${m}`; };
@@ -16,13 +16,16 @@
   const pct = v => (v === null || v === undefined ? '—' : `${Math.round(v * 100)}%`);
 
   const KEY = 'charts:state';
-  const state = { screen: null, from: '', to: '' };
+  const state = { screen: null, from: '', to: '', mode: 'range' };
   let screens = [];
   let data = null;
   let cum = null;
   let built = false;
   let loadToken = 0;
   let loadedAt = 0;
+
+  // легенда Парето: подписи те же, что у рядов диаграммы Excel (period.py)
+  const PARETO_LEGEND = '<div class="ch-legend" title="Накопленная доля причин простоя в процентах от суммы всех причин; показывает, сколько простоя дают первые причины"><i class="ch-l-down"></i>Простой, мин<i class="ch-l-cum"></i>Накопленный %</div>';
 
   const CARDS = [
     { kind: 'plan_fact', title: 'План, факт и % выполнения по дням', tip: 'Столбцы: план и факт кузовов за день; линия: процент выполнения плана (правая шкала)' },
@@ -40,6 +43,25 @@
       prev: [firstOfMonth(pm), pm],
     };
   };
+
+  // ---------- выбор периода: режим «День» (одна дата, ◀ ▶ на день) и диапазон (◀ ▶ на длину периода) ----------
+  const daysBetween = (a, b) => Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000) + 1;
+  // выбор даты в календаре режима «День»: «С» и «По» ставятся на этот день (не позже сегодняшнего)
+  const pickDay = (iso, todayIso) => { const d = iso > todayIso ? todayIso : iso; return { mode: 'day', from: d, to: d }; };
+  // ◀ ▶: k = -1 назад, +1 вперёд; null, если вперёд дальше сегодняшнего дня некуда
+  const shiftPeriod = (st, k, todayIso) => {
+    if (st.mode === 'day') {
+      const d = addDays(st.from, k);
+      return d > todayIso ? null : { mode: 'day', from: d, to: d };
+    }
+    const n = daysBetween(st.from, st.to) * k;
+    if (k > 0 && st.to >= todayIso) return null;
+    let to = addDays(st.to, n), from = addDays(st.from, n);
+    if (to > todayIso) { to = todayIso; if (from > to) from = to; }
+    return { mode: 'range', from, to };
+  };
+  // сохранённый выбор из прошлых версий (без режима): один день считается режимом «День»
+  const modeOf = st => (st.mode === 'day' || st.mode === 'range' ? st.mode : (st.from && st.from === st.to ? 'day' : 'range'));
 
   const saveState = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* без сохранения */ } };
   const loadState = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
@@ -76,17 +98,20 @@
   };
 
   const lab = d => d.label || fmtDay(d.date);
-  window.andonChart = { planFact: (days, W) => chartPlanFact(days, W) };   // для предпросмотра отчёта на вкладке «Отчёты»
+  if (typeof window !== 'undefined') window.andonChart = { planFact: (days, W) => chartPlanFact(days, W) };   // для предпросмотра отчёта на вкладке «Отчёты»
 
   function chartPlanFact(days, W) {
     if (!days.length) return empty('Нет данных за период');
     const H = 300, m = { l: 46, r: 46, t: 22, b: 34 };
-    const n = days.length, iw = W - m.l - m.r, ih = H - m.t - m.b, gw = iw / n, bw = Math.max(3, Math.min(28, gw * 0.36));
+    const n = days.length, iw = W - m.l - m.r, ih = H - m.t - m.b, gw = iw / n, bw = Math.max(3, Math.min(28, gw * 0.42));
     const ay = axis(Math.max(...days.map(d => Math.max(d.plan, d.fact)), 1));
     const maxPct = Math.max(1, ...days.map(d => d.pct || 0));
     const ap = axis(maxPct * 100);
     const yv = v => m.t + ih * (1 - v / ay.max);
     const yp = v => m.t + ih * (1 - v / ap.max);
+    // подпись плана стоит над своим столбцом; если две подписи (план и факт) не помещаются в ширину пары столбцов, подпись плана не рисуется
+    const digits = Math.max(...days.map(d => String(d.plan).length), ...days.map(d => String(d.fact).length));
+    const planFits = bw + 2 >= digits * 8 + 2;
     let bars = '', pts = [], dots = '';
     days.forEach((d, i) => {
       const x0 = m.l + gw * i + gw / 2;
@@ -94,6 +119,7 @@
       bars += `<rect class="ch-plan" x="${x0 - bw - 1}" y="${yv(d.plan)}" width="${bw}" height="${ih - (yv(d.plan) - m.t)}"/>` +
         `<rect class="ch-fact" x="${x0 + 1}" y="${yv(d.fact)}" width="${bw}" height="${ih - (yv(d.fact) - m.t)}"/>`;
       if (gw >= 46) bars += `<text class="ch-val" x="${x0 + 1 + bw / 2}" y="${yv(d.fact) - 4}" text-anchor="middle">${d.fact}</text>`;
+      if (gw >= 46 && planFits) bars += `<text class="ch-val ch-val-plan" x="${x0 - bw / 2 - 1}" y="${yv(d.plan) - 4}" text-anchor="middle">${d.plan}</text>`;
       if (d.pct !== null) { pts.push(`${x0},${yp(d.pct * 100)}`); dots += `<circle class="ch-dot" cx="${x0}" cy="${yp(d.pct * 100)}" r="3.5"/>`; }
       bars += `<rect class="ch-hit" x="${x0 - gw / 2}" y="${m.t}" width="${gw}" height="${ih}"><title>${esc(tip)}</title></rect>`;
     });
@@ -191,6 +217,9 @@
     return frame(W, H, g + bars + `<polyline class="ch-line ch-line-b" points="${pp.join(' ')}"/><polyline class="ch-line ch-line-f" points="${pf.join(' ')}"/>` + dots + xLabels(rows.map(r => r.label), m, W, H));
   }
 
+  if (typeof module !== 'undefined' && module.exports) module.exports = { chartPlanFact, chartPareto, pickDay, shiftPeriod, modeOf, daysBetween };
+  if (!pane || !tabBtn) return;
+
   // ---------- каркас вкладки ----------
   function summaryTiles(d) {
     const tp = d.days.reduce((s, x) => s + x.plan, 0), tf = d.days.reduce((s, x) => s + x.fact, 0);
@@ -209,48 +238,71 @@
       <div class="ch-bar">
         <label title="Линия, по которой строятся графики: бренд (Main Line) или линия Finish Line">Линия
           <select id="ch-screen" title="Выберите линию для графиков"></select></label>
-        <label title="Первый день периода">С <input type="date" id="ch-from" max="${today()}" title="Первый день периода"></label>
-        <label title="Последний день периода (включительно)">По <input type="date" id="ch-to" max="${today()}" title="Последний день периода"></label>
+        <button type="button" id="ch-prev" class="dt-sec" title="Сдвинуть назад: в режиме «День» на один день, иначе на длину выбранного периода">◀</button>
+        <label id="ch-day-l" title="День, за который строятся графики; при выборе даты «С» и «По» ставятся на этот день автоматически">Дата <input type="date" id="ch-day" max="${today()}" title="День, за который строятся графики"></label>
+        <label id="ch-from-l" title="Первый день периода">С <input type="date" id="ch-from" max="${today()}" title="Первый день периода"></label>
+        <label id="ch-to-l" title="Последний день периода (включительно)">По <input type="date" id="ch-to" max="${today()}" title="Последний день периода"></label>
+        <button type="button" id="ch-next" class="dt-sec" title="Сдвинуть вперёд: в режиме «День» на один день, иначе на длину выбранного периода; не позже сегодняшнего дня">▶</button>
         <span class="ch-presets">
-          <button type="button" class="dt-sec" data-p="day" title="Только сегодняшний день">День</button>
+          <button type="button" class="dt-sec" data-p="day" title="Один день: сегодняшний; дату можно выбрать в календаре, а днями листать стрелками ◀ ▶">День</button>
           <button type="button" class="dt-sec" data-p="week" title="Последние 7 дней, включая сегодня">Неделя</button>
           <button type="button" class="dt-sec" data-p="month" title="С первого числа текущего месяца по сегодня">Месяц</button>
           <button type="button" class="dt-sec" data-p="prev" title="Весь прошлый календарный месяц">Прошлый месяц</button>
         </span>
-        <button type="button" id="ch-report" class="dt-sec" title="Скачать полный отчёт по линии за период: сводка с графиками, таблицы по дням, причинам и станциям, список простоев">⬇ Отчёт за период</button>
+        <button type="button" id="ch-report" class="dt-sec ch-xl" title="Скачать весь отчёт по линии за период в Excel: сводка с графиками, таблицы по дням, причинам и станциям, список простоев">⬇ Excel — весь отчёт</button>
       </div>
       <div class="ch-tiles" id="ch-tiles"></div>
       <div class="ch-grid-cards">${CARDS.map(c => `
         <section class="ch-card" data-kind="${c.kind}">
           <header><h3 title="${esc(c.tip)}">${esc(c.title)}</h3>
-            <button type="button" class="dt-sec ch-xl" data-kind="${c.kind}" title="Выгрузить в Excel данные этого графика и сам график (диаграмма Excel) за выбранный период">⬇ Excel</button></header>
+            <button type="button" class="dt-sec ch-xl" data-kind="${c.kind}" title="Скачать этот график и его данные в Excel за выбранный период">⬇ Excel</button></header>
           ${c.kind === 'cumulative' ? '<div class="ch-legend"><i class="ch-l-plan"></i>Накопленный план<i class="ch-l-fact"></i>Накопленный факт<i class="ch-l-down"></i>Отставание от плана<i class="ch-l-ahead"></i>Опережение плана</div>' : ''}
+          ${c.kind === 'reasons' ? PARETO_LEGEND : ''}
           ${c.kind === 'plan_fact' ? '<div class="ch-legend"><i class="ch-l-plan"></i>План<i class="ch-l-fact"></i>Факт<i class="ch-l-pct"></i>% выполнения</div>' : ''}
           <div class="ch-body" data-body="${c.kind}"></div>
         </section>`).join('')}</div>`;
     const sel = pane.querySelector('#ch-screen');
     sel.innerHTML = screens.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
     sel.value = String(state.screen);
-    pane.querySelector('#ch-from').value = state.from;
-    pane.querySelector('#ch-to').value = state.to;
     sel.addEventListener('change', () => { state.screen = Number(sel.value); saveState(); load(); });
-    const onDates = () => {
-      const f = pane.querySelector('#ch-from').value, t = pane.querySelector('#ch-to').value;
-      if (!f || !t || t < f) return;
-      state.from = f; state.to = t; saveState(); load();
+    const q = id => pane.querySelector(id);
+    // применить выбор (режим, С, По): поля, сохранение, перезагрузка
+    const apply = r => {
+      if (!r || !r.from || !r.to || r.to < r.from) return;
+      Object.assign(state, r);
+      syncBar(); saveState(); load();
     };
-    pane.querySelector('#ch-from').addEventListener('change', onDates);
-    pane.querySelector('#ch-to').addEventListener('change', onDates);
+    q('#ch-day').addEventListener('change', () => { if (q('#ch-day').value) apply(pickDay(q('#ch-day').value, today())); });
+    const onDates = () => {
+      const f = q('#ch-from').value, t = q('#ch-to').value;
+      if (!f || !t || t < f) return;
+      apply({ mode: 'range', from: f, to: t > today() ? today() : t });
+    };
+    q('#ch-from').addEventListener('change', onDates);
+    q('#ch-to').addEventListener('change', onDates);
     pane.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => {
-      [state.from, state.to] = presets()[b.dataset.p];
-      pane.querySelector('#ch-from').value = state.from;
-      pane.querySelector('#ch-to').value = state.to;
-      saveState(); load();
+      const [f, t] = presets()[b.dataset.p];
+      apply({ mode: b.dataset.p === 'day' ? 'day' : 'range', from: f, to: t });
     }));
+    q('#ch-prev').addEventListener('click', () => apply(shiftPeriod(state, -1, today())));
+    q('#ch-next').addEventListener('click', () => apply(shiftPeriod(state, 1, today())));
+    syncBar();
     pane.querySelector('#ch-report').addEventListener('click', e => exportXlsx(e.currentTarget, `/api/kpi/screens/${state.screen}/period.xlsx?from=${state.from}&to=${state.to}&src=charts`));
-    pane.querySelectorAll('.ch-xl').forEach(b => b.addEventListener('click', e =>
+    pane.querySelectorAll('.ch-xl[data-kind]').forEach(b => b.addEventListener('click', e =>
       exportXlsx(e.currentTarget, `/api/kpi/screens/${state.screen}/chart.xlsx?kind=${b.dataset.kind}&from=${state.from}&to=${state.to}&src=charts`)));
     built = true;
+  }
+
+  // поля даты по режиму: «День» показывает одну дату, иначе пару «С» и «По»
+  function syncBar() {
+    const day = state.mode === 'day';
+    pane.querySelector('#ch-day').value = state.from;
+    pane.querySelector('#ch-from').value = state.from;
+    pane.querySelector('#ch-to').value = state.to;
+    pane.querySelector('#ch-day-l').hidden = !day;
+    pane.querySelector('#ch-from-l').hidden = day;
+    pane.querySelector('#ch-to-l').hidden = day;
+    pane.querySelector('#ch-next').disabled = state.to >= today();
   }
 
   async function exportXlsx(btn, url) {
@@ -295,7 +347,8 @@
 
   function markPreset() {
     const p = presets();
-    pane.querySelectorAll("[data-p]").forEach(b => b.classList.toggle("on", p[b.dataset.p][0] === state.from && p[b.dataset.p][1] === state.to));
+    pane.querySelectorAll("[data-p]").forEach(b => b.classList.toggle("on",
+      b.dataset.p === 'day' ? state.mode === 'day' : state.mode === 'range' && p[b.dataset.p][0] === state.from && p[b.dataset.p][1] === state.to));
   }
 
   async function load() {
@@ -332,6 +385,10 @@
       const p = presets().month;
       state.from = saved.from || p[0];
       state.to = saved.to || p[1];
+      if (state.from > today()) state.from = today();
+      if (state.to > today()) state.to = today();
+      state.mode = modeOf({ ...saved, from: state.from, to: state.to });
+      if (state.mode === 'day') state.to = state.from;
       build();
       load();
     } else if (Date.now() - loadedAt > 30000) {

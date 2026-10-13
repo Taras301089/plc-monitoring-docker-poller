@@ -24,6 +24,21 @@
     }
     return s;
   };
+  // Окно комментария к простою (клик по тексту описания в колонке «Причина»): чистые функции для проверки в node
+  const cmTitle = (idx, timeText) => {
+    const t = String(timeText || '').match(/\d{1,2}:\d{2}/g) || [];
+    return `Комментарий — интервал ${idx}${t.length >= 2 ? `, ${t[0]}–${t[1]}` : ''}`;
+  };
+  // На табло без входа клик не активен; вошедший открывает окно, писать может не «Просмотр»; невошедший вне табло видит окно только для чтения
+  const cmAccess = (tv, user) => ({ open: !tv || !!user, write: !!user && user.role !== 'viewer' });
+  const cmPlace = (dict, it) => {
+    let st = null;
+    for (const a of dict.areas) { const s = a.stations.find(x => x.id === it.station_id); if (s) { st = s; break; } }
+    const area = dict.areas.find(a => a.id === it.area_id);
+    const reason = (dict.reasons.find(r => r.id === it.reason_id) || {}).name || '';
+    return [reason, area && area.name, st && st.name].filter(Boolean).join(' · ');
+  };
+  window.dtCmHelpers = { cmTitle, cmAccess, cmPlace };
   const toast = t => (typeof showToast === 'function' ? showToast(t) : alert(t));
 
   async function load(screenId, force = false) {
@@ -87,7 +102,11 @@
       // клик по «не описан» открывает тот же редактор простоя, что и кнопка с минутами в этой строке
       const whyTd = tr.querySelector('[data-k="why"]');
       if (whyTd) whyTd.onclick = e => {
-        if (!e.target.closest('.why-none-click') || !d) return;
+        if (!d) return;
+        // клик по тексту описания (причина, описание, комментарий) открывает окно комментария именно к этой причине
+        const col = e.target.closest('.why-click');
+        if (col) { openCommentPanel(screen, d.idx, tr, Number(col.dataset.item)); return; }
+        if (!e.target.closest('.why-none-click')) return;
         openPanel(screen, d.idx, tr);
       };
     });
@@ -138,7 +157,7 @@
           return { place: (st && st.name) || (area && area.name) || '', reason, min: it.minutes };
         };
         // причины по убыванию минут; у каждой строка «станция · причина» (минуты, если причин несколько) и под ней описание
-        const all = its.map(it => ({ ...name(it), note: (it.note || '').trim(), comment: it.last_comment || null, who: it.author || '' })).sort((a, b) => b.min - a.min);
+        const all = its.map(it => ({ id: it.id, ...name(it), note: (it.note || '').trim(), comment: it.last_comment || null, who: it.author || '' })).sort((a, b) => b.min - a.min);
         const left = Math.max(0, d.minutes - d.described);
         // при малом числе интервалов строки высокие и помещается четыре строки текста, иначе три
         const rowsN = [...tr.parentElement.children].filter(x => !x.hidden).length;   // скрытые (неактивные) интервалы не считаются
@@ -150,7 +169,7 @@
           lines.push({ c: 'why-main', h:`${esc(`${x.place ? x.place + ' · ' : ''}${x.reason}${all.length > 1 ? ' · ' + fmt(x.min) + ' мин' : ''}`)}${x.who ? ` <span class="why-by" title="Кто описал причину простоя: фамилия и должность">· ${esc(x.who)}</span>` : ''}` });
           if (x.note && lines.length < MAX_LINES) lines.push({ c: 'why-note', t: x.note });
           if (x.comment && lines.length < MAX_LINES) lines.push({ c: 'why-comment', h: `<span class="why-re" title="Ответ или дополнение к описанию выше">↳</span> ${x.comment.is_oto ? '<span class="cm-badge oto" title="Комментарий оставил сотрудник ОТО">ОТО</span> ' : ''}${esc(x.comment.text)}${x.comment.author ? ` <span class="why-by" title="Кто написал комментарий: фамилия и должность">· ${esc(x.comment.author)}</span>` : ''}` });
-          cols.push(`<div class="why-col">${lines.map(l => `<span class="${l.c}">${l.h || esc(l.t)}</span>`).join('')}</div>`);
+          cols.push(`<div class="why-col${x.id ? ' why-click' : ''}"${x.id ? ` data-item="${x.id}" title="Нажмите, чтобы добавить комментарий к этому простою"` : ''}>${lines.map(l => `<span class="${l.c}">${l.h || esc(l.t)}</span>`).join('')}</div>`);
         }
         if (left > 0.5) cols.push(`<div class="why-col why-left"><span class="why-none">не описано ${fmt(left)} мин</span></div>`);
         html = `<div class="why-cols">${cols.join('')}</div>`;
@@ -168,6 +187,63 @@
     if (!d) return;
     const time = tr.querySelector('[data-k="time"]');
     showPanel(screen, d, time ? time.textContent : '', cache[ck(screen.id)].data.scope);
+  }
+
+  // Окно комментария к одной причине простоя: список комментариев, поле ввода, «Сохранить» (Ctrl+Enter) и «Отмена» (Esc)
+  async function openCommentPanel(screen, idx, tr, itemId) {
+    const u = (window.authState && window.authState().user) || null;
+    const acc = cmAccess(document.body.classList.contains('tv-mode'), u);
+    if (!acc.open) return;
+    await load(screen.id, true);
+    const d = ((cache[ck(screen.id)].data || {}).downtimes || []).find(x => x.idx === idx);
+    const it = d && d.items.find(x => x.id === itemId);
+    if (!it || !window.dtComments) return;
+    let dd;
+    try { dd = await loadDict(); } catch (e) { toast(e.message); return; }
+    const time = tr.querySelector('[data-k="time"]');
+    const m = document.createElement('div');
+    m.className = 'kpi-modal';
+    m.innerHTML = `<div class="kpi-modal-box dt-box dt-cm-box" role="dialog" aria-label="Комментарий">
+      <h3>${esc(cmTitle(idx, time ? time.textContent : ''))}</h3>
+      <p class="dt-cm-what" title="Какой причине простоя относится комментарий: причина, участок и станция">${esc(cmPlace(dd, it))}${it.note ? ` — ${esc(it.note)}` : ''}</p>
+      <div class="dt-comments"></div>
+      <div class="auth-err" hidden></div>
+      <div class="kpi-modal-actions">
+        <span style="flex:1"></span>
+        <button type="button" data-act="cancel" class="dt-sec" title="Закрыть окно без сохранения набранного комментария (клавиша Esc)">${acc.write ? 'Отмена' : 'Закрыть'}</button>
+        ${acc.write ? '<button type="button" data-act="save" title="Сохранить комментарий: его увидят все на экране Andon, отмеченные через @ получат уведомление (Ctrl+Enter)">Сохранить</button>' : ''}
+      </div>
+      ${acc.write ? '' : '<p class="dt-hint">Чтобы комментировать, войдите в систему (роль кроме «Просмотр»).</p>'}
+    </div>`;
+    document.body.appendChild(m);
+    const err = m.querySelector('.auth-err'), box = m.querySelector('.dt-comments');
+    const onKey = e => {
+      if (e.key === 'Escape') { e.preventDefault(); close(); }
+      else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && save) { e.preventDefault(); save.click(); }
+    };
+    const close = () => { document.removeEventListener('keydown', onKey); m.remove(); };
+    document.addEventListener('keydown', onKey);
+    m.addEventListener('mousedown', e => { if (e.target === m) close(); });
+    const refresh = async () => {
+      await load(screen.id, true);
+      if (window.dtApply && andonScreenId === screen.id) window.dtApply(screen, document.querySelector('#andon'));
+      if (window.dtListRefresh) window.dtListRefresh();
+    };
+    window.dtComments.mount(box, itemId, () => refresh(), { open: true });
+    m.querySelector('[data-act="cancel"]').addEventListener('click', close);
+    const save = m.querySelector('[data-act="save"]');
+    if (save) save.addEventListener('click', async () => {
+      err.hidden = true;
+      const ta = box.querySelector('.cm-form textarea');
+      if (!ta || !ta.value.trim()) { err.textContent = 'Введите текст комментария'; err.hidden = false; return; }
+      save.disabled = true;
+      const ok = box._flushDraft ? await box._flushDraft() : false;
+      if (!ok) { save.disabled = false; err.textContent = 'Комментарий не сохранён: проверьте текст и связь'; err.hidden = false; return; }
+      close();
+      toast('Комментарий сохранён');
+      await refresh();
+    });
+    setTimeout(() => { const t = box.querySelector('.cm-form textarea'); if (t) t.focus(); }, 300);
   }
 
   // Открыть простой из уведомления: выбираем его экран и показываем панель
