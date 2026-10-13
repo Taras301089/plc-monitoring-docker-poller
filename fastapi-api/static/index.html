@@ -33,6 +33,7 @@
       --zebra: rgba(255,255,255,.022);
       --hover: rgba(76,154,255,.10);
       --checked: rgba(52,211,153,.10);
+      --date-icon-filter: invert(1) brightness(1.3);   /* значок календаря в полях даты: светлый на тёмной теме */
     }
     [data-theme="light"] {
       --bg-page: #eef1f5;
@@ -60,6 +61,7 @@
       --zebra: rgba(0,0,0,.025);
       --hover: rgba(43,108,176,.10);
       --checked: rgba(23,114,69,.10);
+      --date-icon-filter: none;   /* в светлой теме значок остаётся тёмным */
     }    * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: var(--bg-secondary); color: var(--fg-primary); }
     body { display: flex; flex-direction: column; min-height: 100vh; }
@@ -320,7 +322,7 @@
     .variables-panel .panel-header { background: var(--vt-head); border-bottom: 1px solid var(--vt-line); color: var(--vt-text); }
     .variables-panel #db-filter { background: var(--vt-box); border: 0; border-bottom: 1px solid var(--vt-line); border-radius: 0; margin: 0; color: var(--vt-text); }
     .var-head, .variables-panel .var-item {
-      display: grid; grid-template-columns: 64px 26px minmax(170px, 1.3fr) 104px 104px minmax(120px, 1.8fr) 92px;
+      display: grid; grid-template-columns: 64px 26px minmax(170px, 1.3fr) 104px 104px minmax(120px, 1.8fr) 252px;
       align-items: center; column-gap: 4px;
     }
     .var-head {
@@ -359,10 +361,31 @@
       content: ''; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
       border: solid #0b1f17; border-width: 0 2px 2px 0; transform: rotate(45deg);
     }
-    .variables-panel .var-settings { gap: 6px; justify-content: flex-end; }
-    .variables-panel .var-settings label { color: var(--vt-muted); font-size: 10px; margin: 0; font-weight: 600; }
+    .variables-panel .var-settings { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; align-self: stretch; }
     .variables-panel .var-settings input { width: 12px; height: 12px; min-height: 0; }
-    .variables-panel .var-settings label { display: flex; align-items: center; gap: 2px; padding: 0; }
+    /* Массовые флажки: ячейка с флажком, маркер заполнения (протяжка как в Excel), шапка столбца с «выбрать все» */
+    .variables-panel .cb-cell { position: relative; display: flex; align-items: center; justify-content: center; align-self: stretch; min-height: 19px; user-select: none; }
+    .variables-panel .cb-cell.active { box-shadow: inset 0 0 0 1px var(--vt-accent); }
+    .variables-panel .cb-cell.in-range { background: color-mix(in srgb, var(--vt-accent) 24%, transparent); box-shadow: inset 0 0 0 1px var(--vt-accent); }
+    .variables-panel .fill-h { position: absolute; right: 0; bottom: 0; width: 10px; height: 10px; cursor: crosshair; display: none; touch-action: none; z-index: 2; }
+    .variables-panel .fill-h::after { content: ''; position: absolute; right: 1px; bottom: 1px; width: 6px; height: 6px; background: var(--vt-accent); box-shadow: 0 0 0 1px var(--vt-bg); }
+    .variables-panel .var-item:hover .fill-h, .variables-panel .cb-cell.active .fill-h { display: block; }
+    @media (pointer: coarse) { .variables-panel .fill-h { width: 22px; height: 22px; } }
+    .variables-panel .var-head { height: auto; min-height: 24px; line-height: 1.2; align-items: end; padding-bottom: 2px; }
+    .variables-panel .var-head > span { align-self: center; }
+    .variables-panel .var-head-all { display: flex; align-items: center; justify-content: center; }
+    .variables-panel .var-head-flags { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .variables-panel .var-head-flags label { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 2px 0; margin: 0; cursor: pointer; font-size: var(--fs-small, 13px); text-transform: none; letter-spacing: 0; overflow-wrap: anywhere; text-align: center; }
+    .variables-panel .var-head input.head-all {
+      -webkit-appearance: none; appearance: none; width: 14px; height: 14px; min-width: 0; min-height: 0; margin: 0; padding: 0; border: 0;
+      box-sizing: border-box; cursor: pointer; background: var(--vt-box); border-radius: 3px; position: relative;
+      box-shadow: inset 1px 1px 2px rgba(0,0,0,.45), inset -1px -1px 1px rgba(255,255,255,.05);
+    }
+    .variables-panel .var-head input.head-all:checked { background: var(--vt-ok); }
+    .variables-panel .var-head input.head-all:checked::after { content: ''; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px; border: solid #0b1f17; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+    .variables-panel .var-head input.head-all:indeterminate { background: var(--vt-accent); }
+    .variables-panel .var-head input.head-all:indeterminate::after { content: ''; position: absolute; left: 3px; top: 6px; width: 8px; height: 2px; background: #fff; }
+    .variables-panel .var-head input.head-all:disabled { cursor: not-allowed; opacity: .5; }
     .variables-panel .var-num { height: 100%; display: flex; align-items: center; justify-content: flex-end; }
     .variables-panel .var-settings input:checked::after { left: 3px; top: 0; width: 3px; height: 7px; }
     .variables-panel #rows::-webkit-scrollbar { width: 10px; }
@@ -459,11 +482,22 @@
     .env-badge { align-self: center; margin-right: 8px; padding: 2px 10px; border-radius: 4px; font-size: var(--fs-small); font-weight: 600; white-space: nowrap; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--bg-secondary)); box-shadow: inset 3px 0 0 var(--accent); }
     .kpi-table td.plan-cell-edit { cursor: pointer; }
     .kpi-table td.plan-cell-edit:hover { background: var(--hover, rgba(76,154,255,.10)); }
-    .plan-inline { width: 3.4em; font: inherit; text-align: center; color: var(--fg-primary); background: var(--bg-primary); border: 1px solid var(--accent); border-radius: 4px; padding: 0 2px; }
+    /* редактор плана: всплывает над ячейкой, не раздвигая таблицу и не налезая на соседей по вёрстке строки (ячейка плана узкая) */
+    .kpi-table td.plan-cell-edit { position: relative; }
+    .plan-edit-wrap { position: absolute; z-index: 30; left: 50%; top: 50%; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 6px; padding: 6px; background: var(--bg-primary); border-radius: 6px; box-shadow: var(--shadow-out), 0 0 0 1px var(--accent); white-space: nowrap; }
+    .kpi-table td .plan-inline[type="number"], .plan-inline { box-sizing: content-box; width: 4.5ch; min-width: 4.5ch; font: inherit; font-size: var(--fs-large); font-variant-numeric: tabular-nums; text-align: center; color: var(--fg-primary); background: var(--bg-primary); border: 1px solid var(--accent); border-radius: 4px; padding: 2px 0.4em; -moz-appearance: textfield; appearance: textfield; }
+    .plan-inline::-webkit-inner-spin-button, .plan-inline::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
+    .plan-btn { min-width: 36px; min-height: 36px; padding: 0; border: 0; border-radius: 4px; font: inherit; font-size: var(--fs-large); line-height: 1; cursor: pointer; color: var(--fg-primary); background: var(--bg-primary); box-shadow: var(--shadow-out); }
+    .plan-btn-ok { color: var(--bg-primary); background: var(--ok); }
+    body.tv-mode .plan-btn { min-width: 44px; min-height: 44px; }
     .plc-link { font-size: var(--fs-small); white-space: nowrap; margin-left: 10px; color: var(--fg-tertiary); overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
     .plc-edit:hover { color: var(--accent) !important; }
     .plc-add:hover { color: var(--ok) !important; }
     .plc-delete:hover { color: var(--danger) !important; background: color-mix(in srgb, var(--danger) 15%, transparent) !important; }
+
+    /* Поля даты на всём сайте (Отчёты, Графики, Простои, Andon): значок календаря заметный в обеих темах, по клику открывается выбор даты */
+    input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .95; filter: var(--date-icon-filter); width: 1.25em; height: 1.25em; padding: 3px; margin-left: 4px; border-radius: 4px; }
+    input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; background-color: var(--hover); }
 
     /* Andon / KPI */
     #andon.active { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: auto; }
@@ -522,6 +556,8 @@
     .kpi-table .neg { color: var(--danger); }
     .kpi-table tfoot td { background: var(--bg-secondary); font-weight: 700; height: 40px; border-bottom: 0; }
     .kpi-table tfoot td.lbl { font: 700 var(--fs-small) 'Segoe UI', sans-serif; text-transform: uppercase; letter-spacing: .05em; }
+    .kpi-table tfoot tr.rest-row td { background: color-mix(in srgb, var(--fg-secondary) 14%, var(--bg-secondary)); background-image: none; }
+    .kpi-table .str-lbl { font-size: var(--fs-small); letter-spacing: .05em; color: var(--fg-secondary); margin-right: 4px; }
     .kpi-modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); }
     .kpi-modal-box { width: min(560px, 94vw); max-height: 90vh; overflow: auto; background: var(--bg-primary); border-radius: 10px; box-shadow: 0 0 0 1px var(--line), 0 20px 50px rgba(0,0,0,.6); padding: 16px; }
     .kpi-modal-box h3 { margin: 0 0 4px; font-size: 16px; }
@@ -570,7 +606,7 @@
     body.tv-mode .kpi-table { pointer-events: none; }
     body.tv-mode.logged-in .kpi-table { pointer-events: auto; }   /* на телевизоре без ПК вошедший мастер работает прямо с табло: простои и план */
 
-    /* Компоновка Andon: одна строка сверху (такт-тайм слева, бренд по центру, LIVE и кнопки справа), под ней таблица на всю ширину */
+    /* Компоновка Andon: одна строка сверху (Takt Time слева, бренд по центру, LIVE и кнопки справа), под ней таблица на всю ширину */
     :root { --andon-bar: clamp(54px, 8vh, 96px); }
     #andon.active { position: relative; }
     #andon .andon-top { position: absolute; top: 0; right: 0; z-index: 60; margin: 0; height: var(--andon-bar); flex-wrap: nowrap; }
@@ -585,7 +621,7 @@
     .andon-main .kpi-wrap { grid-column: 1 / -1; grid-row: 2; }
     /* цифры таблицы растут вместе с высотой строки: чем меньше интервалов (--rows), тем крупнее */
     .kpi-table td { font-size: var(--fs-large); }
-    /* дата и время: плитка справа, зеркальная плитке такт-тайма, синий цвет отличает её от такт-тайма; отступ справа оставляет место для LIVE и кнопки (--cluster-w задаёт скрипт) */
+    /* дата и время: плитка справа, зеркальная плитке Takt Time, синий цвет отличает её от Takt Time; отступ справа оставляет место для LIVE и кнопки (--cluster-w задаёт скрипт) */
     .andon-side .andon-clockbox { grid-column: 3; grid-row: 1; justify-self: end; align-self: center; margin-right: var(--cluster-w, 260px); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 14px; background: var(--bg-primary); border-radius: 8px; box-shadow: var(--shadow-out); }
     .andon-clockbox .andon-date { font: 600 var(--fs-small) 'Segoe UI', sans-serif; color: var(--fg-secondary); white-space: nowrap; line-height: 1; }
     .andon-clockbox .andon-time { font: 700 var(--fs-title) 'Segoe UI', Roboto, Arial, sans-serif; color: var(--fg-primary); margin: 0; padding: 1px 16px; background: var(--bg-secondary); border-radius: 6px; box-shadow: var(--shadow-in); line-height: 1.1; letter-spacing: 0; }
@@ -610,7 +646,7 @@
       .andon-side .tile label { max-width: 9em; }
     }
     @media (max-width: 1100px) {
-      /* очень узкое окно: бренд, такт-тайм и часы крупностью обычных чисел таблицы, чтобы шапка не наезжала на кнопки */
+      /* очень узкое окно: бренд, Takt Time и часы крупностью обычных чисел таблицы, чтобы шапка не наезжала на кнопки */
       .andon-h, .andon-side .tile b, .andon-clockbox .andon-time { font-size: var(--fs-large); }
       .andon-h { padding: 0.5vh 12px; }
       .andon-side .tile { gap: 6px; }
@@ -619,8 +655,12 @@
       .andon-side .tile { flex-wrap: wrap; row-gap: 2px; }
       .andon-side .tile label { max-width: none; flex: 1 0 100%; }
     }
-    /* табло: шапка всегда одной строкой (такт-тайм, бренд, часы, LIVE и «Выйти»), даже на узких телевизорах */
+    /* табло: шапка всегда одной строкой (Takt Time, бренд, часы, LIVE и «Выйти»), даже на узких телевизорах */
     body.tv-mode #andon .andon-top { position: absolute; top: 0; right: 0; height: var(--andon-bar); flex-wrap: nowrap; margin: 0; gap: 8px; justify-content: flex-end; }
+    /* сообщение вместо таблицы (например, за выбранный день нет данных): панель кнопок идёт обычной строкой над текстом и переносится, а не лежит поверх него */
+    body #andon.andon-msg .andon-top, body.tv-mode #andon.andon-msg .andon-top { position: static; height: auto; flex-wrap: wrap; justify-content: flex-end; margin-bottom: 12px; }
+    #andon.andon-msg .andon-day { flex-wrap: wrap; }
+    #andon.andon-msg .empty { overflow-wrap: anywhere; }
     body.tv-mode .andon-layout { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-rows: var(--andon-bar) minmax(0, 1fr); }
     body.tv-mode .andon-h { grid-column: 2; grid-row: 1; padding: 0.5vh 14px; justify-self: center; }
     body.tv-mode .andon-side .tile { grid-column: 1; grid-row: 1; justify-self: start; flex-wrap: nowrap; padding: 4px 10px; gap: 8px; }
@@ -666,12 +706,25 @@
       box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent), 0 10px 24px rgba(0,0,0,.45);
     }
     .plc-dd-list[hidden] { display: none; }
-    .plc-dd-row { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 4px 0 10px; border-radius: 4px; cursor: pointer; font-size: 13px; color: var(--fg-primary); border-left: 3px solid transparent; }
+    .plc-dd-row { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-height: 34px; padding: 0 4px 0 10px; border-radius: 4px; cursor: pointer; font-size: 13px; color: var(--fg-primary); border-left: 3px solid transparent; }
     .plc-dd-row:hover { background: var(--hover); }
     .plc-dd-row.selected { background: color-mix(in srgb, var(--accent) 18%, transparent); border-left-color: var(--accent); font-weight: 600; }
     .plc-dd-name { flex: 1; white-space: nowrap; }
+    /* имя с IP и время ПЛК: если не помещаются в строку, время уходит под IP (перенос, без наложения) */
+    .plc-dd-main { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0 10px; }
+    .plc-dd-main .plc-dd-name { flex: 0 0 auto; }
+    .plc-time { font-size: var(--fs-small); white-space: nowrap; color: var(--fg-tertiary); font-variant-numeric: tabular-nums; }
+    .plc-time.bad { color: var(--danger); }
     .plc-dd-row .plc-icon-btn { opacity: .55; }
     .plc-dd-row:hover .plc-icon-btn { opacity: 1; }
+    /* перетаскивание порядка (reorder.js): захваченный элемент приглушён, место вставки показывает линия акцентного цвета */
+    .reorder-item { cursor: grab; }
+    .reorder-dragging { cursor: grabbing; opacity: .55; }
+    body.reorder-busy { user-select: none; -webkit-user-select: none; cursor: grabbing; }
+    .reorder-before { box-shadow: inset 0 3px 0 var(--accent); }
+    .reorder-after { box-shadow: inset 0 -3px 0 var(--accent); }
+    .reorder-before.reorder-h { box-shadow: inset 3px 0 0 var(--accent); }
+    .reorder-after.reorder-h { box-shadow: inset -3px 0 0 var(--accent); }
     .plc-dd-add { border-top: 1px solid var(--line); margin-top: 4px; padding: 0; border-radius: 0; height: 36px; }
     .plc-dd-addbtn { flex: 1; height: 100%; display: flex; align-items: center; gap: 8px; padding: 0 10px; background: transparent !important; color: var(--fg-secondary) !important; box-shadow: none !important; font-size: 12px; justify-content: flex-start; }
     .plc-dd-addbtn:hover:not(:disabled) { color: var(--ok) !important; filter: none; }
@@ -718,15 +771,17 @@
   </style>
   <link rel="stylesheet" href="/static/auth.css">
   <link rel="stylesheet" href="/static/downtime.css">
+  <link rel="stylesheet" href="/static/alarms.css">
 </head>
 <body>
   <nav class="tabs">
-    <button class="tab active" data-tab="andon" title="Dashboard. Информационная панель Andon / KPI: почасовые счётчики кузовов, такт-тайм и показатели производства в реальном времени. Наведите, чтобы выбрать бренд и участок">📺 Andon / KPI <span class="tab-caret">▾</span></button>
+    <button class="tab active" data-tab="andon" title="Dashboard. Информационная панель Andon / KPI: почасовые счётчики кузовов, Takt Time и показатели производства в реальном времени. Наведите, чтобы выбрать бренд и участок">📺 Andon / KPI <span class="tab-caret">▾</span></button>
     <button class="tab" data-tab="charts" title="Графики по линии за период: план и факт, простои, причины и станции; каждый график можно выгрузить в Excel">📈 Графики</button>
     <button class="tab" data-tab="trends" title="Технические графики за период: связь с ПЛК (когда связь была и когда пропадала), выгрузка в Excel">📉 Тренды</button>
     <button class="tab" data-tab="reports" id="tab-reports" title="Отчёт дня по линии: график план/факт и таблица как в файле Excel, выбор дня и скачивание; администратор здесь же настраивает автосохранение отчётов в папку">📁 Отчёты</button>
     <button class="tab" data-tab="downtimes" id="tab-downtimes" title="Все простои за период одним списком: по одной строке на каждую причину, с описаниями и комментариями">⏱ Простои</button>
     <button class="tab" data-tab="notifications" title="Параметры подключения к ПЛК и настройки оповещений">🔔 Оповещения</button>
+    <button class="tab" data-tab="alarms" id="tab-alarms" title="Журнал аварий ПЛК: активные сейчас и история за период, фильтры по станции и устройству, выгрузка в Excel и справочник аварий. Нажмите, чтобы выбрать бренд: GWM, Chery, Changan, AE">🚨 Аварии <span class="tab-caret">▾</span></button>
     <button class="tab" data-tab="browser" id="tab-browser" hidden title="Просмотр всех переменных ПЛК в реальном времени с возможностью поиска и фильтрации">📊 Переменные ПЛК</button>
     <button class="tab" data-tab="saved" id="tab-saved" hidden title="Переменные сохранённые в базе данных для дальнейшего анализа и мониторинга">💾 Переменные БД</button>
     <button class="tab" data-tab="dictionary" id="tab-dictionary" hidden title="Справочники простоев: причины, участки и станции для описания простоев (редактируют администратор и начальники)">📚 Справочники</button>
@@ -819,12 +874,16 @@
           <input id="db-filter" placeholder="Поиск в блоке" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid var(--border-color); border-radius: 3px; background: var(--bg-primary); color: var(--fg-primary); font-size: 12px; box-sizing: border-box;" title="Поиск переменной по имени внутри выбранного блока данных">
           <div class="var-head">
             <span title="Порядковый номер строки; у вложенных элементов номер родителя и точка">№</span>
-            <span></span>
+            <span class="var-head-all"><input type="checkbox" class="head-all" data-col="sel" title="Выбрать все: поставить или снять выбор у всех переменных текущего списка (с учётом поиска в блоке), одним пакетным сохранением"></span>
             <span title="Имя переменной относительно блока данных">Имя</span>
             <span title="Тип: структурный тег, массив или простая переменная">Тип</span>
             <span title="Текущее значение переменной в ПЛК (обновляется раз в секунду для видимых строк)">Значение</span>
             <span title="Идентификатор узла OPC UA (NodeId)">NodeId</span>
-            <span style="text-align:right" title="A — архив, G — Grafana, L — авария">A · G · L</span>
+            <div class="var-head-flags">
+              <label title="Архив: поставить или снять у всех переменных списка (с учётом поиска); у ячейки можно тянуть маркер вниз или вверх, Shift+клик отмечает диапазон"><input type="checkbox" class="head-all" data-col="archive" title="Архив для всех строк списка: сохранять значения переменных в базу для графиков"><span>Архив</span></label>
+              <label title="Grafana: поставить или снять у всех переменных списка (с учётом поиска); у ячейки можно тянуть маркер вниз или вверх, Shift+клик отмечает диапазон"><input type="checkbox" class="head-all" data-col="grafana" title="Grafana для всех строк списка: показывать переменные на графиках Grafana"><span>Grafana</span></label>
+              <label title="Оповещение: поставить или снять у всех переменных списка (с учётом поиска); у ячейки можно тянуть маркер вниз или вверх, Shift+клик отмечает диапазон"><input type="checkbox" class="head-all" data-col="alarm" title="Оповещение для всех строк списка: включить аварийное оповещение по переменным"><span>Оповещение</span></label>
+            </div>
           </div>
           <ul class="tree" id="rows"><li class="empty">Выберите блок данных слева</li></ul>
         </div>
@@ -843,6 +902,7 @@
 
     <!-- TAB 6: Users (admin) -->
     <div id="trends" class="tab-content"></div>
+    <div id="alarms" class="tab-content"></div>
     <div id="reports" class="tab-content"></div>
     <div id="users" class="tab-content"></div>
 
@@ -876,6 +936,8 @@
   </main>
 
   <script src="/static/plant-time.js"></script>
+  <script src="/static/plctime.js"></script>
+  <script src="/static/reorder.js"></script>
   <script>
     const plc = document.querySelector('#plc');
     const varFilter = document.querySelector('#db-filter');
@@ -894,6 +956,13 @@
         if (window.saveLastView) window.saveLastView();
       });
     });
+    // Порядок вкладок: личный (перетаскиванием); правая группа (колокольчик, пользователь, тема, справка) не двигается
+    if (window.reorder) {
+      const tabsNav = document.querySelector('nav.tabs');
+      const tabId = el => el.dataset.tab;
+      window.reorder.watch('order-tabs', order => { if (!window.reorder.busy()) window.reorder.applyToDom(tabsNav, ':scope > .tab[data-tab]', order, tabId); });
+      window.reorder.attach(tabsNav, { key: 'order-tabs', itemSelector: ':scope > .tab[data-tab]', idOf: tabId, axis: 'x' });
+    }
     // Открыть последний экран пользователя (вкладку и экран Andon) после входа
     window.applyLastView = view => {
       if (!view) return;
@@ -914,14 +983,13 @@
     const plcTrigger = document.querySelector('#plc-dd-trigger');
     const plcList = document.querySelector('#plc-dd-list');
     const iconEdit = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
-    const iconUp = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>';
-    const iconDown = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
     const iconDelete = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
     const iconAdd = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
 
     function setPlcDdOpen(open) {
       plcList.hidden = !open;
       plcTrigger.setAttribute('aria-expanded', String(open));
+      if (open) refreshPlcTime();   // при открытии списка время ПЛК обновляется (сервер отдаёт кэш не старше минуты)
     }
     plcTrigger.addEventListener('click', () => setPlcDdOpen(plcList.hidden));
     document.addEventListener('click', e => { if (!plcDd.contains(e.target)) setPlcDdOpen(false); });
@@ -969,6 +1037,27 @@
       }
     }
 
+    // Время ПЛК и расхождение с сервером (узел OPC UA i=2258, читает сервер раз в минуту); PMM время ПЛК не меняет, синхронизация по NTP настраивается в TIA Portal
+    let plcTimes = {};
+    let plcTimeFails = 0;
+    function plcTimeHtml(item) {
+      return window.plcTime ? plcTime.fragment(plcTimes[item.id]) : '';
+    }
+    async function refreshPlcTime() {
+      if (document.hidden || !plcItems.length) return;
+      try {
+        const response = await fetch('/api/plcs/time', { signal: AbortSignal.timeout(6000) });
+        if (!response.ok) throw new Error('status');
+        plcTimes = Object.fromEntries((await response.json()).map(x => [x.plc_id, x]));
+        plcTimeFails = 0;
+      } catch {
+        if (++plcTimeFails < 2) return;
+        plcTimes = {};   // после двух неудач подряд устаревшее время не показывается: «—»
+      }
+      renderPlcDropdown(!plcList.hidden);
+    }
+    setInterval(refreshPlcTime, 60000);
+
     // Статус опроса обновляется сам, не перезагружая переменные (после двух неудачных запросов подряд показывается «—»)
     let plcStatusFails = 0;
     async function refreshPlcStatus() {
@@ -976,7 +1065,7 @@
       try {
         const response = await fetch('/api/plcs', { signal: AbortSignal.timeout(6000) });
         if (!response.ok) throw new Error('status');
-        plcItems = await response.json();
+        plcItems = sortPlcs(await response.json());
         plcStatusFails = 0;
       } catch {
         if (++plcStatusFails < 2) return;
@@ -985,30 +1074,45 @@
       renderPlcDropdown(!plcList.hidden);   // пока список открыт, перерисовывается только закрытое поле
     }
 
+    // Личный порядок ПЛК (перетаскивание, reorder.js); невошедшие ПЛК и новые идут в конец в порядке по умолчанию с сервера
+    const sortPlcs = items => (window.reorder ? window.reorder.applyOrder(items, window.reorder.get('order-plc'), i => String(i.id)) : items);
+    function plcOrderChanged() {
+      if (!plcItems.length || (window.reorder && window.reorder.busy())) return;
+      plcItems = sortPlcs(plcItems);
+      const previous = plc.value;
+      plc.replaceChildren(...plcItems.map(item => new Option(item.name, item.id)));
+      plc.value = previous;
+      renderPlcDropdown();
+    }
+    if (window.reorder) {
+      window.reorder.watch('order-plc', plcOrderChanged);
+      window.reorder.attach(plcList, {
+        key: 'order-plc', itemSelector: ':scope > .plc-dd-row', idOf: el => el.dataset.id, ignoreSelector: '.plc-icon-btn',
+        onChange: ids => { plcItems = window.reorder.applyOrder(plcItems, ids, i => String(i.id)); plcOrderChanged(); },
+      });
+    }
+
     function renderPlcDropdown(triggerOnly = false) {
       const current = plcItems.find(i => String(i.id) === plc.value);
       plcTrigger.querySelector('.plc-dd-current').innerHTML = current
-        ? `<span class="plc-dd-num" title="Порядковый номер ПЛК в списке, только для удобства; меняется при добавлении, удалении и смене порядка">${plcItems.indexOf(current) + 1}</span>${plcStatusHtml(current).dot}${current.name} - ${current.ip_address || 'N/A'}${plcStatusHtml(current).text}`
+        ? `<span class="plc-dd-num" title="Порядковый номер ПЛК в списке, только для удобства; меняется при добавлении, удалении и переносе ПЛК">${plcItems.indexOf(current) + 1}</span>${plcStatusHtml(current).dot}${current.name} - ${current.ip_address || 'N/A'}${plcTimeHtml(current)}${plcStatusHtml(current).text}`
         : 'Нет ПЛК';
       if (triggerOnly) return;
       plcList.replaceChildren(...plcItems.map((item, idx) => {
         const li = document.createElement('li');
         li.className = 'plc-dd-row' + (String(item.id) === plc.value ? ' selected' : '') + (item.is_active ? '' : ' off');
         li.setAttribute('role', 'option');
+        li.dataset.id = String(item.id);
         const admin = isAdminUser();
         li.innerHTML = `
-          <span class="plc-dd-num" title="Порядковый номер ПЛК в списке, только для удобства; меняется при добавлении, удалении и смене порядка">${idx + 1}</span>
+          <span class="plc-dd-num" title="Порядковый номер ПЛК в списке, только для удобства; меняется при добавлении, удалении и переносе ПЛК">${idx + 1}</span>
           ${plcStatusHtml(item).dot}
-          <span class="plc-dd-name">${item.name} - ${item.ip_address || 'N/A'}</span>
+          <span class="plc-dd-main"><span class="plc-dd-name">${item.name} - ${item.ip_address || 'N/A'}</span>${plcTimeHtml(item)}</span>
           ${plcStatusHtml(item).text}
-          ${admin ? `<button type="button" class="plc-icon-btn plc-up"${idx === 0 ? ' disabled' : ''} title="Поднять ПЛК «${item.name}» на одну позицию выше в списке; порядок общий для всех пользователей">${iconUp}</button>
-          <button type="button" class="plc-icon-btn plc-down"${idx === plcItems.length - 1 ? ' disabled' : ''} title="Опустить ПЛК «${item.name}» на одну позицию ниже в списке; порядок общий для всех пользователей">${iconDown}</button>
-          <button type="button" class="plc-icon-btn plc-edit" title="Редактировать ПЛК «${item.name}»: изменить имя, IP-адрес и порт OPC UA">${iconEdit}</button>
+          ${admin ? `<button type="button" class="plc-icon-btn plc-edit" title="Редактировать ПЛК «${item.name}»: изменить имя, IP-адрес и порт OPC UA">${iconEdit}</button>
           <button type="button" class="plc-icon-btn plc-delete" title="Удалить ПЛК «${item.name}» из системы вместе с его списком переменных">${iconDelete}</button>` : ''}`;
         li.addEventListener('click', () => selectPlc(item.id));
         if (admin) {
-          li.querySelector('.plc-up').addEventListener('click', e => { e.stopPropagation(); movePlc(item.id, 'up'); });
-          li.querySelector('.plc-down').addEventListener('click', e => { e.stopPropagation(); movePlc(item.id, 'down'); });
           li.querySelector('.plc-edit').addEventListener('click', e => { e.stopPropagation(); setPlcDdOpen(false); openEditPlc(item.id); });
           li.querySelector('.plc-delete').addEventListener('click', e => { e.stopPropagation(); setPlcDdOpen(false); deletePlc(item.id); });
         }
@@ -1026,7 +1130,9 @@
       const st = window.authState && window.authState();
       return !!(st && st.user && st.user.role === 'admin');
     }
+    const prevAuthChanged = window.onAuthChanged;
     window.onAuthChanged = () => {
+      if (prevAuthChanged) prevAuthChanged();
       renderPlcDropdown();
       refresh.hidden = !isAdminUser();
       const edit = document.querySelector('#andon-edit');
@@ -1047,7 +1153,7 @@
       try {
         const response = await fetch('/api/plcs');
         if (!response.ok) throw new Error('Ошибка загрузки списка ПЛК');
-        const items = await response.json();
+        const items = sortPlcs(await response.json());
         const previous = plc.value;
         plcItems = items;
         plc.replaceChildren(...items.map(item => new Option(item.name, item.id)));
@@ -1058,6 +1164,7 @@
         if (items.length) {
           setStatus('success', 'Готово', 'Выберите ПЛК');
           loadVariables(false);
+          refreshPlcTime();
         }
       } catch (error) {
         setStatus('error', 'Ошибка API', error.message);
@@ -1163,27 +1270,6 @@
 
     // Удалить ПЛК
     setInterval(refreshPlcStatus, 5000);
-
-    // Сдвиг ПЛК выше/ниже: порядок общий для всех, сохраняется на сервере; список остаётся открытым, переменные не перезагружаются
-    async function movePlc(id, direction) {
-      try {
-        const response = await fetch(`/api/plcs/${id}/move`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ direction })
-        });
-        if (!response.ok) throw new Error('Не удалось изменить порядок ПЛК');
-        const { order } = await response.json();
-        const byId = new Map(plcItems.map(i => [i.id, i]));
-        plcItems = order.map(i => byId.get(i)).filter(Boolean);
-        const previous = plc.value;
-        plc.replaceChildren(...plcItems.map(item => new Option(item.name, item.id)));
-        plc.value = previous;
-        renderPlcDropdown();
-      } catch (error) {
-        setStatus('error', 'Ошибка', error.message);
-      }
-    }
 
     async function deletePlc(id) {
       const item = plcItems.find(i => i.id === id);
@@ -1388,6 +1474,7 @@
 
       if (!filtered.length) {
         rows.innerHTML = '<li class="empty">Переменные не найдены</li>';
+        refreshHeadAll();
         return;
       }
 
@@ -1410,18 +1497,19 @@
         const ck = flag => (saved && saved[flag] ? 'checked' : '');
         li.innerHTML = `
           <span class="var-num">${num}</span>
-          <input class="var-checkbox select" type="checkbox" ${saved ? 'checked' : ''} ${isStruct ? 'style="visibility:hidden" disabled' : (isAdminUser() ? '' : 'disabled')} title="${isAdminUser() ? 'Сохранять переменную в БД: галочка включает запись значений, снятие — отключает' : 'Отмечать переменные для сохранения в БД может только администратор'}">
+          <span class="cb-cell" data-col="sel"><input class="var-checkbox select" type="checkbox" ${saved ? 'checked' : ''} ${isStruct ? 'style="visibility:hidden" disabled' : (isAdminUser() ? '' : 'disabled')} title="${isAdminUser() ? 'Сохранять переменную в БД: галочка включает запись значений, снятие — отключает' : 'Отмечать переменные для сохранения в БД может только администратор'}">${isStruct ? '' : '<i class="fill-h" title="Маркер заполнения: потяните вниз или вверх, чтобы выбор всех протянутых строк стал таким же, как у этой"></i>'}</span>
           <span class="var-name" style="padding-left:${depth * 16}px" title="${name}"><span class="struct-toggle" title="${isStruct ? 'Раскрыть структурный тег: загрузить вложенные элементы с ПЛК' : ''}">${isStruct ? '▷' : ''}</span> ${name}</span>
           <span class="var-datatype ${item.data_type === 'Array' ? 't-array' : isStruct ? 't-struct' : ''}" title="Тип данных переменной">${item.data_type}</span>
           <span class="var-value" title="${isStruct ? '' : 'Текущее значение в ПЛК (обновляется в реальном времени)'}">${isStruct ? '' : '…'}</span>
           <span class="var-nodeid" title="${item.node_id}">${item.node_id}</span>
           <div class="var-settings" ${isStruct ? 'style="visibility:hidden"' : ''}>
-            <label title="Архивировать значения переменной в БД"><input type="checkbox" class="archive" ${ck('is_archived')} ${isAdminUser() ? '' : 'disabled'}> A</label>
-            <label title="Показывать переменную на графиках Grafana"><input type="checkbox" class="grafana" ${ck('is_grafana_plotted')} ${isAdminUser() ? '' : 'disabled'}> G</label>
-            <label title="Включить аварийное оповещение по переменной"><input type="checkbox" class="alarm" ${ck('is_alarm_enabled')} ${isAdminUser() ? '' : 'disabled'}> L</label>
+            <span class="cb-cell" data-col="archive"><input type="checkbox" class="archive" ${ck('is_archived')} ${isAdminUser() ? '' : 'disabled'} title="Архив: сохранять значения переменной в базу для графиков"><i class="fill-h" title="Маркер заполнения: потяните вниз или вверх, чтобы протянутые строки получили то же состояние «Архив»"></i></span>
+            <span class="cb-cell" data-col="grafana"><input type="checkbox" class="grafana" ${ck('is_grafana_plotted')} ${isAdminUser() ? '' : 'disabled'} title="Grafana: показывать переменную на графиках Grafana"><i class="fill-h" title="Маркер заполнения: потяните вниз или вверх, чтобы протянутые строки получили то же состояние «Grafana»"></i></span>
+            <span class="cb-cell" data-col="alarm"><input type="checkbox" class="alarm" ${ck('is_alarm_enabled')} ${isAdminUser() ? '' : 'disabled'} title="Оповещение: включить аварийное оповещение по переменной"><i class="fill-h" title="Маркер заполнения: потяните вниз или вверх, чтобы протянутые строки получили то же состояние «Оповещение»"></i></span>
           </div>
         `;
         if (!isStruct) {
+          li._meta = { item, name, path };
           const sel = li.querySelector('.select');
           const flags = ['archive', 'grafana', 'alarm'].map(c => li.querySelector('.' + c));
           const [archive, grafana, alarm] = flags;
@@ -1480,9 +1568,9 @@
               if (!r.ok) throw new Error(children.detail || 'Ошибка чтения структуры');
               let anchor = li;
               children.forEach((c, ci) => {
-                // OPC UA нумерует элементы массива с 0, в TIA Portal массивы начинаются с 1
+                // Нумерация элементов массива с нуля, как в TIA Portal: DownTimer[0] в ТИА это [0] здесь
                 const isElem = c.node_id.endsWith(`[${c.variable_name}]`) && /^\d+$/.test(c.variable_name);
-                const label = isElem ? `[${Number(c.variable_name) + 1}]` : c.variable_name;
+                const label = isElem ? arrayElemLabel(c.variable_name) : c.variable_name;
                 const kid = makeRow({ ...c, db_name: item.db_name, browse_path: `${item.browse_path}.${c.variable_name}` }, label, depth + 1, `${num}.${ci + 1}`, isElem ? `${path}${label}` : `${path}.${label}`);
                 anchor.after(kid);
                 anchor = kid;
@@ -1497,7 +1585,7 @@
         }
         return li;
       };
-      // Как в WinCC: массив верхнего уровня не показывается, его элементы Имя[1]..Имя[N] идут сразу списком
+      // Как в WinCC: массив верхнего уровня не показывается, его элементы Имя[0]..Имя[N-1] идут сразу списком
       const token = ++variablesRenderToken;
       (async () => {
         const entries = (await Promise.all(sorted.map(async item => {
@@ -1508,7 +1596,7 @@
             if (!r.ok) throw new Error(children.detail);
             return children.map(c => ({
               item: { ...c, db_name: item.db_name, browse_path: `${item.browse_path}.${c.variable_name}` },
-              label: `${relName(item)}[${Number(c.variable_name) + 1}]`,
+              label: `${relName(item)}${arrayElemLabel(c.variable_name)}`,
             }));
           } catch (e) {
             return [{ item, label: relName(item) }];
@@ -1516,8 +1604,11 @@
         }))).flat();
         if (token !== variablesRenderToken) return;
         rows.replaceChildren(...entries.map((e, idx) => makeRow(e.item, e.label, 0, idx + 1, `${dbName}.${e.label}`)));
+        refreshHeadAll();
       })();
     }
+    // Подпись элемента массива: индекс как в TIA Portal (с нуля), без сдвига
+    function arrayElemLabel(variableName) { return `[${variableName}]`; }
     let variablesRenderToken = 0;
     const dbList = document.querySelector('#db-list');
     const dbSearch = document.querySelector('#db-search');
@@ -1597,6 +1688,215 @@
     varFilter.addEventListener('keydown', e => {
       if (e.key === 'Enter' && selectedDB) renderVariablesForDB(selectedDB);
     });
+
+    // ===== Массовые флажки: «выбрать все», протяжка маркером заполнения, Shift+клик по диапазону =====
+    // Логика состояний чистая (xlgrid.js), здесь только чтение/запись флажков и пакетное сохранение
+    const BULK_COLS = ['sel', 'archive', 'grafana', 'alarm'];
+    const BULK_TITLES = { sel: 'Выбор', archive: 'Архив', grafana: 'Grafana', alarm: 'Оповещение' };
+    const colInput = (li, col) => li.querySelector(col === 'sel' ? '.select' : '.' + col);
+    const colCell = (li, col) => li.querySelector(`.cb-cell[data-col="${col}"]`);
+    const bulkLeaves = () => Array.from(rows.querySelectorAll('li.var-item[data-leaf]'));
+    const readBulkStates = lis => lis.map(li => {
+      const st = {};
+      BULK_COLS.forEach(c => { st[c] = colInput(li, c).checked; });
+      return st;
+    });
+    let bulkAnchor = null;   // {li, col}: строка последнего клика, от неё считается Shift-диапазон
+    let bulkBusy = false;
+    let activeCell = null;
+    function setActiveCell(cell) {
+      if (activeCell) activeCell.classList.remove('active');
+      activeCell = cell;
+      if (cell) cell.classList.add('active');
+    }
+    function refreshHeadAll() {
+      const heads = document.querySelectorAll('.var-head input.head-all');
+      const lis = bulkLeaves();
+      const states = readBulkStates(lis);
+      heads.forEach(h => {
+        const sum = xlgrid.columnSummary(states, h.dataset.col);
+        h.checked = sum.all;
+        h.indeterminate = !sum.all && !sum.none;
+        h.disabled = !isAdminUser() || !lis.length;
+      });
+    }
+    function applyBulkStates(lis, states, changed) {
+      changed.forEach(i => BULK_COLS.forEach(c => {
+        const el = colInput(lis[i], c);
+        if (el.checked !== states[i][c]) el.checked = states[i][c];
+      }));
+    }
+    function revertRow(li) {
+      const saved = savedTags.get(li._meta.item.node_id);
+      colInput(li, 'sel').checked = !!saved;
+      colInput(li, 'archive').checked = !!(saved && saved.is_archived);
+      colInput(li, 'grafana').checked = !!(saved && saved.is_grafana_plotted);
+      colInput(li, 'alarm').checked = !!(saved && saved.is_alarm_enabled);
+    }
+    // Пакетное сохранение изменённых строк: добавление/правка пакетами по 500 через тот же POST, что и одиночный клик;
+    // снятие выбора через тот же DELETE (пакетного метода на сервере нет, поэтому по 6 запросов параллельно)
+    async function bulkSave(lis) {
+      const base = `/api/plcs/${plc.value}/tags`;
+      const toDel = [], toSave = [];
+      lis.forEach(li => {
+        const m = li._meta, saved = savedTags.get(m.item.node_id);
+        const want = { is_archived: colInput(li, 'archive').checked, is_grafana_plotted: colInput(li, 'grafana').checked, is_alarm_enabled: colInput(li, 'alarm').checked };
+        if (!colInput(li, 'sel').checked) { if (saved) toDel.push(li); return; }
+        if (saved && saved.is_archived === want.is_archived && saved.is_grafana_plotted === want.is_grafana_plotted && saved.is_alarm_enabled === want.is_alarm_enabled) return;
+        toSave.push({ li, want });
+      });
+      if (!toDel.length && !toSave.length) return;
+      bulkBusy = true;
+      const done = new Set();
+      try {
+        const typeByDataType = new Map();   // tag_type одинаков у всех узлов одного типа данных: спрашиваем ПЛК один раз на тип
+        const typeFor = li => {
+          const m = li._meta, saved = savedTags.get(m.item.node_id);
+          if (saved && saved.tag_type) return saved.tag_type;
+          const dt = m.item.data_type;
+          if (!typeByDataType.has(dt)) {
+            typeByDataType.set(dt, (async () => {
+              const r = await fetch(`/api/plcs/${plc.value}/opcua/node-info?node_id=${encodeURIComponent(m.item.node_id)}`);
+              const info = await r.json();
+              if (!r.ok) throw new Error(info.detail || 'Не удалось определить тип переменной');
+              return info.tag_type;
+            })());
+          }
+          return typeByDataType.get(dt);
+        };
+        for (let i = 0; i < toSave.length; i += 500) {
+          const part = toSave.slice(i, i + 500);
+          showToast(`Сохранение в БД: ${Math.min(i + 500, toSave.length)} из ${toSave.length}`);
+          const tags = [];
+          for (const { li, want } of part) tags.push({ name: li._meta.path.slice(0, 150), node_id: li._meta.item.node_id, tag_type: await typeFor(li), ...want });
+          const r = await fetch(base, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags }) });
+          if (!r.ok) throw new Error((await r.json()).detail || 'Не удалось сохранить переменные');
+          tags.forEach(t => savedTags.set(t.node_id, t));
+          part.forEach(p => done.add(p.li));
+        }
+        let next = 0;
+        const worker = async () => {
+          while (next < toDel.length) {
+            const li = toDel[next++];
+            const r = await fetch(`${base}?node_id=${encodeURIComponent(li._meta.item.node_id)}`, { method: 'DELETE' });
+            if (!r.ok) throw new Error('Не удалось убрать переменную из БД');
+            savedTags.delete(li._meta.item.node_id);
+            done.add(li);
+          }
+        };
+        await Promise.all(Array.from({ length: Math.min(6, toDel.length) }, worker));
+        showToast(`Сохранено в БД: ${toSave.length}, убрано из БД: ${toDel.length}`);
+      } catch (e) {
+        toSave.forEach(p => { if (!done.has(p.li)) revertRow(p.li); });
+        toDel.forEach(li => { if (!done.has(li)) revertRow(li); });
+        setStatus('error', 'Ошибка', e.message);
+      } finally { bulkBusy = false; refreshHeadAll(); }
+    }
+    // Общий итог массовой операции: показать результат в флажках, уведомить о числе строк, отправить пакетом
+    function commitBulk(col, val, lis, res) {
+      applyBulkStates(lis, res.states, res.changed);
+      refreshHeadAll();
+      if (!res.changed.length) { showToast(`${BULK_TITLES[col]}: изменений нет`); return; }
+      showToast(`${BULK_TITLES[col]}: ${val ? 'включено' : 'выключено'} (${xlgrid.rowsWord(res.changed.length)})`);
+      bulkSave(res.changed.map(i => lis[i]));
+    }
+    function bulkAllowed() {
+      if (!isAdminUser()) { showToast('Менять флажки может только администратор'); return false; }
+      if (bulkBusy) { showToast('Подождите: предыдущее сохранение ещё идёт'); return false; }
+      return true;
+    }
+    // «Выбрать все» в шапке столбца: только строки текущего списка (после поиска в блоке)
+    document.querySelectorAll('.var-head input.head-all').forEach(h => h.addEventListener('change', () => {
+      const col = h.dataset.col;
+      if (!bulkAllowed()) { refreshHeadAll(); return; }
+      const lis = bulkLeaves();
+      const res = xlgrid.selectAll(readBulkStates(lis), col);
+      commitBulk(col, res.value, lis, res);
+    }));
+    // Shift+клик: диапазон от якоря до этой строки получает новое состояние флажка, по которому кликнули
+    rows.addEventListener('click', e => {
+      const el = e.target;
+      if (!(el instanceof HTMLInputElement) || el.disabled) return;
+      const cell = el.closest('.cb-cell'), li = el.closest('li.var-item');
+      if (!cell || !li || !li.dataset.leaf) return;
+      const col = cell.dataset.col, val = el.checked;
+      setActiveCell(cell);
+      if (e.shiftKey && bulkAnchor && bulkAnchor.col === col && rows.contains(bulkAnchor.li) && bulkAnchor.li !== li) {
+        e.preventDefault();   // одиночное сохранение не нужно: диапазон (с этой строкой) уйдёт одним пакетом
+        const anchorLi = bulkAnchor.li;
+        bulkAnchor = { li, col };
+        setTimeout(() => {   // после отмены клика браузер возвращает флажок, поэтому применяем на следующем такте
+          if (!bulkAllowed()) return;
+          const lis = bulkLeaves();
+          commitBulk(col, val, lis, xlgrid.shiftRange(readBulkStates(lis), lis.indexOf(anchorLi), lis.indexOf(li), col, val));
+        }, 0);
+        return;
+      }
+      bulkAnchor = { li, col };
+    });
+    // Протяжка маркером заполнения (pointer events: мышь и палец)
+    rows.addEventListener('pointerdown', e => {
+      const h = e.target.closest ? e.target.closest('.fill-h') : null;
+      if (!h || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      e.preventDefault();
+      if (!bulkAllowed()) return;
+      const cell = h.closest('.cb-cell'), srcLi = h.closest('li.var-item'), col = cell.dataset.col;
+      const lis = bulkLeaves();
+      const index = new Map(lis.map((li, i) => [li, i]));
+      const src = index.get(srcLi);
+      if (src === undefined) return;
+      const startStates = readBulkStates(lis);
+      const drag = { y: e.clientY, cur: src, range: null, raf: 0 };
+      setActiveCell(cell);
+      bulkAnchor = { li: srcLi, col };
+      try { h.setPointerCapture(e.pointerId); } catch (_) { /* без захвата тоже работает */ }
+      const paint = (oldR, newR) => {
+        if (oldR) for (let i = oldR.from; i <= oldR.to; i++) if (!newR || i < newR.from || i > newR.to) colCell(lis[i], col).classList.remove('in-range');
+        if (newR) for (let i = newR.from; i <= newR.to; i++) if (!oldR || i < oldR.from || i > oldR.to) colCell(lis[i], col).classList.add('in-range');
+      };
+      const track = () => {
+        const rect = rows.getBoundingClientRect();
+        const y = Math.min(Math.max(drag.y, rect.top + 2), rect.bottom - 2);
+        const t = document.elementFromPoint(rect.left + rect.width / 2, y);
+        const tli = t && t.closest ? t.closest('li.var-item[data-leaf]') : null;
+        const idx = tli ? index.get(tli) : undefined;
+        if (idx === undefined) return;
+        drag.cur = idx;
+        const nr = xlgrid.rangeBetween(src, idx, lis.length);
+        paint(drag.range, nr);
+        drag.range = nr;
+      };
+      const loop = () => {   // у края списка прокрутка идёт за указателем
+        const rect = rows.getBoundingClientRect(), edge = 28;
+        if (drag.y < rect.top + edge) rows.scrollTop -= Math.min(40, (rect.top + edge - drag.y) / 2 + 2);
+        else if (drag.y > rect.bottom - edge) rows.scrollTop += Math.min(40, (drag.y - (rect.bottom - edge)) / 2 + 2);
+        track();
+        drag.raf = requestAnimationFrame(loop);
+      };
+      const onMove = ev => { drag.y = ev.clientY; track(); };
+      const finish = ev => {
+        cancelAnimationFrame(drag.raf);
+        h.removeEventListener('pointermove', onMove);
+        h.removeEventListener('pointerup', finish);
+        h.removeEventListener('pointercancel', cancel);
+        paint(drag.range, null);
+        const val = !!startStates[src][col];
+        commitBulk(col, val, lis, xlgrid.dragFill(startStates, src, drag.cur, col));
+      };
+      const cancel = () => {
+        cancelAnimationFrame(drag.raf);
+        h.removeEventListener('pointermove', onMove);
+        h.removeEventListener('pointerup', finish);
+        h.removeEventListener('pointercancel', cancel);
+        paint(drag.range, null);
+      };
+      h.addEventListener('pointermove', onMove);
+      h.addEventListener('pointerup', finish);
+      h.addEventListener('pointercancel', cancel);
+      drag.raf = requestAnimationFrame(loop);
+    });
+    // Одиночное изменение флажка тоже обновляет состояние «выбрать все» в шапке
+    rows.addEventListener('change', () => refreshHeadAll());
 
     // ===== Значения в реальном времени: раз в секунду читаем только видимые строки =====
     const liveBadge = document.querySelector('#live-badge');
@@ -1691,6 +1991,13 @@
     const pad2 = n => String(n).padStart(2, '0');
     const hhmm = m => `${pad2(Math.floor(m / 60) % 24)}:${pad2(m % 60)}`;
     const mmss = (m, s) => (m >= 60 ? `${Math.floor(m / 60)}:${pad2(m % 60)}:${pad2(s)}` : `${m}:${pad2(s)}`);
+    // «Простой RB262»: ET таймера ПЛК в миллисекундах -> «М:СС»; нет значения -> «—» (нет связи, нет цифр)
+    const starveFmt = ms => { if (ms === null || ms === undefined) return '—'; const s = Math.floor(Math.max(0, ms) / 1000); return mmss(Math.floor(s / 60), s % 60); };
+    // STR (прямой сход), %: (факт - рем. зона) / факт * 100; целая арифметика с округлением от половины вверх, как repair.str_percent на сервере
+    const strPct = (f, r) => { if (f === null || f === undefined || r === null || r === undefined || f <= 0) return null; const n = (f - r) * 10000; return (n < 0 ? -1 : 1) * Math.floor((2 * Math.abs(n) + f) / (2 * f)) / 100; };
+    const strFmt = p => (p === null || p === undefined ? '—' : p.toFixed(2).replace('.', ',') + ' %');
+    // Выбор значения STR: итог дня из ПЛК (RepairPercent, число больше 0 и не больше 100), пока ПЛК не посчитал (0) — расчёт; как repair.pick_str на сервере
+    const strPick = (plc, f, r) => { const p = typeof plc === 'number' && isFinite(plc) && plc > 0 && plc <= 100 ? Math.round(plc * 100) / 100 : null; return p !== null ? p : strPct(f, r); };
     try { const saved = Number(localStorage.getItem('andonScreen')); if (saved) andonScreenId = saved; } catch { /* нет доступа к localStorage */ }
 
     async function loadKpiCfg(screenId, force = false) {
@@ -1729,6 +2036,7 @@
       if (andonMsg === text) return;
       andonMsg = text;
       andonBuilt = '';
+      andonBody.parentElement.classList.add('andon-msg');   // панель кнопок встаёт над текстом (CSS .andon-msg)
       andonBody.innerHTML = `<div class="empty">${text}</div>`;
     }
 
@@ -1750,6 +2058,7 @@
     function closeAndonMenu(delay = 0) {
       clearTimeout(andonMenuTimer);
       andonMenuTimer = setTimeout(() => {
+        if (window.reorder && window.reorder.busy()) return;   // во время переноса меню не закрывается
         andonMenu.hidden = true;
         andonMenu.querySelectorAll('.am-group.open').forEach(g => g.classList.remove('open'));
       }, delay);
@@ -1772,6 +2081,9 @@
       return { group: s.name, label: 'Main Line' };
     }
 
+    const andonLinesKey = g => 'order-andon-lines-' + (String(g).toLowerCase().replace(/[^a-z0-9_-]+/g, '-').slice(0, 40) || 'x');
+    if (window.reorder) window.reorder.attach(andonMenu, { key: 'order-andon-brands', itemSelector: ':scope > .am-group', idOf: el => el.dataset.id, handleSelector: '.am-head', axis: 'y' });
+
     function renderAndonChips() {
       const groups = new Map(ANDON_GROUPS.map(g => [g, []]));
       andonScreens.forEach(s => {
@@ -1782,11 +2094,20 @@
       // внутри бренда: Main Line, затем подсборки в заданном порядке
       const order = l => { const i = ANDON_BRAND_AREAS.indexOf(l); return i < 0 ? 99 : i; };
       groups.forEach(items => items.sort((a, b) => order(a.label) - order(b.label) || a.s.id - b.s.id));
+      // личный порядок брендов и линий внутри бренда (перетаскивание, reorder.js)
+      const RO = window.reorder;
+      if (RO) {
+        RO.watch('order-andon-brands', renderAndonChips, false);
+        groups.forEach((items, g) => RO.watch(andonLinesKey(g), renderAndonChips, false));
+        groups.forEach((items, g) => groups.set(g, RO.applyOrder(items, RO.get(andonLinesKey(g)), x => String(x.s.id))));
+      }
+      const groupList = RO ? RO.applyOrder([...groups], RO.get('order-andon-brands'), e => e[0]) : [...groups];
       const wasOpen = !andonMenu.hidden;
       andonMenu.replaceChildren();
-      for (const [group, items] of groups) {
+      for (const [group, items] of groupList) {
         if (!items.length) continue;
         const g = document.createElement('div');
+        g.dataset.id = group;
         g.className = 'am-group' + (items.some(x => x.s.id === andonScreenId) ? ' current' : '');
         const head = document.createElement('button');
         head.type = 'button'; head.className = 'am-head';
@@ -1794,14 +2115,16 @@
         head.innerHTML = `${group}<i>▸</i>`;
         const sub = document.createElement('div');
         sub.className = 'am-sub';
+        sub.dataset.id = group;
         items.forEach(({ s, label }) => {
           const b = document.createElement('button');
           b.type = 'button';
           b.className = 'am-leaf' + (s.id === andonScreenId ? ' active' : '');
           b.dataset.screen = String(s.id);
+          b.dataset.id = String(s.id);
           b.title = s.template === 'manual_counter'
             ? `Экран «${group} › ${label}»: план и факт по часам вводятся вручную`
-            : `Экран «${group} › ${label}» (ПЛК ${s.plc_name}): часовой план и фактический выпуск кузовов, такт-тайм`;
+            : `Экран «${group} › ${label}» (ПЛК ${s.plc_name}): часовой план и фактический выпуск кузовов, Takt Time`;
           b.innerHTML = `${label}<small data-k="chipTot"></small>`;
           b.addEventListener('click', () => {
             andonScreenId = s.id; andonBuilt = ''; andonLast = null; andonMsg = '';
@@ -1819,6 +2142,7 @@
         head.addEventListener('click', e => { e.stopPropagation(); g.classList.contains('open') ? g.classList.remove('open') : openGroup(); });
         g.append(head, sub);
         andonMenu.append(g);
+        if (RO) RO.attach(sub, { key: andonLinesKey(group), itemSelector: ':scope > .am-leaf', idOf: el => el.dataset.id, axis: 'y' });
       }
       andonMenu.hidden = !wasOpen;
       const cur = selectedScreen();
@@ -1861,11 +2185,12 @@
     };
 
     function buildKpiLayout(screen, n) {
+      andonBody.parentElement.classList.remove('andon-msg');
       andonBody.innerHTML = `
         <div class="andon-layout">
           <aside class="andon-side">
-            <div class="tile" title="Время, прошедшее с момента последнего кузова: текущий такт-тайм между кузовами">
-              <label>Такт-тайм</label><b data-k="curTakt">—</b><span class="andon-state" data-k="state" hidden></span><small>мин:сек (при длинном простое: ч:мин:сек)</small>
+            <div class="tile" title="Время, прошедшее с момента последнего кузова: текущий Takt Time между кузовами">
+              <label>Takt Time</label><b data-k="curTakt">—</b><span class="andon-state" data-k="state" hidden></span><small>мин:сек (при длинном простое: ч:мин:сек)</small>
             </div>
             <div class="andon-clockbox" title="Дата и время сервиса на ПК (не часы телевизора или браузера)"><div class="andon-date" data-k="date"></div><div class="andon-time" data-k="time"></div></div>
           </aside>
@@ -1880,7 +2205,7 @@
                 <th title="Плановое количество кузовов за интервал (задаётся в настройках «Смена и план»)">План</th>
                 <th title="Фактическое количество кузовов, прошедших линию за интервал">Факт</th>
                 <th title="Отклонение факта от плана: зелёный — выполнено, красный — отставание">±</th>
-                <th title="Такт-тайм за интервал: сколько минут:секунд в среднем уходит на один кузов">Такт-тайм за период</th>
+                <th title="Takt Time за интервал: сколько минут:секунд в среднем уходит на один кузов">Takt Time</th>
                 <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой, мин</th>
                 <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
               </tr></thead>
@@ -1921,8 +2246,24 @@
       const old = intervalCfg(screen.id, i, andonLast.starts).plan;
       const inp = document.createElement('input');
       inp.type = 'number'; inp.min = '0'; inp.max = '999'; inp.step = '1'; inp.value = String(old); inp.className = 'plan-inline';
+      inp.setAttribute('inputmode', 'numeric'); inp.setAttribute('enterkeyhint', 'done'); inp.setAttribute('autocomplete', 'off');
       inp.title = `План интервала ${i + 1}: введите число и нажмите Enter, чтобы сохранить, или Esc, чтобы отменить`;
-      td.textContent = ''; td.appendChild(inp); inp.focus(); inp.select();
+      const wrap = document.createElement('span'); wrap.className = 'plan-edit-wrap';
+      const mkBtn = (cls, txt, ttl) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'plan-btn ' + cls; b.textContent = txt; b.title = ttl; b.tabIndex = -1;
+        // mousedown/pointerdown с preventDefault: поле не теряет фокус, blur не вызывает сохранение раньше кнопки
+        b.addEventListener('mousedown', e => e.preventDefault());
+        b.addEventListener('pointerdown', e => e.preventDefault());
+        return b;
+      };
+      const okBtn = mkBtn('plan-btn-ok', '✓', 'Сохранить план этого интервала');
+      const noBtn = mkBtn('plan-btn-cancel', '✕', 'Отменить правку плана');
+      wrap.append(inp, okBtn, noBtn);
+      td.textContent = ''; td.appendChild(wrap); inp.focus(); inp.select();
+      // экранная клавиатура открывается с задержкой: поле и кнопки должны остаться в видимой части
+      const reveal = () => { try { inp.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (_) { /* не критично */ } };
+      reveal(); setTimeout(reveal, 300);
       let done = false;
       const finish = async save => {
         if (done) return;
@@ -1946,7 +2287,9 @@
         } catch (ex) { td.textContent = String(old); showToast(ex.message); }
       };
       inp.addEventListener('keydown', e => { if (e.key === 'Enter') finish(true); else if (e.key === 'Escape') finish(false); });
-      inp.addEventListener('blur', () => finish(true));
+      okBtn.addEventListener('click', e => { e.stopPropagation(); finish(true); });
+      noBtn.addEventListener('click', e => { e.stopPropagation(); finish(false); });
+      inp.addEventListener('blur', e => { if (!wrap.contains(e.relatedTarget)) finish(true); });
     }
     document.addEventListener('click', e => {
       const td = e.target.closest && e.target.closest('td[data-k="plan"]');
@@ -2122,18 +2465,25 @@
     const FL_MODELS = ['A01', 'P01', 'CS55', 'A13T'];
 
     function buildFlLayout(screen, n) {
+      andonBody.parentElement.classList.remove('andon-msg');
+      // столбец «Простой RB262» только у экранов с привязкой таймеров голодания (dt_0 ... dt_12)
+      const rb = !!(screen.bindings && screen.bindings.dt_0);
+      // строка «Остаток кузовов на ФЛ» только у экранов с привязками rest_<модель> (живое значение из ПЛК)
+      const rest = !!(screen.bindings && screen.bindings.rest_A01);
+      // столбцы «Рем. зона», «Простой BDC» и значение STR только у экранов с привязками rc_<интервал> / bd_<интервал> (FL RB294)
+      const rc = !!(screen.bindings && screen.bindings.rc_1);
       andonBody.innerHTML = `
         <div class="andon-layout">
           <aside class="andon-side">
-            <div class="tile" title="Время, прошедшее с момента последнего кузова: текущий такт-тайм между кузовами">
-              <label>Такт-тайм</label><b data-k="curTakt">—</b><span class="andon-state" data-k="state" hidden></span><small>мин:сек (при длинном простое: ч:мин:сек)</small>
+            <div class="tile" title="Время, прошедшее с момента последнего кузова: текущий Takt Time между кузовами">
+              <label>Takt Time</label><b data-k="curTakt">—</b><span class="andon-state" data-k="state" hidden></span><small>мин:сек (при длинном простое: ч:мин:сек)</small>
             </div>
             <div class="andon-clockbox" title="Дата и время сервиса на ПК (не часы телевизора или браузера)"><div class="andon-date" data-k="date"></div><div class="andon-time" data-k="time"></div></div>
           </aside>
           <div class="andon-main">
             <h2 class="andon-h" title="Линия Finish Line, по которой показаны данные">${screen.name}</h2>
             <div class="kpi-wrap"><table class="kpi-table">
-              <colgroup><col style="width:3%"><col style="width:10%"><col style="width:5%"><col style="width:5%"><col style="width:5%"><col style="width:5%">${FL_MODELS.map(() => '<col style="width:5%">').join('')}<col style="width:13%"><col style="width:11%"><col style="width:23%"></colgroup>
+              <colgroup><col style="width:3%"><col style="width:10%"><col style="width:5%"><col style="width:5%"><col style="width:5%"><col style="width:5%">${FL_MODELS.map(() => '<col style="width:5%">').join('')}<col style="width:${rb ? 11 : rc ? 9 : 13}%">${rb ? '<col style="width:8%">' : ''}${rc ? '<col style="width:7%"><col style="width:8%">' : ''}<col style="width:${rc ? 9 : 11}%"><col style="width:${rb ? 17 : rc ? 14 : 23}%"></colgroup>
               <thead><tr>
                 <th title="Номер часового интервала смены">№</th>
                 <th title="Время начала и окончания интервала: начало берётся из ПЛК, окончание из настроек">Время</th>
@@ -2142,17 +2492,19 @@
                 <th title="Фактическое количество кузовов, прошедших Finish Line за интервал">Факт</th>
                 <th title="Отклонение факта от плана (по ПЛК) для завершённых интервалов: красный — отставание">±</th>
                 ${FL_MODELS.map(m => `<th title="Количество кузовов модели ${m} за интервал">${m}</th>`).join('')}
-                <th title="Такт-тайм за интервал: сколько минут:секунд в среднем уходит на один кузов">Такт-тайм за период</th>
+                <th title="Takt Time за интервал: сколько минут:секунд в среднем уходит на один кузов">Takt Time</th>
+                ${rc ? `<th title="Счётчик кузовов. Выход в ремонт">Рем. зона</th><th title="Подсчитывается автоматически. Время простоя BDC (DownTimer_BDC)">Простой BDC</th>` : ''}
+                ${rb ? `<th title="Подсчитывается автоматически. Голодание. Счётчик запускается при отсутствии кузовов в накопителе (буфере) перед ФЛ">Простой RB262</th>` : ''}
                 <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой, мин</th>
                 <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
               </tr></thead>
-              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td>${FL_MODELS.map(m => `<td data-k="m_${m}"></td>`).join('')}<td data-k="takt"></td><td class="dt" data-k="dt"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
-              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td class="plan-cell" data-k="planSum" title="План на день (DayPlan из ПЛК)"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td>${FL_MODELS.map(m => `<td data-k="mt_${m}"></td>`).join('')}<td data-k="shTakt"></td><td></td><td></td></tr></tfoot>
+              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td>${FL_MODELS.map(m => `<td data-k="m_${m}"></td>`).join('')}<td data-k="takt"></td>${rb ? '<td data-k="starve"></td>' : ''}${rc ? '<td data-k="repair"></td><td data-k="bdc"></td>' : ''}<td class="dt" data-k="dt"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
+              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td class="plan-cell" data-k="planSum" title="План на день (DayPlan из ПЛК)"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td>${FL_MODELS.map(m => `<td data-k="mt_${m}"></td>`).join('')}<td data-k="shTakt"></td>${rb ? '<td data-k="starveSum" title="Сумма простоя RB262 по интервалам смены"></td>' : ''}${rc ? '<td data-k="repairSum" title="Сумма кузовов, ушедших в ремонт, по интервалам смены"></td><td data-k="bdcSum" title="Сумма времени простоя BDC по интервалам смены"></td>' : ''}<td></td><td></td></tr>${rest || rc ? `<tr class="rest-row"${rest ? ' title="Текущее число кузовов на фуллайне (ФЛ) по моделям, значение читается из ПЛК"' : ''}><td></td>${rest ? '<td class="lbl" colspan="5">Остаток кузовов на ФЛ</td>' : '<td class="lbl" colspan="5"></td>'}${FL_MODELS.map(m => `<td data-k="rest_${m}"></td>`).join('')}<td></td>${rb ? '<td></td>' : ''}${rc ? '<td></td><td></td>' : ''}${rc ? '<td class="str-cell" colspan="2" title="STR: прямой сход, отношение кузовов без дефектов к общему количеству кузовов. В течение дня рассчитывается автоматически (факт минус выход в ремонт, делённое на факт), итог дня берётся из ПЛК (RepairPercent, считается в конце дня)"><span class="str-lbl">STR:</span> <span data-k="str">—</span></td>' : '<td></td><td></td>'}</tr>` : ''}</tfoot>
             </table></div>
           </div>
         </div>`;
       andonBody.querySelector('.plan-cell').addEventListener('click', () => openPlanDialog(screen));
-      window.attachColWidths(andonBody.querySelector('.kpi-table'), 'andon-fl');
+      window.attachColWidths(andonBody.querySelector('.kpi-table'), rb ? 'andon-fl-rb' : rc ? 'andon-fl-rc' : 'andon-fl');
       loadPlanLast(screen);
     }
 
@@ -2245,10 +2597,13 @@
       const set = (el, text) => { if (el && el.textContent !== text) el.textContent = text; };
       paintTakt(screen, val('curMin'), val('curSec'));
       let planSum = 0, deltaSum = 0, hasDelta = false;
+      const starveVals = [], repairVals = [], bdcVals = [];
       andonBody.querySelectorAll('tbody tr').forEach(tr => {
         const i = Number(tr.dataset.i);
         const cfg = intervalCfg(screen.id, i, starts);
         const plan = iplan[i] || 0, fact = prod[i] || 0;
+        // интервал без галочки скрыт, но показывается, если в нём есть факт или план из ПЛК (план считает ПЛК: скрывать интервал с планом нельзя, итоги разойдутся)
+        tr.hidden = !cfg.active && fact === 0 && plan === 0;
         const state = idx ? (i + 1 < idx ? 'past' : i + 1 === idx ? 'now' : 'future') : 'past';
         tr.className = state === 'now' ? 'now' : state === 'future' ? 'future' : '';
         const c = k => tr.querySelector(`[data-k="${k}"]`);
@@ -2267,8 +2622,40 @@
         const takt = c('takt');
         set(takt, fact > 0 ? mmss(tMin[i] || 0, tSec[i] || 0) : '—');
         takt.className = fact > 0 ? '' : 'dim';
+        // «Простой RB262»: DownTimer[i].ET (мс) относится к интервалу i, индексы с нуля как в TIA Portal
+        const sc = c('starve');
+        if (sc) {
+          const t = v[b['dt_' + i]];
+          const ms = t && t.ok && Number.isInteger(t.v) ? t.v : null;
+          if (!tr.hidden) starveVals.push(ms);   // итоги по показанным строкам, как в Excel
+          set(sc, starveFmt(ms));
+          sc.className = ms === null ? 'dim' : '';
+        }
+        // «Рем. зона» и «Простой BDC»: интервал i + 1 = элемент [i + 1] массивов ПЛК (элемент [0] — общий итог, не интервал); нет значения -> «—»
+        const rcEl = c('repair'), bdEl = c('bdc');
+        if (rcEl) {
+          const tr1 = v[b['rc_' + (i + 1)]], rcv = tr1 && tr1.ok && Number.isInteger(tr1.v) ? tr1.v : null;
+          if (!tr.hidden) repairVals.push(rcv);
+          set(rcEl, rcv === null ? '—' : String(rcv));
+          rcEl.className = rcv === null ? 'dim' : '';
+          const tb = v[b['bd_' + (i + 1)]], bdv = tb && tb.ok && Number.isInteger(tb.v) ? tb.v : null;
+          if (!tr.hidden) bdcVals.push(bdv);
+          set(bdEl, starveFmt(bdv));
+          bdEl.className = bdv === null ? 'dim' : '';
+        }
         planSum += plan;
       });
+      const sSum = q('starveSum');
+      if (sSum) { const got = starveVals.filter(x => x !== null); set(sSum, got.length ? starveFmt(got.reduce((a, x) => a + x, 0)) : '—'); }
+      const rSum = q('repairSum');
+      let repairTotal = null;
+      if (rSum) {
+        const got = repairVals.filter(x => x !== null);
+        repairTotal = got.length ? got.reduce((a, x) => a + x, 0) : null;
+        set(rSum, repairTotal === null ? '—' : String(repairTotal));
+        const gb = bdcVals.filter(x => x !== null);
+        set(q('bdcSum'), gb.length ? starveFmt(gb.reduce((a, x) => a + x, 0)) : '—');
+      }
       const planDay = val('plan_day');
       const pc = q('planSum');
       set(pc, String(planDay !== null ? planDay : planSum));
@@ -2276,7 +2663,10 @@
       pc.classList.toggle('plan-edit', !!editable);
       pc.title = (editable ? 'Нажмите, чтобы изменить план на день (запишется в ПЛК). ' : 'План на день из ПЛК. Чтобы изменить, войдите в систему (роль кроме «Просмотр»). ') + (planLast[screen.id] || '');
       set(q('tot'), val('tot') === null ? '—' : String(val('tot')));
+      set(q('str'), strFmt(strPick(val('rpct'), val('tot'), repairTotal)));   // STR: итог ПЛК (rpct) если > 0, иначе расчёт по факту и «Рем. зоне» из строки «Итого за смену»
       FL_MODELS.forEach(m => set(q('mt_' + m), String(mArr[m].reduce((s, x) => s + (x || 0), 0))));
+      // «Остаток кузовов на ФЛ»: текущее значение (Int16) из ПЛК; нет значения или нет связи -> «—»
+      if (b.rest_A01) FL_MODELS.forEach(m => { const t = v[b['rest_' + m]]; set(q('rest_' + m), t && t.ok && Number.isInteger(t.v) ? String(t.v) : '—'); });
       const ds = q('deltaSum');
       if (hasDelta) {
         set(ds, deltaSum > 0 ? `+${deltaSum}` : String(deltaSum));
@@ -2301,7 +2691,7 @@
       return iv;
     }
 
-    // Такт-тайм не считает перерывы и обед: из времени с последнего кузова вычитаются промежутки между интервалами смены.
+    // Takt Time не считает перерывы и обед: из времени с последнего кузова вычитаются промежутки между интервалами смены.
     // Во время перерыва значение стоит на месте (paused), после перерыва продолжает с него.
     function adjustedTakt(sel, sec) {
       const clock = window.plantClock, iv = activeIntervals(sel);
@@ -2329,7 +2719,7 @@
       if (el.textContent !== text) el.textContent = text;
       el.parentElement.classList.toggle('paused', paused);
       el.parentElement.title = paused
-        ? 'Перерыв или обед: такт-тайм не считается и продолжится после перерыва'
+        ? 'Перерыв или обед: Takt Time не считается и продолжится после перерыва'
         : 'Время, прошедшее с момента последнего кузова (перерывы и обед не считаются)';
     }
 
@@ -2443,7 +2833,7 @@
           // две неудачных опроса подряд: числа из ПЛК заменяются прочерком, значок красный; устаревшие цифры под LIVE не показываем
           andonFails++;
           setAndonBadge('err', '● нет связи');
-          if (andonFails >= 2) andonBody.querySelectorAll('[data-k="plan"],[data-k="fact"],[data-k="delta"],[data-k="takt"],[data-k="planSum"],[data-k="tot"],[data-k="deltaSum"],[data-k="shTakt"],[data-k="curTakt"]').forEach(el => { if (el.textContent !== '—') el.textContent = '—'; });
+          if (andonFails >= 2) andonBody.querySelectorAll('[data-k="plan"],[data-k="fact"],[data-k="delta"],[data-k="takt"],[data-k="planSum"],[data-k="tot"],[data-k="deltaSum"],[data-k="shTakt"],[data-k="curTakt"],[data-k="starve"],[data-k="starveSum"],[data-k="repair"],[data-k="bdc"],[data-k="repairSum"],[data-k="bdcSum"],[data-k="str"],[data-k^="rest_"]').forEach(el => { if (el.textContent !== '—') el.textContent = '—'; });
         }
       } finally { andonBusy = false; }
     }
@@ -2504,11 +2894,11 @@
       modal.innerHTML = `
         <div class="kpi-modal-box" role="dialog" aria-label="Смена и план">
           <h3>${isFl ? 'Время интервалов' : 'Смена и план'} — ${isFl ? screen.name : 'линия ' + screen.name}</h3>
-          <p>Начало интервалов берётся из ПЛК. Укажите время окончания каждого интервала (перерывы между интервалами допускаются)${isFl ? '. План по интервалам рассчитывает ПЛК из плана на день.' : ' и плановое количество кузовов.'}</p>
-          <table><thead><tr><th>№</th><th title="Начало интервала из ПЛК">Начало</th><th title="Время окончания интервала">Окончание</th><th title="Длительность интервала">Мин.</th>${isFl ? '' : '<th title="Плановое количество кузовов за интервал">План</th>'}</tr></thead>
+          <p>Начало интервалов берётся из ПЛК. Укажите время окончания каждого интервала (перерывы между интервалами допускаются)${isFl ? '. План по интервалам рассчитывает ПЛК из плана на день. Интервалы без галочки не показываются на экране, в архиве и в отчёте, если в них не было кузовов и плана от ПЛК.' : ' и плановое количество кузовов.'}</p>
+          <table><thead><tr>${isFl ? '<th title="Показывать интервал на экране; интервалы без галочки скрыты (если в них нет кузовов)">✓</th>' : ''}<th>№</th><th title="Начало интервала из ПЛК">Начало</th><th title="Время окончания интервала">Окончание</th><th title="Длительность интервала">Мин.</th>${isFl ? '' : '<th title="Плановое количество кузовов за интервал">План</th>'}</tr></thead>
           <tbody>${Array.from({ length: n }, (_, i) => {
             const c = intervalCfg(screen.id, i, starts);
-            return `<tr><td>${i + 1}</td><td>${hhmm(starts[i] ?? 0)}</td><td><input type="time" data-end="${i}" value="${hhmm(c.end)}" title="Время окончания интервала ${i + 1}"></td><td data-min="${i}">${Math.max(0, c.end - (starts[i] ?? 0))}</td>${isFl ? '' : `<td><input type="number" min="0" max="100000" data-plan="${i}" value="${c.plan}" title="Плановое количество кузовов за интервал ${i + 1}"></td>`}</tr>`;
+            return `<tr>${isFl ? `<td><input type="checkbox" data-on="${i}"${c.active ? ' checked' : ''} title="Показывать интервал на экране; интервалы без галочки скрыты (если в них нет кузовов)"></td>` : ''}<td>${i + 1}</td><td>${hhmm(starts[i] ?? 0)}</td><td><input type="time" data-end="${i}" value="${hhmm(c.end)}" title="Время окончания интервала ${i + 1}"></td><td data-min="${i}">${Math.max(0, c.end - (starts[i] ?? 0))}</td>${isFl ? '' : `<td><input type="number" min="0" max="100000" data-plan="${i}" value="${c.plan}" title="Плановое количество кузовов за интервал ${i + 1}"></td>`}</tr>`;
           }).join('')}</tbody></table>
           <div class="kpi-modal-actions">
             <button type="button" data-act="cancel" style="background: var(--bg-tertiary); color: var(--fg-primary);" title="Закрыть окно без сохранения">Отмена</button>
@@ -2528,6 +2918,7 @@
           idx: i + 1,
           end_min: toMin(modal.querySelector(`[data-end="${i}"]`).value),
           plan: isFl ? 0 : Math.max(0, parseInt(modal.querySelector(`[data-plan="${i}"]`).value, 10) || 0),
+          active: isFl ? modal.querySelector(`[data-on="${i}"]`).checked : undefined,   // у остальных линий поле не передаётся: остаётся как было
         }));
         try {
           const r = await fetch(`/api/kpi/screens/${screen.id}/schedule`, {
@@ -2575,11 +2966,13 @@
   <script src="/static/activity.js"></script>
   <script src="/static/downtime.js"></script>
   <script src="/static/colwidths.js"></script>
+  <script src="/static/dayflag.js"></script>
   <script src="/static/reports.js"></script>
   <script src="/static/period.js"></script>
   <script src="/static/charts.js"></script>
   <script src="/static/xlgrid.js"></script>
   <script src="/static/trends.js"></script>
+  <script src="/static/alarms.js"></script>
   <script src="/static/manual.js"></script>
   <script src="/static/downtimes.js"></script>
   <script src="/static/archive.js"></script>

@@ -2,7 +2,7 @@
 (() => {
   'use strict';
 
-  const REFRESH_MS = 15000;
+  const REFRESH_MS = 5000;   // правка с другого устройства видна не позднее чем через 5 секунд
   const cache = {};     // «экран|день» -> { at, data, loading }
   const ck = id => id + '|' + (window.dtDay || '');   // window.dtDay: выбранный прошлый день (архив), пусто — текущий
   let dict = null;

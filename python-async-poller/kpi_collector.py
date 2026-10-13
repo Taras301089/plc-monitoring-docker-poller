@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import math
 import os
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
@@ -34,6 +35,43 @@ ON CONFLICT (screen_id, prod_date, idx) DO UPDATE SET
     updated_at = CASE WHEN EXCLUDED.fact >= kpi_hourly.fact THEN now() ELSE kpi_hourly.updated_at END,
     fact       = GREATEST(kpi_hourly.fact, EXCLUDED.fact)
 """
+
+
+# «Простой RB262» (голодание ФЛ): ET таймера интервала в миллисекундах накопительный, сохраняем последнее прочитанное значение;
+# сброс массива в ПЛК (нули) накопленное за день не затирает, как и у счётчиков кузовов
+_UPDATE_STARVE = """
+UPDATE kpi_hourly SET starve_ms = GREATEST(COALESCE(starve_ms, 0), $4)
+WHERE screen_id = $1 AND prod_date = $2 AND idx = $3 AND starve_ms IS DISTINCT FROM GREATEST(COALESCE(starve_ms, 0), $4)
+"""
+
+# Экран «FL RB294»: «Рем. зона» (RepairCount[k], штуки) и «Простой BDC» (DownTimer_BDC[k].ET, мс) хранятся так же: последнее прочитанное
+# значение, сброс массива в ПЛК и потеря связи накопленное за день не затирают
+_UPDATE_REPAIR = """
+UPDATE kpi_hourly SET repair_cnt = GREATEST(COALESCE(repair_cnt, 0), $4)
+WHERE screen_id = $1 AND prod_date = $2 AND idx = $3 AND repair_cnt IS DISTINCT FROM GREATEST(COALESCE(repair_cnt, 0), $4)
+"""
+_UPDATE_BDC = """
+UPDATE kpi_hourly SET bdc_ms = GREATEST(COALESCE(bdc_ms, 0), $4)
+WHERE screen_id = $1 AND prod_date = $2 AND idx = $3 AND bdc_ms IS DISTINCT FROM GREATEST(COALESCE(bdc_ms, 0), $4)
+"""
+
+# Итог дня STR из ПЛК (FB_AMMKZ_Andon_DB.RepairPercent, %): ПЛК считает его один раз в конце дня, в течение дня там 0 (или число прошлого дня).
+# Пишется только значение больше 0 во все строки интервалов производственных суток; ноль, потеря связи и ошибка чтения прежнее не затирают.
+# Если у суток значения ещё нет, а ПЛК отдаёт то же число, что сохранено за предыдущие сутки, это не новый итог (ПЛК держит вчерашнее): не пишется
+_UPDATE_RPCT = """
+UPDATE kpi_hourly SET repair_pct_plc = $3::real
+WHERE screen_id = $1 AND prod_date = $2 AND repair_pct_plc IS DISTINCT FROM $3::real
+  AND (repair_pct_plc IS NOT NULL OR NOT EXISTS (
+        SELECT 1 FROM kpi_hourly p
+        WHERE p.screen_id = $1 AND p.prod_date = $2 - 1 AND round(p.repair_pct_plc::numeric, 2) = round($3::real::numeric, 2)))
+"""
+
+
+def plc_repair_percent(v: Any) -> float | None:
+    """RepairPercent из ПЛК: число больше 0 и не больше 100, две цифры; 0, ошибка чтения, не число -> None (как repair.plc_str_value в API)."""
+    if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v <= 0 or v > 100:
+        return None
+    return round(float(v), 2)
 
 
 # Простой = (план - факт) / план * длительность интервала, только для интервалов, которые уже закончились
@@ -326,6 +364,36 @@ class KpiCollector:
                 log.warning("Таблица kpi_hourly ещё не создана (её создаёт API при запуске)")
                 self._schema_warned = True
             return
+        # индекс таймера DownTimer[i] = индекс интервала i (как у почасовых счётчиков prod[i]); интервал в базе i + 1
+        starve = [(screen["id"], pdate, i + 1, int(ms)) for i in range(len(prod[: len(starts)]))
+                  if isinstance(ms := val(f"dt_{i}"), int) and not isinstance(ms, bool) and ms >= 0]
+        if starve:
+            try:
+                await pool.executemany(_UPDATE_STARVE, starve)
+            except asyncpg.UndefinedColumnError:
+                if not self._schema_warned:
+                    log.warning("Столбец kpi_hourly.starve_ms ещё не создан (его создаёт API при запуске)")
+                    self._schema_warned = True
+        # «Рем. зона» и «Простой BDC»: ключи rc_<k> / bd_<k>, где k — номер интервала (с единицы) и он же элемент массива [k] в ПЛК ([0] не интервал)
+        for key, sql in (("rc_", _UPDATE_REPAIR), ("bd_", _UPDATE_BDC)):
+            rows_k = [(screen["id"], pdate, k, int(x)) for k in range(1, len(prod[: len(starts)]) + 1)
+                      if isinstance(x := val(f"{key}{k}"), int) and not isinstance(x, bool) and x >= 0]
+            if rows_k:
+                try:
+                    await pool.executemany(sql, rows_k)
+                except asyncpg.UndefinedColumnError:
+                    if not self._schema_warned:
+                        log.warning("Столбцы kpi_hourly.repair_cnt / bdc_ms ещё не созданы (их создаёт API при запуске)")
+                        self._schema_warned = True
+        # итог дня STR из ПЛК: привязка rpct есть только у FL RB294
+        rpct = plc_repair_percent(val("rpct"))
+        if rpct is not None:
+            try:
+                await pool.execute(_UPDATE_RPCT, screen["id"], pdate, rpct)
+            except asyncpg.UndefinedColumnError:
+                if not self._schema_warned:
+                    log.warning("Столбец kpi_hourly.repair_pct_plc ещё не создан (его создаёт API при запуске)")
+                    self._schema_warned = True
         await self._update_downtimes(pool, screen["id"], pdate)
 
     async def _manual_downtimes(self) -> None:

@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 
 from auth import current_user, ensure_auth_schema, require_admin, require_editor, require_user, router as auth_router
 from downtime import ensure_downtime_schema, router as downtime_router
+from dayflags import ensure_dayflags_schema, router as dayflags_router
 from history import router as history_router
 from colwidths import ensure_colwidths_schema, router as colwidths_router
 from period import router as period_router
@@ -28,6 +29,12 @@ from activity import ensure_activity_schema, router as activity_router
 from comments import ensure_comments_schema, router as comments_router
 from backups import router as backups_router
 from trends import ensure_trends_schema, router as trends_router
+from alarms import ensure_alarms_schema, router as alarms_router
+from tgnotify import TgSender, TgUpdatesPoller, ensure_tg_schema, router as tgnotify_router
+from repair import ensure_repair_binding
+from starve import ensure_starve_binding
+from rest_bodies import ensure_rest_bindings
+from plctime import collect as collect_plc_time
 from manual import ensure_manual_schema, seed_manual_screens, router as manual_router
 from dictionary import ensure_dictionary_schema, seed_dictionary, router as dictionary_router
 
@@ -135,6 +142,14 @@ async def ensure_kpi_schema(pool: asyncpg.Pool) -> None:
                 """
             )
             await conn.execute("CREATE INDEX IF NOT EXISTS ix_kpi_hourly_date ON kpi_hourly (prod_date)")
+            # «Простой RB262» (голодание ФЛ): последнее значение таймера ET интервала, миллисекунды; пусто, пока ПЛК не прочитан
+            await conn.execute("ALTER TABLE kpi_hourly ADD COLUMN IF NOT EXISTS starve_ms BIGINT")
+            # «Рем. зона» (кузовов в ремонт) и «Простой BDC» (мс) экрана FL RB294: последнее значение за интервал, пусто, пока ПЛК не прочитан
+            await conn.execute("ALTER TABLE kpi_hourly ADD COLUMN IF NOT EXISTS repair_cnt INTEGER")
+            await conn.execute("ALTER TABLE kpi_hourly ADD COLUMN IF NOT EXISTS bdc_ms BIGINT")
+            # итог дня STR из ПЛК (FB_AMMKZ_Andon_DB.RepairPercent, %): одно значение на производственные сутки, пишется поллером во все строки
+            # интервалов дня; пусто, пока ПЛК не посчитал (в течение дня STR расчётный)
+            await conn.execute("ALTER TABLE kpi_hourly ADD COLUMN IF NOT EXISTS repair_pct_plc REAL")
             await conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS kpi_body_events (
@@ -248,25 +263,39 @@ async def ensure_kpi_schema(pool: asyncpg.Pool) -> None:
 async def lifespan(app: FastAPI):
     app.state.pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
     await ensure_kpi_schema(app.state.pool)
+    await ensure_starve_binding(app.state.pool)
+    await ensure_repair_binding(app.state.pool)
+    await ensure_rest_bindings(app.state.pool)
     await ensure_plc_order(app.state.pool)
     await ensure_trends_schema(app.state.pool)
+    await ensure_alarms_schema(app.state.pool)
     # Интервал, снятый галочкой в «Плане на день», не показывается на экране Andon (если в нём нет кузовов)
     await app.state.pool.execute("ALTER TABLE kpi_schedule ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE")
     await ensure_auth_schema(app.state.pool)
     await ensure_dictionary_schema(app.state.pool)
     await seed_dictionary(app.state.pool)
     await ensure_downtime_schema(app.state.pool)
+    await ensure_dayflags_schema(app.state.pool)
     await ensure_manual_schema(app.state.pool)
     await ensure_comments_schema(app.state.pool)
     await ensure_activity_schema(app.state.pool)
     await seed_manual_screens(app.state.pool)
     await ensure_reports_schema(app.state.pool)
     await ensure_colwidths_schema(app.state.pool)
+    await ensure_tg_schema(app.state.pool)
     reports_task = asyncio.create_task(reports_loop(app))
+    tg_stop = asyncio.Event()
+    tg_task = asyncio.create_task(TgSender(app.state.pool).run(tg_stop))
+    tg_poll_task = asyncio.create_task(TgUpdatesPoller(app.state.pool).run(tg_stop))
+    app.state.tg_task = tg_task
+    app.state.tg_poll_task = tg_poll_task
     try:
         yield
     finally:
         reports_task.cancel()
+        tg_stop.set()
+        tg_task.cancel()
+        tg_poll_task.cancel()
         await app.state.pool.close()
 
 
@@ -274,6 +303,7 @@ app = FastAPI(title="PLC Monitoring API", version="0.1.0", lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(dictionary_router)
 app.include_router(downtime_router)
+app.include_router(dayflags_router)
 app.include_router(history_router)
 app.include_router(colwidths_router)
 app.include_router(period_router)
@@ -283,6 +313,8 @@ app.include_router(comments_router)
 app.include_router(activity_router)
 app.include_router(backups_router)
 app.include_router(trends_router)
+app.include_router(alarms_router)
+app.include_router(tgnotify_router)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
@@ -392,6 +424,11 @@ async def list_plcs() -> list[dict[str, Any]]:
             d['ip_address'] = 'N/A'
         result.append(d)
     return result
+
+
+@app.get("/api/plcs/time", summary="Время каждого ПЛК (узел OPC UA i=2258) и расхождение с сервером PMM; только чтение, вход не нужен")
+async def plcs_time() -> list[dict[str, Any]]:
+    return await collect_plc_time(await get_pool(app))
 
 
 class CreatePlcRequest(BaseModel):

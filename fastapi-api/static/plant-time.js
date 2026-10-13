@@ -48,6 +48,11 @@
       const p = parts();
       return p.h * 60 + p.mi + p.s / 60;
     },
+    // момент в мс (unix) -> «чч:мм:сс» по времени завода
+    fmtTime(ms) {
+      const d = new Date(ms + offsetHours * 3600000);
+      return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+    },
     timeText() {
       const p = parts();
       return `${pad(p.h)}:${pad(p.mi)}`;

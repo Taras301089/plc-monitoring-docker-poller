@@ -14,6 +14,7 @@
   const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
   const fmtNum = n => (Math.round(n * 10) / 10).toLocaleString('ru-RU');
   const KEY = 'reports:state';
+  const REFRESH_MS = 8000;
 
   const state = { screen: null, from: '', to: '' };
   let screens = [];
@@ -42,9 +43,30 @@
   const fmtD = iso => iso.split('-').reverse().join('.');
   const pct1 = v => (v === null || v === undefined ? '—' : `${Math.round(v * 100)}%`);
   const tile = (label, val, tip, cls = '') => `<div class="ch-tile ${cls}" title="${esc(tip)}"><span>${esc(label)}</span><b>${esc(val)}</b></div>`;
+  // подпись «нет выпуска» в ячейке приглушена (простой дня без выпуска не считается)
+  const cell = v => `<td${v === window.dayFlag.NO_OUTPUT ? ` class="dim" title="${esc(window.dayFlag.NO_OUTPUT_TITLE)}"` : ''}>${esc(v)}</td>`;
   const table = (heads, rows, cls = '') => `<table class="users-table rep-prev-t ${cls}"><thead><tr>${heads.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map(r => `<tr>${r.map(v => `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    <tbody>${rows.map(r => `<tr>${r.map(cell).join('')}</tr>`).join('')}</tbody></table>`;
   const card = (title, tip, body) => `<section class="ch-card rep-table-card"><header><h3 title="${esc(tip)}">${esc(title)}</h3></header><div class="rep-prev-table">${body}</div></section>`;
+
+  // Отметка «Простой весь день (поломка линии)»: только для одного закрытого дня без выпуска и только тому, кто может править (иначе скрыта)
+  function drawFlag(q, d) {
+    const box = q('flag');
+    const user = (window.authState && window.authState() || {}).user || null;
+    const v = d ? window.dayFlag.flagView({ state: d.state, flag: d.flag }, user) : { show: false };
+    box.hidden = !v.show;
+    if (!v.show) { box.innerHTML = ''; return; }
+    box.innerHTML = `<button type="button" class="dt-sec rep-flag-btn${v.on ? ' on' : ''}" aria-pressed="${v.on}" title="${esc(v.title)}"${v.enabled ? '' : ' disabled'}>${esc(v.label)}</button>`
+      + (v.note ? `<span class="rep-flag-note" title="Кто и когда отметил день как простой из-за поломки линии">${esc(v.note)}</span>` : '');
+    const btn = box.querySelector('button');
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        await api(`/api/kpi/screens/${state.screen}/day-flag/${state.from}`, { method: v.on ? 'DELETE' : 'PUT' });
+        await loadReport(true);   // числа экрана перечитываются: простой дня становится рабочим или исчезает
+      } catch (ex) { toast(ex.message); btn.disabled = false; }
+    });
+  }
 
   // один день: строки отчёта дня и график по часам (как в файле Excel)
   async function drawDay(my, q) {
@@ -53,13 +75,15 @@
     q('file').textContent = d.file;
     q('chart-title').textContent = 'План и факт по часам';
     q('chart-title').title = 'Плановое и фактическое количество кузовов по часовым интервалам дня; линия показывает % выполнения';
+    drawFlag(q, d.intervals.length ? d : null);
     if (!d.intervals.length) { q('tiles').innerHTML = ''; q('chart').innerHTML = ''; q('tables').innerHTML = '<div class="empty">За этот день нет данных: отчёт не создаётся</div>'; return; }
     const plan = d.intervals.reduce((s, x) => s + x.plan, 0), fact = d.intervals.reduce((s, x) => s + x.fact, 0);
     const seen = new Set();
     let down = 0;
-    d.rows.forEach(r => { if (!seen.has(r[2])) { seen.add(r[2]); down += Number(r[10]) || 0; } });
+    const downCol = d.headers.indexOf('Простой мин');   // положение столбца зависит от линии («Простой RB262» сдвигает его)
+    d.rows.forEach(r => { if (!seen.has(r[2])) { seen.add(r[2]); down += Number(r[downCol]) || 0; } });
     q('tiles').innerHTML = tile('План', plan, 'Плановое количество кузовов за день') + tile('Факт', fact, 'Фактическое количество кузовов за день', 'ch-ok')
-      + tile('Выполнение', plan ? pct1(fact / plan) : '—', 'Факт делённый на план') + tile('Простой, мин', fmtNum(down), 'Минуты простоя за день (отставание от плана)', 'ch-bad');
+      + tile('Выполнение', plan ? pct1(fact / plan) : '—', 'Факт делённый на план') + tile('Простой, мин', window.dayFlag.downValue(d, down, fmtNum), d.no_output && !down ? d.no_output_hint : 'Минуты простоя за день (отставание от плана)', d.no_output && !down ? 'ch-dim' : 'ch-bad');
     const days = d.intervals.map(x => ({ label: x.label, plan: x.plan, fact: x.fact, pct: x.plan ? x.fact / x.plan : null }));
     q('chart').innerHTML = window.andonChart ? window.andonChart.planFact(days, Math.max(360, q('chart').clientWidth || 640)) : '';
     const rows = d.rows.slice(0, 500);
@@ -71,6 +95,7 @@
   async function drawPeriod(my, q) {
     const d = await api(`/api/kpi/charts?screen_id=${state.screen}&from=${state.from}&to=${state.to}`);
     if (my !== token) return;
+    drawFlag(q, null);
     q('file').textContent = `Период: ${fmtD(state.from)} — ${fmtD(state.to)}`;
     q('chart-title').textContent = 'План, факт и % выполнения по дням';
     q('chart-title').title = 'Столбцы: план и факт кузовов за день; линия: процент выполнения плана (правая шкала)';
@@ -84,20 +109,24 @@
     const totalR = d.reasons.reduce((s, x) => s + x.min, 0), totalS = d.stations.reduce((s, x) => s + x.min, 0);
     q('tables').innerHTML =
       card('По дням', 'Итоги по каждому дню периода: план, факт, выполнение и простой', table(['Дата', 'План', 'Факт', '±', '% выполнения', 'Простой, мин', 'Описано, мин', 'Не описано, мин'],
-        d.days.map(x => [fmtD(x.date), x.plan, x.fact, x.fact - x.plan, pct1(x.pct), fmtNum(x.downtime), fmtNum(x.described), fmtNum(Math.max(0, x.downtime - x.described))])))
+        d.days.map(x => window.dayFlag.periodDayRow(x, { fmtD, fmtNum, pct1 }))))
       + card('Причины простоя', 'Минуты простоя по причинам за период, от самых долгих', table(['Причина', 'Минут', 'Доля'], d.reasons.map(x => [x.name, fmtNum(x.min), totalR ? pct1(x.min / totalR) : '—'])))
       + card('Простой по станциям', 'Минуты простоя по станциям за период, от самых долгих', table(['Участок', 'Станция', 'Минут', 'Доля'], d.stations.map(x => [x.area, x.station, fmtNum(x.min), totalS ? pct1(x.min / totalS) : '—'])));
   }
 
-  async function loadReport() {
+  // silent: фоновое перечитывание (правка с другого устройства видна не позднее REFRESH_MS): без «Загрузка…», позиция прокрутки таблиц сохраняется
+  async function loadReport(silent = false) {
     const my = ++token;
     const q = s => pane.querySelector(`[data-f="${s}"]`);
-    q('tables').innerHTML = '<div class="empty">Загрузка…</div>';
+    if (!q('tables')) return;
+    const scroll = silent ? [...pane.querySelectorAll('.rep-prev-table')].map(e => [e.scrollTop, e.scrollLeft]) : [];
+    if (!silent) q('tables').innerHTML = '<div class="empty">Загрузка…</div>';
     markPreset();
     try {
       if (state.from === state.to) await drawDay(my, q); else await drawPeriod(my, q);
       if (my === token && window.attachColWidths) q('tables').querySelectorAll('table').forEach((t, i) => window.attachColWidths(t, `report-${state.from === state.to ? 'day' : 'p' + i}`));
-    } catch (ex) { if (my === token) q('tables').innerHTML = `<div class="empty">${esc(ex.message)}</div>`; }
+      if (my === token) pane.querySelectorAll('.rep-prev-table').forEach((e, i) => { if (scroll[i]) { e.scrollTop = scroll[i][0]; e.scrollLeft = scroll[i][1]; } });
+    } catch (ex) { if (my === token && !silent) q('tables').innerHTML = `<div class="empty">${esc(ex.message)}</div>`; }
   }
 
   const presets = () => {
@@ -117,7 +146,7 @@
     try { data = await api('/api/reports/settings'); } catch (ex) { return `<div class="empty">${esc(ex.message)}</div>`; }
     return `<details class="rep-auto">
       <summary title="Автоматическое сохранение отчётов дня по линиям в папку на ПК с сервисом (только администратор)">Автосохранение отчётов</summary>
-      <p class="hint">Отчёт дня по каждой линии сохраняется в Excel в папку на ПК, где запущен сервис: <b class="rep-dir">${esc(data.dir)}</b> (внутри папки «год-месяц», затем линия). В первый день месяца в то же время сохраняется месячный отчёт с графиками за прошлый месяц.</p>
+      <p class="hint">Каждый день по каждой линии сохраняется один файл Excel (один лист: сверху отчёт дня, ниже отчёт с начала месяца) в папку на ПК, где запущен сервис: <b class="rep-dir">${esc(data.dir)}</b> (внутри папки «год-месяц», затем линия). Из этой папки файлы копируются в сетевую папку.</p>
       <table class="rep-table"><thead><tr>
         <th title="Включить автоматическое сохранение отчётов для линии">Вкл.</th>
         <th title="Линия (экран Andon)">Линия</th>
@@ -193,6 +222,7 @@
         <button type="button" data-f="xlsx" title="Скачать отчёт за выбранный период в Excel: один день даёт таблицу дня, период даёт сводный отчёт с графиками">⬇ Excel</button>
         <span class="rep-prev-file" data-f="file"></span>
       </div>
+      <div class="rep-flag" data-f="flag" hidden></div>
       <div class="ch-tiles" data-f="tiles"></div>
       <section class="ch-card">
         <header><h3 data-f="chart-title"></h3></header>
@@ -232,5 +262,7 @@
   }
 
   tab.addEventListener('click', render);
+  // «Изменил здесь, увидел везде»: открытая вкладка сама перечитывает отчёт (отметка дня, простои, план)
+  setInterval(() => { if (pane.classList.contains('active') && !document.hidden && pane.querySelector('[data-f="tables"]')) loadReport(true); }, REFRESH_MS);
   window.addEventListener('resize', () => { if (pane.classList.contains('active') && pane.querySelector('[data-f="chart"] svg')) loadReport(); });
 })();

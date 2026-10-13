@@ -14,6 +14,7 @@ from aiohttp import web
 from checker import TagChecker
 from config import load_settings
 from database import Database
+from alarm_collector import AlarmCollector
 from kpi_collector import BodyEventLogger, KpiCollector
 from models import DigitalTelemetryPoint, Plc
 from opc_client import PlcOpcClient
@@ -483,6 +484,7 @@ async def _async_main() -> None:
 
     kpi_tasks = [
         asyncio.create_task(KpiCollector(db.get_pool, lambda: service._clients, service._stop).run()),
+        asyncio.create_task(AlarmCollector(db.get_pool, lambda: service._clients, service._stop).run()),
         asyncio.create_task(BodyEventLogger(db.get_pool, lambda: service._clients, service._stop).run()),
     ]
 

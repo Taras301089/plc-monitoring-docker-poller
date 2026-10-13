@@ -493,6 +493,28 @@ class PlcOpcClient:
             out.extend(await asyncio.gather(*(one(r) for r in refs[i:i + 50])))
         return out
 
+    async def read_words(self, node_id: str, count: int) -> list[int]:
+        """Целиком читает массив слов (например, MSG.W) одним запросом и возвращает не больше count элементов."""
+        async with self._lock:
+            if not await self._ensure_connected_unlocked():
+                raise ConnectionError("OPC UA connection is unavailable")
+            client = self._client
+            if client is None:
+                raise ConnectionError("OPC UA client is unavailable")
+            params = ua.ReadParameters()
+            params.NodesToRead = [ua.ReadValueId(NodeId=ua.NodeId.from_string(node_id), AttributeId=ua.AttributeIds.Value)]
+            try:
+                results = await asyncio.wait_for(client.uaclient.read(params), timeout=5.0)
+            except (asyncio.TimeoutError, ConnectionError, OSError, UaError) as exc:
+                await self._disconnect_unlocked()
+                raise ConnectionError("OPC UA read failed") from exc
+        dv = results[0]
+        status = getattr(dv, "StatusCode", None)
+        value = getattr(getattr(dv, "Value", None), "Value", None)
+        if status is None or not status.is_good() or not isinstance(value, (list, tuple)):
+            raise ValueError(f"узел {node_id} не вернул массив слов")
+        return [int(x) if isinstance(x, int) else 0 for x in list(value)[:count]]
+
     async def read_values(self, node_ids: list[str]) -> dict[str, dict[str, Any]]:
         """Пакетное чтение текущих значений узлов одним запросом (для живого просмотра в интерфейсе)."""
         out: dict[str, dict[str, Any]] = {}

@@ -67,3 +67,64 @@ def test_static_wiring():
     for tag in re.findall(r"<(?:button|input)\b[^>]*>", js[js.index("function drawTags"):js.index("function updateButtons")]):
         assert "title=" in tag, tag
     assert "module.exports" in grid and "root.xlgrid" in grid
+
+
+# ===== Флажки переменных: массовые операции =====
+def _st(*flags):
+    return "[" + ",".join("{sel:%s,archive:%s,grafana:false,alarm:false}" % (("true" if f[0] else "false"), ("true" if f[1] else "false")) for f in flags) + "]"
+
+
+def test_set_flag_coupling():
+    assert run("g.setFlag({sel:false},'archive',true)")["sel"] is True
+    r = run("g.setFlag({sel:true,archive:true,grafana:true,alarm:true},'sel',false)")
+    assert r == {"sel": False, "archive": False, "grafana": False, "alarm": False}
+    assert run("g.setFlag({sel:true,archive:true},'archive',false)")["sel"] is True
+
+
+def test_range_between():
+    assert run("g.rangeBetween(5,2,10)") == {"from": 2, "to": 5}
+    assert run("g.rangeBetween(2,2,10)") == {"from": 2, "to": 2}
+    assert run("g.rangeBetween(-1,2,10)") is None
+    assert run("g.rangeBetween(2,10,10)") is None
+
+
+def test_drag_fill_takes_source_state_both_directions():
+    states = _st((True, False), (False, False), (False, False), (False, False))
+    r = run(f"g.dragFill({states},0,2,'sel')")
+    assert [s["sel"] for s in r["states"]] == [True, True, True, False] and r["changed"] == [1, 2]
+    states = _st((False, False), (False, False), (True, False), (True, False))
+    r = run(f"g.dragFill({states},2,0,'sel')")
+    assert [s["sel"] for s in r["states"]] == [True, True, True, True] and r["changed"] == [0, 1]
+    # источник снят: протяжка снимает выбор и флаги у протянутых строк
+    states = "[{sel:false,archive:false},{sel:true,archive:true},{sel:true,archive:true}]"
+    r = run(f"g.dragFill({states},0,2,'sel')")
+    assert [(s["sel"], s["archive"]) for s in r["states"]] == [(False, False)] * 3 and r["changed"] == [1, 2]
+
+
+def test_shift_range_sets_clicked_value_between_anchor_and_target():
+    states = _st(*[(False, False)] * 6)
+    r = run(f"g.shiftRange({states},1,4,'archive',true)")
+    assert [s["archive"] for s in r["states"]] == [False, True, True, True, True, False]
+    assert all(r["states"][i]["sel"] for i in (1, 2, 3, 4)) and r["changed"] == [1, 2, 3, 4]
+    assert run(f"g.shiftRange({states},4,1,'archive',true)")["changed"] == [1, 2, 3, 4]
+    assert run(f"g.shiftRange({states},-1,1,'archive',true)")["changed"] == []
+
+
+def test_select_all_toggles_and_counts():
+    states = _st((True, False), (False, False), (False, False))
+    r = run(f"g.selectAll({states},'sel')")
+    assert r["value"] is True and r["changed"] == [1, 2]
+    states = _st((True, False), (True, False))
+    r = run(f"g.selectAll({states},'sel')")
+    assert r["value"] is False and r["changed"] == [0, 1]
+    assert run("g.selectAll([],'sel').changed") == []
+    assert run(f"g.columnSummary({_st((True, False), (False, False))},'sel')") == {"total": 2, "checked": 1, "all": False, "none": False}
+
+
+def test_select_all_thousands_fast():
+    out = run("(()=>{const s=Array.from({length:20000},()=>({sel:false}));const r=g.selectAll(s,'archive');return [r.changed.length,r.states[19999].sel]})()")
+    assert out == [20000, True]
+
+
+def test_rows_word():
+    assert [run(f"g.rowsWord({n})") for n in (1, 2, 5, 11, 21, 112)] == ["1 строка", "2 строки", "5 строк", "11 строк", "21 строка", "112 строк"]

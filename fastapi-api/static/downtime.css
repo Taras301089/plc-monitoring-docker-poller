@@ -156,7 +156,7 @@ body.andon-archive .andon-day input[type="date"] { box-shadow: inset 0 0 0 1px v
 .kpi-table td.plan-edit { position: relative; padding-right: 24px; }
 .kpi-table td.plan-edit::after { content: '✎'; position: absolute; right: 2px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: normal; color: var(--fg-secondary); line-height: 1; pointer-events: none; }
 
-/* Больше отступа между такт-тайма и простоя */
+/* Больше отступа между Takt Time и простоя */
 .kpi-table td[data-k="takt"] { padding-right: 32px; }
 
 /* Ручка изменения ширины столбца в заголовке таблицы */
@@ -196,6 +196,7 @@ body.andon-archive .andon-day input[type="date"] { box-shadow: inset 0 0 0 1px v
 .ch-tile span { display: block; font-size: var(--fs-small); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-secondary); }
 .ch-tile b { display: block; margin-top: 2px; font-size: var(--fs-title); font-variant-numeric: tabular-nums; }
 .ch-tile.ch-ok b { color: var(--ok); }
+.ch-tile.ch-dim b { color: var(--fg-secondary); font-size: var(--fs-large); }
 .ch-tile.ch-bad b { color: color-mix(in srgb, var(--danger) 72%, var(--fg-primary)); }
 .ch-grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); gap: 12px; }
 .ch-card { min-width: 0; padding: 10px 12px; background: var(--bg-primary); border-radius: 6px; box-shadow: var(--shadow-out); }
@@ -239,6 +240,12 @@ body.andon-archive .andon-day input[type="date"] { box-shadow: inset 0 0 0 1px v
 /* Таблица с ручной шириной столбцов (пиксели): длинный текст в ячейках обрезается многоточием */
 .col-px td { overflow: hidden; text-overflow: ellipsis; }
 .col-px td.dl-note { white-space: normal; text-overflow: clip; }
+
+/* Отметка «Простой весь день (поломка линии)» в «Отчётах» и подпись «нет выпуска» */
+.rep-flag { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+.rep-flag[hidden] { display: none; }
+.rep-flag-note { font-size: var(--fs-small); color: var(--fg-secondary); }
+.rep-prev-t td.dim, .noout { color: var(--fg-secondary); }
 
 /* Вкладка «Отчёты» */
 .rep-prev-file { font-size: var(--fs-small); color: var(--fg-secondary); }
@@ -302,3 +309,50 @@ body.andon-archive .andon-day input[type="date"] { box-shadow: inset 0 0 0 1px v
 .tr-rec-t td.xg .tr-in { width: 100%; box-sizing: border-box; }
 .xg-handle { position: absolute; right: -3px; bottom: -3px; width: 7px; height: 7px; background: var(--accent); border: 1px solid var(--bg-primary); cursor: crosshair; z-index: 1; }
 @media (max-width: 700px) { .tr-rec-t td.xg { min-width: 56px; } }
+
+/* Вкладка «Тренды»: «Графики переменных». Цвета линий: набор из 8 различимых оттенков (зелёный и красный заняты статусами и границами) */
+:root { --chart-1: #4c9aff; --chart-2: #a78bfa; --chart-3: #22d3ee; --chart-4: #f472b6; --chart-5: #e5e7eb; --chart-6: #d4a373; --chart-7: #818cf8; --chart-8: #94a3b8; }
+:root[data-theme="light"] { --chart-1: #2b6cb0; --chart-2: #7c3aed; --chart-3: #0e7490; --chart-4: #be185d; --chart-5: #1d2733; --chart-6: #a16207; --chart-7: #4f46e5; --chart-8: #64748b; }
+.trg-bar [hidden], .trg-bar .ch-presets[hidden] { display: none; }
+.trg-bar select { max-width: 220px; }
+.trg-vars { margin: 0 0 8px; }
+.trg-vlist { display: flex; flex-wrap: wrap; gap: 2px 16px; max-height: 128px; overflow: auto; padding: 4px 2px; }
+.trg-vlist label { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; font-size: var(--fs-small); color: var(--fg-primary); cursor: pointer; }
+.trg-vlist label[hidden] { display: none; }
+.trg-vf { width: 100%; max-width: 280px; min-height: 30px; margin-bottom: 4px; }
+.trg-tools { margin-bottom: 6px; }
+.trg-num { width: 78px; min-height: 30px; text-align: right; font-variant-numeric: tabular-nums; }
+.trg-range { margin-left: auto; font-size: var(--fs-small); color: var(--fg-secondary); font-variant-numeric: tabular-nums; }
+.trg-legend { gap: 6px; margin: 4px 0 8px; }
+.trg-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 12px; border: 0; border-radius: 4px; background: var(--bg-secondary); color: var(--fg-primary); font: inherit; font-size: var(--fs-small); cursor: pointer; box-shadow: var(--shadow-out); }
+.trg-chip i { display: inline-block; width: 16px; height: 4px; margin: 0; border-radius: 2px; }
+.trg-chip.off { opacity: .45; text-decoration: line-through; }
+.trg-main { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; }
+.trg-plot { flex: 1 1 520px; min-width: 0; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: crosshair; }
+.trg-side { flex: 0 1 360px; min-width: 260px; max-width: 100%; }
+.trg-cap { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0 4px; font-size: var(--fs-small); }
+.trg-cap button { min-height: 28px; padding: 0 12px; }
+.trg-tw { overflow-x: auto; }
+.trg-tw:focus { outline: 1px solid var(--accent); }
+.trg-t { width: 100%; border-collapse: collapse; font-size: var(--fs-small); }
+.trg-t th { padding: 5px 8px; text-align: left; font-weight: 600; color: var(--fg-secondary); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.trg-t td { padding: 4px 8px; border-bottom: 1px solid var(--line); }
+.trg-t .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.trg-t tbody tr:nth-child(even) { background: var(--zebra); }
+.trg-t tbody tr:hover { background: var(--hover); }
+.trg-t tr.off { opacity: .45; }
+.trg-t td.bad { color: var(--danger); font-weight: 600; }
+.trg-sw { display: inline-block; width: 14px; height: 4px; margin-right: 6px; border-radius: 2px; vertical-align: middle; }
+.trg-svg { touch-action: pan-y; }
+.trg-svg .trg-line { fill: none; stroke: var(--c); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.trg-svg .trg-band { fill: var(--c); fill-opacity: .18; stroke: none; }
+.trg-svg .trg-out { fill: none; stroke: var(--danger); stroke-width: 2.4; stroke-linejoin: round; }
+.trg-svg .trg-dot { fill: var(--c); }
+.trg-svg .trg-lim { stroke: var(--fg-secondary); stroke-width: 1; stroke-dasharray: 5 4; }
+.trg-svg .trg-limt { fill: var(--fg-secondary); font: var(--fs-small) 'Segoe UI', Roboto, Arial, sans-serif; font-variant-numeric: tabular-nums; }
+.trg-svg .trg-msg { fill: var(--fg-secondary); font: var(--fs-small) 'Segoe UI', Roboto, Arial, sans-serif; }
+.trg-svg .trg-frame { fill: none; stroke: var(--line); }
+.trg-svg .trg-cur { stroke: var(--fg-secondary); stroke-width: 1; pointer-events: none; }
+.trg-svg .trg-cdot { fill: var(--c); stroke: var(--bg-primary); stroke-width: 2; pointer-events: none; }
+.trg-svg .trg-sel { fill: color-mix(in srgb, var(--accent) 18%, transparent); stroke: var(--accent); pointer-events: none; }
+@media (max-width: 1000px) { .trg-side { flex: 1 1 100%; } .trg-range { margin-left: 0; } }

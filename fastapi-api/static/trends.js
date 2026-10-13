@@ -1,6 +1,209 @@
-// Вкладка «Тренды»: технические графики; сейчас «Связь с ПЛК» за период (ленты по времени для каждого ПЛК) и выгрузка в Excel
-(() => {
+// Вкладка «Тренды»: «Связь с ПЛК» за период (ленты по времени), «Графики переменных» (онлайн и архив, линейка, масштаб, границы), «Запись переменных»
+(function (root) {
   'use strict';
+
+  // ================= «Графики переменных»: чистая логика (без DOM, проверяется в node) =================
+  const core = (() => {
+    const MIN_SPAN = 2000;                 // самое мелкое окно по времени, мс
+    const p2 = n => String(n).padStart(2, '0');
+
+    // последний индекс i, где arr[i] <= x (массив по возрастанию), иначе -1
+    function lastLE(arr, x) {
+      let lo = 0, hi = arr.length - 1, r = -1;
+      while (lo <= hi) { const mid = (lo + hi) >> 1; if (arr[mid] <= x) { r = mid; lo = mid + 1; } else hi = mid - 1; }
+      return r;
+    }
+
+    // ряд с сервера -> удобный вид; у корзин время = середина корзины, пропуск = не меньше 2,5 корзины
+    function normalize(s, bucketSec) {
+      const agg = s.mode === 'agg';
+      const half = agg ? bucketSec * 500 : 0;
+      const o = { id: s.tag_id, name: s.name, plc: s.plc_name, step: !!s.step, mode: s.mode, t: [], v: [], mn: [], mx: [], n: [],
+        gapMs: Math.max((s.gap_sec || 10) * 1000, agg ? bucketSec * 2500 : 0), prior: s.prior ? { t: s.prior[0], v: s.prior[1] } : null,
+        lo: s.limit_low === undefined ? null : s.limit_low, hi: s.limit_high === undefined ? null : s.limit_high, deadband: s.deadband === undefined ? null : s.deadband, stats: s.stats };
+      for (const p of s.points) {
+        if (agg) { o.t.push(p[0] + half); o.mn.push(p[1]); o.v.push(p[2]); o.mx.push(p[3]); o.n.push(p[4]); }
+        else { o.t.push(p[0]); o.v.push(p[1]); o.mn.push(p[1]); o.mx.push(p[1]); o.n.push(1); }
+      }
+      return o;
+    }
+
+    // Линия ряда в данных: список отрезков, каждый список точек [t, v, min, max].
+    // Ступенька: значение держится до следующей записи (начало: запись до окна; конец: до min(конец окна, endMs)), разрывов нет.
+    // Ломаная: разрыв, если между соседними точками дольше gapMs.
+    function lineSegments(s, from, to, endMs) {
+      const n = s.t.length;
+      if (s.step) {
+        const pts = [];
+        if (s.prior) pts.push([from, s.prior.v, s.prior.v, s.prior.v]);
+        for (let i = 0; i < n; i++) if (s.t[i] >= from && s.t[i] <= to) pts.push([s.t[i], s.v[i], s.mn[i], s.mx[i]]);
+        if (!pts.length) return [];
+        const st = [pts[0]];
+        for (let i = 1; i < pts.length; i++) { st.push([pts[i][0], pts[i - 1][1], pts[i - 1][2], pts[i - 1][3]]); st.push(pts[i]); }
+        const last = pts[pts.length - 1];
+        const end = Math.min(to, endMs === undefined || endMs === null ? to : endMs);
+        if (end > last[0]) st.push([end, last[1], last[2], last[3]]);
+        return [st];
+      }
+      const out = [];
+      let cur = [];
+      for (let i = 0; i < n; i++) {
+        if (s.t[i] < from - s.gapMs || s.t[i] > to + s.gapMs) { if (cur.length) { out.push(cur); cur = []; } continue; }
+        if (cur.length && s.t[i] - cur[cur.length - 1][0] > s.gapMs) { out.push(cur); cur = []; }
+        cur.push([s.t[i], s.v[i], s.mn[i], s.mx[i]]);
+      }
+      if (cur.length) out.push(cur);
+      return out;
+    }
+
+    // Участки линии за границами [lo, hi]: рёбра, у которых хотя бы один конец вне границ (у корзин сравниваются min и max)
+    function outPaths(seg, lo, hi) {
+      const bad = p => (lo !== null && lo !== undefined && p[2] < lo) || (hi !== null && hi !== undefined && p[3] > hi);
+      const runs = [];
+      let cur = null;
+      if (seg.length === 1) return bad(seg[0]) ? [[seg[0]]] : [];
+      for (let i = 0; i + 1 < seg.length; i++) {
+        if (bad(seg[i]) || bad(seg[i + 1])) { if (!cur) { cur = [seg[i]]; runs.push(cur); } cur.push(seg[i + 1]); } else cur = null;
+      }
+      return runs;
+    }
+
+    // Путь SVG по отрезку: X и Y переводят время и значение в пиксели
+    function pathD(seg, X, Y) {
+      const r = x => Math.round(x * 10) / 10;
+      return seg.map((p, i) => `${i ? 'L' : 'M'}${r(X(p[0]))},${r(Y(p[1]))}`).join('');
+    }
+
+    // Полоса min–max по отрезку (многоугольник); отрезок из одной точки не рисуется
+    function bandD(seg, X, Y) {
+      if (seg.length < 2) return '';
+      const r = x => Math.round(x * 10) / 10;
+      const up = seg.map((p, i) => `${i ? 'L' : 'M'}${r(X(p[0]))},${r(Y(p[3]))}`).join('');
+      const dn = seg.slice().reverse().map(p => `L${r(X(p[0]))},${r(Y(p[2]))}`).join('');
+      return `${up}${dn}Z`;
+    }
+
+    // Действующее значение на момент t: ближайшая запись слева; ступенька держит значение, ломаная после пропуска даёт null
+    function valueAt(s, t, endMs) {
+      const i = lastLE(s.t, t);
+      if (s.step) {
+        if (endMs !== undefined && endMs !== null && t > endMs) return null;
+        if (i >= 0) return { t: s.t[i], v: s.v[i] };
+        return s.prior ? { t: s.prior.t, v: s.prior.v } : null;
+      }
+      if (i < 0 || t - s.t[i] > s.gapMs) return null;
+      return { t: s.t[i], v: s.v[i] };
+    }
+
+    // Минимум и максимум ряда в окне [a, b] (для подбора оси Y); ступенька учитывает и значение, действовавшее на начало окна
+    function viewExtent(s, a, b, endMs) {
+      let lo = Infinity, hi = -Infinity;
+      const i0 = Math.max(0, lastLE(s.t, a)), n = s.t.length;
+      for (let i = i0; i < n && s.t[i] <= b; i++) {
+        if (s.t[i] < a && !s.step) continue;
+        if (s.mn[i] < lo) lo = s.mn[i];
+        if (s.mx[i] > hi) hi = s.mx[i];
+      }
+      if (s.step) { const h = valueAt(s, a, endMs); if (h) { lo = Math.min(lo, h.v); hi = Math.max(hi, h.v); } }
+      return lo <= hi ? [lo, hi] : null;
+    }
+
+    // Ось Y по данным с полями (не от нуля); zero: от нуля; extents: список [min, max]
+    function autoRange(extents, o) {
+      const opt = o || {};
+      let lo = Infinity, hi = -Infinity;
+      for (const e of extents) { if (!e) continue; if (e[0] < lo) lo = e[0]; if (e[1] > hi) hi = e[1]; }
+      if (!Number.isFinite(lo)) return null;
+      if (opt.zero) { lo = Math.min(0, lo); hi = Math.max(0, hi); }
+      const span = hi - lo;
+      if (span < Math.abs(hi) * 1e-4 + 1e-9) {
+        const pad = Math.max(Math.abs(hi) * 0.005, 0.5);
+        return opt.zero ? [Math.min(0, lo), hi + pad] : [lo - pad, hi + pad];
+      }
+      const pad = span * (opt.pad === undefined ? 0.08 : opt.pad);
+      return [opt.zero && lo === 0 ? 0 : lo - pad, hi + pad];
+    }
+
+    // Красивые деления оси: шаг 1, 2, 5 × 10^k; возвращает { ticks, step }
+    function niceTicks(lo, hi, count) {
+      const span = hi - lo;
+      if (!(span > 0)) return { ticks: [lo], step: 1 };
+      const raw = span / Math.max(1, count);
+      const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+      const f = raw / mag;
+      const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * mag;
+      const ticks = [];
+      for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + step * 1e-9; v += step) ticks.push(Math.round(v / step * 1e6) / 1e6 * step);
+      return { ticks, step };
+    }
+
+    // Подписи оси времени по времени завода: offMs сдвигает UTC к времени завода
+    function timeTicks(from, to, offMs, maxTicks) {
+      const S = 1000, M = 60 * S, H = 60 * M, D = 24 * H;
+      const steps = [S, 2 * S, 5 * S, 10 * S, 15 * S, 30 * S, M, 2 * M, 5 * M, 10 * M, 15 * M, 30 * M, H, 2 * H, 3 * H, 6 * H, 12 * H, D, 2 * D, 7 * D, 14 * D];
+      const span = to - from;
+      let step = steps[steps.length - 1];
+      for (const s of steps) if (span / s <= maxTicks) { step = s; break; }
+      const out = [];
+      for (let t = Math.ceil((from + offMs) / step) * step - offMs; t <= to; t += step) {
+        const d = new Date(t + offMs);
+        const hm = `${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}`, dm = `${p2(d.getUTCDate())}.${p2(d.getUTCMonth() + 1)}`;
+        let label;
+        if (step >= D) label = dm;
+        else if (span >= 2 * D) label = `${dm} ${hm}`;
+        else if (step < M) label = `${hm}:${p2(d.getUTCSeconds())}`;
+        else label = hm;
+        out.push({ t, label });
+      }
+      return out;
+    }
+
+    // Окно просмотра внутри границ: не короче MIN_SPAN и не длиннее границ
+    function clampView(v, b) {
+      const span = Math.min(Math.max(v.b - v.a, MIN_SPAN), b.b - b.a);
+      let a = v.a;
+      if (a < b.a) a = b.a;
+      if (a + span > b.b) a = b.b - span;
+      return { a, b: a + span };
+    }
+    // Масштаб вокруг момента c: k < 1 приближает
+    function zoomView(v, k, c, b) {
+      const span = (v.b - v.a) * k, frac = (c - v.a) / (v.b - v.a);
+      const a = c - frac * span;
+      return clampView({ a, b: a + span }, b);
+    }
+    function panView(v, dt, b) { return clampView({ a: v.a + dt, b: v.b + dt }, b); }
+
+    // Число для экрана: запятая, число знаков по величине; пусто -> прочерк
+    function fmtVal(v) {
+      if (v === null || v === undefined || Number.isNaN(v)) return '—';
+      const a = Math.abs(v), d = a >= 1000 ? 0 : a >= 100 ? 1 : a >= 1 ? 2 : 3;
+      return v.toLocaleString('ru-RU', { minimumFractionDigits: d, maximumFractionDigits: d });
+    }
+    // Время завода «дд.мм чч:мм:сс» из мс (UTC) со сдвигом offMs
+    function fmtClock(ms, offMs, withDate) {
+      const d = new Date(ms + offMs);
+      const t = `${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}:${p2(d.getUTCSeconds())}`;
+      return withDate === false ? t : `${p2(d.getUTCDate())}.${p2(d.getUTCMonth() + 1)} ${t}`;
+    }
+    const tsv = rows => rows.map(r => r.map(c => String(c === null || c === undefined ? '' : c).replace(/[\t\r\n]+/g, ' ')).join('\t')).join('\n');
+
+    // Переменные по умолчанию: три фазы напряжения (Voltage L1-N, L2-N, L3-N), иначе первые три
+    function defaultSelection(tags) {
+      const ph = [];
+      for (const t of tags) { const m = /voltage\s*L([123])\s*-\s*N/i.exec(t.name || ''); if (m) ph.push([+m[1], t.tag_id]); }
+      if (ph.length) return ph.sort((x, y) => x[0] - y[0]).slice(0, 3).map(x => x[1]);
+      return tags.slice(0, 3).map(t => t.tag_id);
+    }
+    // Цвет линии по номеру в выборе: набор --chart-1…8
+    const colorVar = i => `var(--chart-${(i % 8) + 1})`;
+
+    return { MIN_SPAN, lastLE, normalize, lineSegments, outPaths, pathD, bandD, valueAt, viewExtent, autoRange, niceTicks, timeTicks,
+      clampView, zoomView, panView, fmtVal, fmtClock, tsv, defaultSelection, colorVar };
+  })();
+  root.trendsCore = core;
+  if (typeof module !== 'undefined' && module.exports) module.exports = core;
+  if (typeof document === 'undefined') return;
 
   const pane = document.querySelector('#trends');
   const tabBtn = document.querySelector('.tab[data-tab="trends"]');
@@ -120,6 +323,7 @@
         <div class="ch-legend"><i class="tr-l-ok"></i>Связь есть<i class="tr-l-no"></i>Связи нет<i class="tr-l-un"></i>Нет данных</div>
         <div class="ch-body" id="tr-body"></div>
       </section>
+      ${gHtml()}
       <section class="ch-card tr-rec" id="tr-rec" hidden>
         <header><h3 title="Настройка записи аналоговых переменных, отмеченных «Архив»: как часто сборщик данных пишет их значения в базу">Запись переменных</h3>
           <span class="tr-rec-btns"><button type="button" id="tr-rec-save" class="dt-sec" disabled title="Сохранить все изменённые строки: каждая проверяется и отправляется на сервер, сборщик данных применит значения со следующего опроса">Сохранить изменения</button>
@@ -157,6 +361,7 @@
       b.disabled = false;
     });
     initGrid();
+    gInit();
     built = true;
     syncAdmin();
   }
@@ -526,11 +731,482 @@
     }
     if (!timer) timer = setInterval(tick, 10000);
     syncAdmin();
+    gShow();
   }
 
   const prevAuth = window.onAuthChanged;
   window.onAuthChanged = () => { if (prevAuth) prevAuth(); syncAdmin(); };
 
+  // ================= «Графики переменных» =================
+  const GKEY = 'trends:graph';
+  const G_MAX = 8;
+  const g = {
+    mode: 'online', onlineMin: 5, from: '', to: '', plcId: null, selByPlc: {}, hidden: [], zero: false, ymin: '', ymax: '', pan: false, paused: false,
+    vars: null, varsErr: '', offH: 5, built: false,
+    series: [], bounds: null, view: null, dataView: null, full: true, curT: null, fail: 0, token: 0, loadedAt: 0, nowMs: 0, sc: null, drag: false, raf: 0, fetchT: 0, err: '',
+  };
+  const gOff = () => g.offH * 3600000;
+  const gNow = () => window.plantClock.now();
+  const gSave = () => {
+    try { localStorage.setItem(GKEY, JSON.stringify({ mode: g.mode, onlineMin: g.onlineMin, from: g.from, to: g.to, plcId: g.plcId, selByPlc: g.selByPlc, hidden: g.hidden, zero: g.zero, ymin: g.ymin, ymax: g.ymax, pan: g.pan })); } catch { /* без сохранения */ }
+  };
+  const gRestore = () => { try { Object.assign(g, JSON.parse(localStorage.getItem(GKEY)) || {}); } catch { /* по умолчанию */ } };
+  const gPlc = () => (g.vars ? g.vars.plcs.find(p => p.plc_id === g.plcId) || null : null);
+  const gSelIds = () => { const p = gPlc(); if (!p) return []; const ids = new Set(p.tags.map(t => t.tag_id)); return (g.selByPlc[g.plcId] || []).filter(i => ids.has(i)); };
+
+  // окно «весь период»: онлайн последние N минут; архив с 00:00 первого дня до конца последнего (сегодня только до «сейчас»)
+  function gFullWindow() {
+    const now = gNow();
+    if (g.mode === 'online') return { a: now - g.onlineMin * 60000, b: now };
+    const a = Date.parse(g.from + 'T00:00:00Z') - gOff();
+    const end = Date.parse(addDays(g.to, 1) + 'T00:00:00Z') - gOff();
+    return { a, b: g.to === today() ? Math.min(end, Math.max(now, a + 60000)) : end };
+  }
+  const gPlotWidth = () => { const el = pane.querySelector('#trg-plot'); return Math.max(300, Math.floor(el ? el.clientWidth : 0) || 700); };
+
+  function gHtml() {
+    const dv = v => `<button type="button" class="dt-sec" data-gp="${v[0]}" title="${v[2]}">${v[1]}</button>`;
+    return `
+      <section class="ch-card trg" id="trg">
+        <header><h3 title="Графики записанных переменных (например, напряжение по фазам): линейка со значениями, масштаб, границы, ступеньки для записи по изменению">Графики переменных</h3>
+          <button type="button" id="trg-xl" class="dt-sec ch-xl" title="Выгрузить в Excel выбранные переменные за показанный период: статистика, график и данные">⬇ Excel</button></header>
+        <div class="ch-bar trg-bar">
+          <label title="ПЛК, переменные которого показываются на графике">ПЛК <select id="trg-plc" title="ПЛК, переменные которого показываются на графике"></select></label>
+          <span class="ch-presets">
+            <button type="button" class="dt-sec" data-gm="online" title="Живой график: последние минуты, обновляется каждые 5 секунд и прокручивается сам">Онлайн</button>
+            <button type="button" class="dt-sec" data-gm="archive" title="Архив: любой период из базы (день, неделя, месяц или свои даты)">Архив</button>
+          </span>
+          <span class="ch-presets" id="trg-online">
+            <button type="button" class="dt-sec" data-gmin="1" title="Показать последнюю 1 минуту">1 мин</button>
+            <button type="button" class="dt-sec" data-gmin="5" title="Показать последние 5 минут">5 мин</button>
+            <button type="button" class="dt-sec" data-gmin="15" title="Показать последние 15 минут">15 мин</button>
+            <button type="button" class="dt-sec" data-gmin="60" title="Показать последний 1 час">60 мин</button>
+            <button type="button" id="trg-pause" class="dt-sec" title="Остановить прокрутку, чтобы рассмотреть график; при масштабе и сдвиге пауза включается сама">⏸ Пауза</button>
+          </span>
+          <span class="ch-presets" id="trg-archive">
+            <button type="button" id="trg-prev" class="dt-sec" title="Сдвинуть период назад на его длину">◀</button>
+            <label title="Первый день периода">С <input type="date" id="trg-from" max="${today()}" title="Первый день периода"></label>
+            <label title="Последний день периода, включительно; период не больше ${MAX_DAYS} дней">По <input type="date" id="trg-to" max="${today()}" title="Последний день периода"></label>
+            <button type="button" id="trg-next" class="dt-sec" title="Сдвинуть период вперёд на его длину; дата не позже сегодняшней">▶</button>
+            ${dv(['day', 'День', 'Только сегодняшний день'])}${dv(['week', 'Неделя', 'Последние 7 дней, включая сегодня'])}${dv(['month', 'Месяц', 'С первого числа текущего месяца по сегодня'])}${dv(['prev', 'Прошлый месяц', 'Весь прошлый календарный месяц'])}
+          </span>
+          <span id="trg-badge" class="live-badge off" title="Состояние запроса к серверу: красный значок означает, что данные не получены и значения скрыты">● загрузка</span>
+        </div>
+        <div class="trg-vars" id="trg-vars" title="Записанные аналоговые переменные выбранного ПЛК: отметьте до ${G_MAX} штук"></div>
+        <div class="ch-bar trg-tools">
+          <span class="ch-presets">
+            <button type="button" class="dt-sec" data-gt="box" title="Мышью: выделить рамкой участок времени, чтобы приблизить его (Shift временно включает сдвиг)">Рамка</button>
+            <button type="button" class="dt-sec" data-gt="pan" title="Мышью: перетаскивать график по времени (Shift временно включает рамку). Колесо мыши приближает и отдаляет">Сдвиг</button>
+          </span>
+          <button type="button" id="trg-reset" class="dt-sec" title="Показать весь период целиком (двойной щелчок по графику делает то же самое)">Весь период</button>
+          <label title="Ось Y начинается с нуля; иначе масштаб подбирается по видимым данным"><input type="checkbox" id="trg-zero" title="Ось Y начинается с нуля; иначе масштаб подбирается по видимым данным"> Ось Y от нуля</label>
+          <label title="Нижний край оси Y вручную; пусто: подбирается по данным">Y мин <input type="text" inputmode="decimal" id="trg-ymin" class="trg-num" title="Нижний край оси Y вручную; пусто: подбирается по данным"></label>
+          <label title="Верхний край оси Y вручную; пусто: подбирается по данным">Y макс <input type="text" inputmode="decimal" id="trg-ymax" class="trg-num" title="Верхний край оси Y вручную; пусто: подбирается по данным"></label>
+          <button type="button" id="trg-yauto" class="dt-sec" title="Снять ручные границы оси Y и вернуть подбор по данным">Y авто</button>
+          <span id="trg-range" class="trg-range" title="Показанный период по времени завода"></span>
+        </div>
+        <div class="ch-legend trg-legend" id="trg-legend"></div>
+        <div class="trg-main">
+          <div class="trg-plot" id="trg-plot" title="Колесо мыши: масштаб; перетаскивание: рамка или сдвиг; двойной щелчок: весь период; на сенсорном экране: касание ставит линейку, один палец сдвигает, два пальца меняют масштаб"></div>
+          <div class="trg-side">
+            <div class="trg-cap"><b title="Значения всех линий в момент, где стоит линейка">Линейка</b>
+              <button type="button" id="trg-cp-cur" class="dt-sec" title="Скопировать таблицу линейки в буфер обмена с табуляцией: вставляется в Excel">Копировать</button></div>
+            <div class="trg-tw" id="trg-ct-w" tabindex="0" title="Таблица: Ctrl+C копирует её целиком, вставляется в Excel"></div>
+          </div>
+        </div>
+        <div class="trg-cap"><b title="Минимум, среднее, максимум и число точек по каждой линии за показанный период">Статистика за видимый период</b>
+          <button type="button" id="trg-cp-st" class="dt-sec" title="Скопировать таблицу статистики в буфер обмена с табуляцией: вставляется в Excel">Копировать</button></div>
+        <div class="trg-tw" id="trg-st-w" tabindex="0" title="Таблица: Ctrl+C копирует её целиком, вставляется в Excel"></div>
+      </section>`;
+  }
+
+  function gInit() {
+    gRestore();
+    const t = today();
+    if (!g.from || !g.to || g.to > t || g.from > g.to) { g.from = presets().day[0]; g.to = presets().day[1]; }
+    pane.querySelector('#trg-from').value = g.from;
+    pane.querySelector('#trg-to').value = g.to;
+    pane.querySelector('#trg-zero').checked = !!g.zero;
+    pane.querySelector('#trg-ymin').value = g.ymin;
+    pane.querySelector('#trg-ymax').value = g.ymax;
+    const q = s => pane.querySelector(s);
+    pane.querySelectorAll('[data-gm]').forEach(b => b.addEventListener('click', () => { g.mode = b.dataset.gm; g.paused = false; gSave(); gSyncBar(); gLoad(true); }));
+    pane.querySelectorAll('[data-gmin]').forEach(b => b.addEventListener('click', () => { g.onlineMin = +b.dataset.gmin; g.mode = 'online'; g.paused = false; gSave(); gSyncBar(); gLoad(true); }));
+    q('#trg-pause').addEventListener('click', () => { g.paused = !g.paused; gSyncBar(); if (!g.paused) gLoad(true); });
+    const apply = (f, to) => {
+      if (!f || !to || to < f) return;
+      if (to > today()) to = today();
+      if (daysBetween(f, to) > MAX_DAYS) { toast(`Период не больше ${MAX_DAYS} дней`); return; }
+      g.from = f; g.to = to; g.mode = 'archive'; gSave();
+      q('#trg-from').value = f; q('#trg-to').value = to;
+      gSyncBar(); gLoad(true);
+    };
+    const dates = () => [q('#trg-from').value, q('#trg-to').value];
+    q('#trg-from').addEventListener('change', () => apply(...dates()));
+    q('#trg-to').addEventListener('change', () => apply(...dates()));
+    pane.querySelectorAll('[data-gp]').forEach(b => b.addEventListener('click', () => apply(...presets()[b.dataset.gp])));
+    const shift = k => {
+      const n = daysBetween(g.from, g.to) * k, to = addDays(g.to, n);
+      if (to > today() && k > 0) return;
+      apply(addDays(g.from, n), to);
+    };
+    q('#trg-prev').addEventListener('click', () => shift(-1));
+    q('#trg-next').addEventListener('click', () => shift(1));
+    pane.querySelectorAll('[data-gt]').forEach(b => b.addEventListener('click', () => { g.pan = b.dataset.gt === 'pan'; gSave(); gSyncBar(); }));
+    q('#trg-reset').addEventListener('click', () => { g.paused = false; gSyncBar(); gLoad(true); });
+    q('#trg-zero').addEventListener('change', e => { g.zero = e.target.checked; gSave(); gDraw(); });
+    const yIn = () => { g.ymin = q('#trg-ymin').value.trim(); g.ymax = q('#trg-ymax').value.trim(); gSave(); gDraw(); };
+    q('#trg-ymin').addEventListener('change', yIn);
+    q('#trg-ymax').addEventListener('change', yIn);
+    q('#trg-yauto').addEventListener('click', () => { q('#trg-ymin').value = ''; q('#trg-ymax').value = ''; yIn(); });
+    q('#trg-plc').addEventListener('change', e => { g.plcId = +e.target.value; gEnsureSel(); gSave(); gRenderVars(); gLoad(true); });
+    q('#trg-xl').addEventListener('click', async e => {
+      const b = e.currentTarget, ids = gSelIds(), w = g.mode === 'online' ? (g.view || gFullWindow()) : (g.bounds || gFullWindow());
+      if (!ids.length) { toast('Отметьте хотя бы одну переменную'); return; }
+      b.disabled = true;
+      try {
+        const plc = gPlc();
+        await window.xlsxDownload(`/api/trends/series.xlsx?from=${encodeURIComponent(new Date(w.a).toISOString())}&to=${encodeURIComponent(new Date(w.b).toISOString())}&tags=${ids.join(',')}&plc=${encodeURIComponent(plc ? plc.name : '')}&src=trends`);
+      } catch (ex) { toast(ex.message); }
+      b.disabled = false;
+    });
+    const copyTable = (sel, btn) => {
+      const rows = [...pane.querySelectorAll(`${sel} tr`)].map(tr => [...tr.children].map(c => c.textContent.trim()));
+      const text = core.tsv(rows);
+      const done = () => toast('Таблица скопирована');
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => toast('Не удалось скопировать'));
+      else toast('Не удалось скопировать');
+      if (btn) btn.blur();
+    };
+    q('#trg-cp-cur').addEventListener('click', e => copyTable('#trg-ct-w', e.currentTarget));
+    q('#trg-cp-st').addEventListener('click', e => copyTable('#trg-st-w', e.currentTarget));
+    for (const [wrap, id] of [['#trg-ct-w', '#trg-ct-w'], ['#trg-st-w', '#trg-st-w']]) {
+      q(wrap).addEventListener('copy', e => { e.preventDefault(); e.clipboardData.setData('text/plain', core.tsv([...pane.querySelectorAll(`${id} tr`)].map(tr => [...tr.children].map(c => c.textContent.trim())))); });
+    }
+    q('#trg-legend').addEventListener('click', e => {
+      const b = e.target.closest('[data-id]');
+      if (!b) return;
+      const id = +b.dataset.id;
+      g.hidden = g.hidden.includes(id) ? g.hidden.filter(x => x !== id) : g.hidden.concat(id);
+      gSave(); gDraw();
+    });
+    q('#trg-vars').addEventListener('change', e => {
+      const cb = e.target.closest('input[data-tag]');
+      if (!cb) return;
+      const cur = g.selByPlc[g.plcId] || [];
+      const id = +cb.dataset.tag;
+      if (cb.checked && cur.length >= G_MAX) { cb.checked = false; toast(`Не больше ${G_MAX} переменных на график`); return; }
+      g.selByPlc[g.plcId] = cb.checked ? cur.concat(id) : cur.filter(x => x !== id);
+      gSave(); gLoad(false);
+    });
+    q('#trg-vars').addEventListener('input', e => {
+      if (!e.target.matches('#trg-vfilter')) return;
+      const f = e.target.value.trim().toLowerCase();
+      pane.querySelectorAll('#trg-vars label[data-n]').forEach(l => { l.hidden = !!f && !l.dataset.n.includes(f); });
+    });
+    gBindPlot();
+    g.built = true;
+    gSyncBar();
+  }
+
+  function gEnsureSel() {
+    const p = gPlc();
+    if (!p) return;
+    const ids = gSelIds();
+    if (!ids.length) g.selByPlc[g.plcId] = core.defaultSelection(p.tags);
+  }
+
+  function gSyncBar() {
+    pane.querySelectorAll('[data-gm]').forEach(b => b.classList.toggle('on', b.dataset.gm === g.mode));
+    pane.querySelectorAll('[data-gmin]').forEach(b => b.classList.toggle('on', g.mode === 'online' && +b.dataset.gmin === g.onlineMin));
+    pane.querySelectorAll('[data-gt]').forEach(b => b.classList.toggle('on', (b.dataset.gt === 'pan') === g.pan));
+    const pr = presets();
+    pane.querySelectorAll('[data-gp]').forEach(b => b.classList.toggle('on', g.mode === 'archive' && pr[b.dataset.gp][0] === g.from && pr[b.dataset.gp][1] === g.to));
+    pane.querySelector('#trg-online').hidden = g.mode !== 'online';
+    pane.querySelector('#trg-archive').hidden = g.mode !== 'archive';
+    const pb = pane.querySelector('#trg-pause');
+    pb.textContent = g.paused ? '▶ Продолжить' : '⏸ Пауза';
+    pb.title = g.paused ? 'Продолжить прокрутку: график снова показывает последние минуты и обновляется' : 'Остановить прокрутку, чтобы рассмотреть график; при масштабе и сдвиге пауза включается сама';
+    pb.classList.toggle('on', g.paused);
+  }
+
+  function gRenderVars() {
+    const box = pane.querySelector('#trg-vars'), sel = pane.querySelector('#trg-plc');
+    if (!box) return;
+    if (g.varsErr) { box.innerHTML = `<div class="ch-empty">${esc(g.varsErr)}</div>`; return; }
+    if (!g.vars) { box.innerHTML = '<div class="ch-empty">Загрузка…</div>'; return; }
+    if (!g.vars.plcs.length) { box.innerHTML = '<div class="ch-empty">Нет записанных переменных: отметьте аналоговые переменные галочкой «Архив» в «Переменные ПЛК».</div>'; sel.innerHTML = ''; return; }
+    sel.innerHTML = g.vars.plcs.map(p => `<option value="${p.plc_id}"${p.plc_id === g.plcId ? ' selected' : ''}>${esc(p.name)}</option>`).join('');
+    const p = gPlc(), on = new Set(gSelIds());
+    const many = p.tags.length > 12;
+    box.innerHTML = (many ? '<input type="search" id="trg-vfilter" class="trg-vf" placeholder="Поиск по имени" title="Показать только переменные, в имени которых есть введённый текст (регистр не важен)">' : '') +
+      '<div class="trg-vlist">' + p.tags.map(t => {
+        const tip = `${t.name}${t.deadband > 0 ? `; запись по изменению (мёртвая зона ${core.fmtVal(t.deadband)}), линия ступенькой` : '; запись по времени, линия ломаной'}${t.limit_low !== null || t.limit_high !== null ? `; границы ${t.limit_low === null ? '—' : core.fmtVal(t.limit_low)} … ${t.limit_high === null ? '—' : core.fmtVal(t.limit_high)}` : ''}`;
+        return `<label data-n="${esc(t.name.toLowerCase())}" title="${esc(tip)}"><input type="checkbox" data-tag="${t.tag_id}" title="${esc(tip)}"${on.has(t.tag_id) ? ' checked' : ''}> ${esc(t.name)}</label>`;
+      }).join('') + '</div>';
+  }
+
+  async function gLoadVars() {
+    try {
+      const r = await fetch('/api/trends/vars', { signal: AbortSignal.timeout(6000) });
+      if (!r.ok) throw new Error(await errText(r));
+      g.vars = await r.json(); g.varsErr = '';
+      g.offH = g.vars.offset_hours;
+      if (!g.vars.plcs.some(p => p.plc_id === g.plcId)) {
+        const def = g.vars.plcs.find(p => p.name === 'AE_WBS_2') || g.vars.plcs[0];
+        g.plcId = def ? def.plc_id : null;
+      }
+      gEnsureSel();
+    } catch (ex) {
+      g.varsErr = ex.name === 'TimeoutError' ? 'Не удалось загрузить: сервер не ответил за 6 секунд' : `Не удалось загрузить: ${ex.message}`;
+    }
+    gRenderVars();
+  }
+
+  async function gLoad(reset) {
+    if (!g.built || !g.vars) return;
+    const ids = gSelIds();
+    const token = ++g.token;
+    if (!ids.length) { g.series = []; g.err = ''; g.fail = 0; g.view = g.view || gFullWindow(); g.bounds = gFullWindow(); g.view = { ...g.bounds }; gDraw(); return; }
+    if (reset) { g.bounds = gFullWindow(); g.view = { ...g.bounds }; g.full = true; g.curT = null; }
+    else if (g.full) { g.bounds = gFullWindow(); g.view = { ...g.bounds }; }
+    const w = { ...g.view };
+    const buckets = Math.min(1200, Math.max(100, gPlotWidth()));
+    const url = `/api/trends/series?from=${encodeURIComponent(new Date(w.a).toISOString())}&to=${encodeURIComponent(new Date(w.b).toISOString())}&tags=${ids.join(',')}&buckets=${buckets}`;
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
+      if (!r.ok) throw new Error(await errText(r));
+      const j = await r.json();
+      if (token !== g.token) return;
+      g.offH = j.offset_hours; g.nowMs = j.now_ms;
+      g.series = j.series.map(s => core.normalize(s, j.bucket_sec));
+      g.dataView = { a: j.from_ms, b: j.to_ms };
+      g.fail = 0; g.err = ''; g.loadedAt = Date.now();
+    } catch (ex) {
+      if (token !== g.token) return;
+      g.fail += 1;
+      g.err = ex.name === 'TimeoutError' ? 'сервер не ответил за 6 секунд' : ex.message;
+      if (g.fail === 1) toast(`Не удалось загрузить график: ${g.err}`);
+    }
+    gDraw();
+  }
+
+  function gSchedFetch() { clearTimeout(g.fetchT); g.fetchT = setTimeout(() => gLoad(false), 350); }
+  function gSetView(v) {
+    if (!g.bounds) return;
+    g.view = v;
+    g.full = Math.abs(v.a - g.bounds.a) < 1 && Math.abs(v.b - g.bounds.b) < 1;
+    if (g.mode === 'online' && !g.paused && !g.full) { g.paused = true; gSyncBar(); }
+    if (!g.raf) g.raf = requestAnimationFrame(() => { g.raf = 0; gDraw(); });
+    gSchedFetch();
+  }
+
+  const G_M = { l: 58, r: 14, t: 10, b: 26 };
+
+  function gManualY() {
+    const lo = XG.parseNum(g.ymin), hi = XG.parseNum(g.ymax);
+    if (lo === null || hi === null || Number.isNaN(lo) || Number.isNaN(hi) || lo >= hi) return null;
+    return [lo, hi];
+  }
+
+  function gDraw() {
+    const box = pane.querySelector('#trg-plot');
+    if (!box || !g.built) return;
+    const W = gPlotWidth(), H = W < 560 ? 280 : (W > 1500 ? 460 : 360);
+    const m = G_M, iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const v = g.view || gFullWindow();
+    const lost = g.fail >= 2;
+    const vis = g.series.filter(s => !g.hidden.includes(s.id));
+    const endMs = Math.min(v.b, g.nowMs || gNow());
+    const X = t => m.l + (t - v.a) / (v.b - v.a) * iw;
+    const manual = gManualY();
+    let yr = manual || core.autoRange(vis.map(s => core.viewExtent(s, v.a, v.b, endMs)), { zero: g.zero }) || [0, 1];
+    if (yr[1] <= yr[0]) yr = [yr[0] - 1, yr[1] + 1];
+    const Y = val => m.t + (1 - (val - yr[0]) / (yr[1] - yr[0])) * ih;
+    let inner = `<defs><clipPath id="trg-clip"><rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}"/></clipPath></defs>`;
+    for (const tk of core.timeTicks(v.a, v.b, gOff(), Math.max(3, Math.floor(iw / 80)))) {
+      const x = X(tk.t);
+      inner += `<line class="ch-grid" x1="${x}" x2="${x}" y1="${m.t}" y2="${m.t + ih}"/><text class="ch-tick" x="${x}" y="${H - 8}" text-anchor="middle">${esc(tk.label)}</text>`;
+    }
+    for (const tv of core.niceTicks(yr[0], yr[1], Math.max(3, Math.floor(ih / 40))).ticks) {
+      const y = Y(tv);
+      inner += `<line class="ch-grid" x1="${m.l}" x2="${m.l + iw}" y1="${y}" y2="${y}"/><text class="ch-tick" x="${m.l - 6}" y="${y + 4}" text-anchor="end">${esc(core.fmtVal(tv))}</text>`;
+    }
+    const empty = !g.series.length ? 'Отметьте переменные для графика' : (lost ? 'Не удалось загрузить' : (vis.length ? '' : 'Все линии выключены в легенде'));
+    let any = false;
+    if (!lost) {
+      inner += '<g clip-path="url(#trg-clip)">';
+      const lims = new Set();
+      for (const s of vis) {
+        const ci = g.series.indexOf(s), col = `style="--c:${core.colorVar(gSelIds().indexOf(s.id) >= 0 ? gSelIds().indexOf(s.id) : ci)}"`;
+        const segs = core.lineSegments(s, v.a, v.b, endMs);
+        for (const sg of segs) {
+          any = true;
+          if (s.mode === 'agg') { const d = core.bandD(sg, X, Y); if (d) inner += `<path class="trg-band" ${col} d="${d}"/>`; }
+          if (sg.length === 1) { inner += `<circle class="trg-dot" ${col} cx="${X(sg[0][0])}" cy="${Y(sg[0][1])}" r="2.5"/>`; continue; }
+          inner += `<path class="trg-line" ${col} d="${core.pathD(sg, X, Y)}"/>`;
+          for (const run of core.outPaths(sg, s.lo, s.hi)) inner += `<path class="trg-out" d="${core.pathD(run, X, Y)}"/>`;
+        }
+        for (const [val, kind] of [[s.lo, 'нижняя граница'], [s.hi, 'верхняя граница']]) {
+          if (val === null || val === undefined || val < yr[0] || val > yr[1]) continue;
+          const key = `${val}`;
+          if (lims.has(key)) continue;
+          lims.add(key);
+          const y = Y(val);
+          inner += `<line class="trg-lim" x1="${m.l}" x2="${m.l + iw}" y1="${y}" y2="${y}"><title>${esc(`${s.name}: ${kind} ${core.fmtVal(val)}`)}</title></line>` +
+            `<text class="trg-limt" x="${m.l + iw - 4}" y="${y - 3}" text-anchor="end">${esc(core.fmtVal(val))}</text>`;
+        }
+      }
+      inner += '</g>';
+    }
+    const msg = empty || (!any && !lost ? 'Нет записей за показанный период' : '');
+    if (msg) inner += `<text class="trg-msg" x="${m.l + iw / 2}" y="${m.t + ih / 2}" text-anchor="middle">${esc(msg)}</text>`;
+    inner += `<rect class="trg-frame" x="${m.l}" y="${m.t}" width="${iw}" height="${ih}"/>`;
+    inner += `<line id="trg-cur" class="trg-cur" y1="${m.t}" y2="${m.t + ih}" x1="-10" x2="-10"/><g id="trg-dots"></g><rect id="trg-sel" class="trg-sel" y="${m.t}" height="${ih}" x="0" width="0" visibility="hidden"/>`;
+    box.innerHTML = `<svg class="ch-svg trg-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Графики переменных">${inner}</svg>`;
+    g.sc = { m, iw, ih, W, H, v, X, Y, lost, yr, endMs };
+    const badge = pane.querySelector('#trg-badge');
+    badge.className = 'live-badge ' + (g.fail >= 2 ? 'tr-bad' : (g.fail === 0 && g.series.length ? 'on' : 'off'));
+    badge.textContent = g.fail >= 2 ? '● нет связи' : (g.series.length ? '● данные получены' : '● нет данных');
+    pane.querySelector('#trg-range').textContent = `${core.fmtClock(v.a, gOff())} — ${core.fmtClock(v.b, gOff())}`;
+    gLegend();
+    gStats(lost);
+    gCursor();
+  }
+
+  function gLegend() {
+    const ids = gSelIds();
+    pane.querySelector('#trg-legend').innerHTML = g.series.map(s => {
+      const off = g.hidden.includes(s.id), ci = Math.max(0, ids.indexOf(s.id));
+      return `<button type="button" class="trg-chip${off ? ' off' : ''}" data-id="${s.id}" aria-pressed="${!off}" title="${esc(`${s.name}: клик ${off ? 'включает' : 'выключает'} линию на графике`)}"><i style="background:${core.colorVar(ci)}"></i>${esc(s.name)}</button>`;
+    }).join('');
+  }
+
+  function gStats(lost) {
+    const ids = gSelIds();
+    const rows = g.series.map(s => {
+      const st = s.stats || {}, ci = Math.max(0, ids.indexOf(s.id));
+      const c = k => `<td class="num" title="${esc(`${s.name}: ${k[1]} за показанный период`)}">${lost || st[k[0]] === null || st[k[0]] === undefined ? '—' : core.fmtVal(st[k[0]])}</td>`;
+      return `<tr${g.hidden.includes(s.id) ? ' class="off"' : ''}><td title="${esc(s.name)}"><i class="trg-sw" style="background:${core.colorVar(ci)}"></i>${esc(s.name)}</td>${c(['min', 'минимум'])}${c(['avg', 'среднее'])}${c(['max', 'максимум'])}` +
+        `<td class="num" title="${esc(`${s.name}: число точек за показанный период (записей или суммарно по корзинам)`)}">${lost ? '—' : (st.count || 0).toLocaleString('ru-RU')}</td></tr>`;
+    }).join('');
+    pane.querySelector('#trg-st-w').innerHTML = `<table class="trg-t"><thead><tr><th title="Переменная и цвет её линии">Переменная</th><th class="num" title="Наименьшее значение за показанный период">Минимум</th><th class="num" title="Среднее значение за показанный период">Среднее</th><th class="num" title="Наибольшее значение за показанный период">Максимум</th><th class="num" title="Сколько записей в показанном периоде">Точек</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  // Линейка: вертикальная линия, точки на линиях и таблица «Имя, Значение, Время»
+  function gCursor() {
+    const sc = g.sc;
+    if (!sc) return;
+    const v = sc.v;
+    let t = g.curT === null ? v.b : g.curT;
+    if (t < v.a || t > v.b) t = v.b;
+    const x = sc.X(t);
+    const line = pane.querySelector('#trg-cur'), dots = pane.querySelector('#trg-dots');
+    if (line) { line.setAttribute('x1', x); line.setAttribute('x2', x); }
+    const ids = gSelIds();
+    let rows = '', dotHtml = '';
+    for (const s of g.series) {
+      const off = g.hidden.includes(s.id), ci = Math.max(0, ids.indexOf(s.id));
+      const pt = sc.lost ? null : core.valueAt(s, t, sc.endMs);
+      const bad = pt && ((s.lo !== null && pt.v < s.lo) || (s.hi !== null && pt.v > s.hi));
+      if (pt && !off) dotHtml += `<circle class="trg-cdot" style="--c:${core.colorVar(ci)}" cx="${x}" cy="${sc.Y(pt.v)}" r="4"/>`;
+      rows += `<tr${off ? ' class="off"' : ''}><td title="${esc(s.name)}"><i class="trg-sw" style="background:${core.colorVar(ci)}"></i>${esc(s.name)}</td>` +
+        `<td class="num${bad ? ' bad' : ''}" title="${esc(bad ? `${s.name}: значение вне границ ${s.lo === null ? '—' : core.fmtVal(s.lo)} … ${s.hi === null ? '—' : core.fmtVal(s.hi)}` : `${s.name}: значение в момент линейки (ближайшая запись слева)`)}">${pt ? core.fmtVal(pt.v) : '—'}</td>` +
+        `<td class="num" title="Время записи, по времени завода">${pt ? core.fmtClock(pt.t, gOff()) : '—'}</td></tr>`;
+    }
+    if (dots) dots.innerHTML = dotHtml;
+    pane.querySelector('#trg-ct-w').innerHTML = `<table class="trg-t"><thead><tr><th title="Переменная и цвет её линии">Имя</th><th class="num" title="Значение в момент линейки: действующее, ближайшее слева; прочерк: записей нет">Значение</th><th class="num" title="Время записи, по времени завода">Время</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  function gBindPlot() {
+    const box = pane.querySelector('#trg-plot');
+    const ptrs = new Map();
+    let drag = null, pinch = null;
+    const local = e => { const r = box.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    const inPlot = p => g.sc && p.x >= g.sc.m.l && p.x <= g.sc.m.l + g.sc.iw && p.y >= g.sc.m.t && p.y <= g.sc.m.t + g.sc.ih;
+    const tAt = (x, v) => v.a + (Math.min(Math.max(x, G_M.l), G_M.l + g.sc.iw) - G_M.l) / g.sc.iw * (v.b - v.a);
+    const setCursor = x => { g.curT = tAt(x, g.view); gCursor(); };
+    box.addEventListener('pointerdown', e => {
+      if (!g.sc || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      const p = local(e);
+      ptrs.set(e.pointerId, p);
+      try { box.setPointerCapture(e.pointerId); } catch { /* без захвата */ }
+      if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.abs(a.x - b.x) || 1, view: { ...g.view }, cx: (a.x + b.x) / 2 }; drag = null; return; }
+      if (!inPlot(p)) return;
+      const touch = e.pointerType !== 'mouse';
+      drag = { x0: p.x, view: { ...g.view }, kind: touch ? 'pan' : ((g.pan !== e.shiftKey) ? 'pan' : 'box'), moved: false };
+      g.drag = true;
+    });
+    box.addEventListener('pointermove', e => {
+      const p = local(e);
+      if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, p);
+      if (pinch && ptrs.size >= 2) {
+        const [a, b] = [...ptrs.values()], d = Math.abs(a.x - b.x) || 1;
+        gSetView(core.zoomView(pinch.view, pinch.d / d, tAt(pinch.cx, pinch.view), g.bounds));
+        return;
+      }
+      if (drag) {
+        const dx = p.x - drag.x0;
+        if (Math.abs(dx) > 3) drag.moved = true;
+        if (!drag.moved) return;
+        if (drag.kind === 'pan') gSetView(core.panView(drag.view, -dx / g.sc.iw * (drag.view.b - drag.view.a), g.bounds));
+        else {
+          const sel = pane.querySelector('#trg-sel');
+          if (sel) { sel.setAttribute('x', Math.min(drag.x0, p.x)); sel.setAttribute('width', Math.abs(dx)); sel.setAttribute('visibility', 'visible'); }
+        }
+        return;
+      }
+      if (e.pointerType === 'mouse' && inPlot(p)) setCursor(p.x);
+    });
+    const end = e => {
+      const p = local(e);
+      ptrs.delete(e.pointerId);
+      if (pinch) { if (ptrs.size < 2) pinch = null; return; }
+      if (!drag) return;
+      const d = drag; drag = null; g.drag = false;
+      const sel = pane.querySelector('#trg-sel');
+      if (sel) sel.setAttribute('visibility', 'hidden');
+      if (!d.moved) { if (inPlot(p)) setCursor(p.x); return; }
+      if (d.kind === 'box') {
+        const t0 = tAt(d.x0, d.view), t1 = tAt(p.x, d.view);
+        const a = Math.min(t0, t1), b = Math.max(t0, t1);
+        if (b - a >= core.MIN_SPAN) gSetView(core.clampView({ a, b }, g.bounds));
+      }
+    };
+    box.addEventListener('pointerup', end);
+    box.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); pinch = null; drag = null; g.drag = false; });
+    box.addEventListener('wheel', e => {
+      const p = local(e);
+      if (!inPlot(p)) return;
+      e.preventDefault();
+      gSetView(core.zoomView(g.view, e.deltaY < 0 ? 0.8 : 1.25, tAt(p.x, g.view), g.bounds));
+    }, { passive: false });
+    box.addEventListener('dblclick', e => { if (inPlot(local(e))) { g.paused = false; gSyncBar(); gLoad(true); } });
+  }
+
+  // обновление: онлайн раз в 5 секунд, архив с сегодняшним днём раз в 10 секунд (прошлые периоды читаются при открытии)
+  function gTick() {
+    if (!g.built || !g.vars || !pane.classList.contains('active') || document.hidden || g.drag) return;
+    const age = Date.now() - g.loadedAt;
+    if (g.mode === 'online') { if (!g.paused && age >= 5000) gLoad(false); }
+    else if (g.to === today() && age >= 10000) gLoad(false);
+  }
+
+  async function gShow() {
+    if (!g.built) return;
+    if (!g.vars) {
+      if (g.loading) return;
+      g.loading = true;
+      await gLoadVars();
+      g.loading = false;
+      gSyncBar();
+      await gLoad(true);
+      return;
+    }
+    if (Date.now() - g.loadedAt > 10000) gLoad(false); else gDraw();
+  }
+  setInterval(() => { try { gTick(); } catch { /* следующий тик */ } }, 1000);
+
   tabBtn.addEventListener('click', show);
-  window.addEventListener('resize', () => { if (pane.classList.contains('active')) requestAnimationFrame(draw); });
-})();
+  window.addEventListener('resize', () => { if (pane.classList.contains('active')) requestAnimationFrame(() => { draw(); gDraw(); }); });
+})(typeof window !== 'undefined' ? window : globalThis);

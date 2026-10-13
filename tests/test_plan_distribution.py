@@ -47,7 +47,7 @@ def test_zero_and_negative_totals():
 
 def test_inline_edit_of_interval_plan_in_table():
     assert "function editIntervalPlan" in HTML
-    body = HTML[HTML.index("function editIntervalPlan"):][:3500]
+    body = HTML[HTML.index("function editIntervalPlan"):][:6000]
     assert "canEditPlan()" in body                                # править может тот, кому разрешена правка плана
     assert "/schedule`" in body and "'PUT'" in body               # сохраняется тем же запросом, что и окно «Смена и план»
     assert "Escape" in body and "Enter" in body                   # Enter сохраняет, Esc отменяет
@@ -61,3 +61,24 @@ def test_table_refresh_does_not_kill_the_open_editor():
 
 def test_plan_cell_hint_mentions_click():
     assert "Нажмите, чтобы изменить план этого интервала" in HTML
+
+
+def test_inline_plan_editor_touch_friendly():
+    body = HTML[HTML.index("function editIntervalPlan"):][:6000]
+    assert "'inputmode', 'numeric'" in body and "'enterkeyhint', 'done'" in body and "'autocomplete', 'off'" in body
+    assert "scrollIntoView" in body and "setTimeout(reveal, 300)" in body
+    assert "Сохранить план этого интервала" in body and "Отменить правку плана" in body
+    assert "'✓'" in body and "'✕'" in body
+    assert "addEventListener('mousedown', e => e.preventDefault())" in body
+    assert "addEventListener('pointerdown', e => e.preventDefault())" in body
+    assert "wrap.contains(e.relatedTarget)" in body               # blur на кнопку не сохраняет раньше времени
+
+
+def test_inline_plan_editor_css():
+    css = HTML[HTML.index(".plan-inline {"):][:1800]
+    assert "appearance: textfield" in css
+    assert "::-webkit-inner-spin-button" in css and "::-webkit-outer-spin-button" in css
+    assert "font: inherit" in css and "var(--fs-large)" in css and "tabular-nums" in css
+    m = re.search(r"\.plan-btn \{ min-width: (\d+)px; min-height: (\d+)px", HTML)
+    assert m and int(m.group(1)) >= 36 and int(m.group(2)) >= 36
+    assert re.search(r"body\.tv-mode \.plan-btn \{ min-width: 4[4-9]px", HTML)

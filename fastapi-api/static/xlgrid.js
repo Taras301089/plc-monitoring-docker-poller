@@ -73,7 +73,72 @@
     return err;
   }
 
-  const api = { parseNum, fmt, parseTsv, toTsv, fillDown, pasteCells, clearCells, sameValue, validateRow };
+  // ===== Флажки переменных: массовые операции (состояние строки {sel, archive, grafana, alarm}) =====
+  const FLAG_COLS = ['archive', 'grafana', 'alarm'];
+
+  // Новое состояние строки после установки столбца col в val: флаг включает выбор, снятие выбора гасит флаги
+  function setFlag(state, col, val) {
+    const s = Object.assign({ sel: false, archive: false, grafana: false, alarm: false }, state);
+    val = !!val;
+    s[col] = val;
+    if (col === 'sel' && !val) FLAG_COLS.forEach(c => { s[c] = false; });
+    if (col !== 'sel' && val) s.sel = true;
+    return s;
+  }
+
+  // Диапазон между якорем и целью по порядку видимых строк: {from, to} (по возрастанию, в границах count) или null
+  function rangeBetween(anchor, target, count) {
+    if (!Number.isInteger(anchor) || !Number.isInteger(target) || anchor < 0 || target < 0 || anchor >= count || target >= count) return null;
+    return { from: Math.min(anchor, target), to: Math.max(anchor, target) };
+  }
+
+  // Всем строкам from..to (включительно) в столбце col задаётся val; возвращает {states, changed: [индексы изменившихся]}
+  function fillRange(states, from, to, col, val) {
+    const out = states.slice();
+    const changed = [];
+    const lo = Math.max(0, from), hi = Math.min(states.length - 1, to);
+    for (let i = lo; i <= hi; i++) {
+      const next = setFlag(states[i], col, val);
+      if (FLAG_COLS.concat('sel').some(c => next[c] !== !!states[i][c])) { out[i] = next; changed.push(i); }
+    }
+    return { states: out, changed };
+  }
+
+  // Протяжка: состояние столбца исходной строки src переносится на все строки между src и target
+  function dragFill(states, src, target, col) {
+    const r = rangeBetween(src, target, states.length);
+    if (!r) return { states: states.slice(), changed: [] };
+    return fillRange(states, r.from, r.to, col, !!states[src][col]);
+  }
+
+  // Shift+клик: строкам между якорем и целью задаётся val (новое состояние последнего клика)
+  function shiftRange(states, anchor, target, col, val) {
+    const r = rangeBetween(anchor, target, states.length);
+    if (!r) return { states: states.slice(), changed: [] };
+    return fillRange(states, r.from, r.to, col, val);
+  }
+
+  // «Выбрать все»: если уже все включены, снимает, иначе ставит всем
+  function selectAll(states, col) {
+    const val = !(states.length > 0 && states.every(s => !!s[col]));
+    return Object.assign({ value: val }, fillRange(states, 0, states.length - 1, col, val));
+  }
+
+  // Сводка столбца для шапки: {total, checked, all, none}
+  function columnSummary(states, col) {
+    const checked = states.filter(s => !!s[col]).length;
+    return { total: states.length, checked, all: states.length > 0 && checked === states.length, none: checked === 0 };
+  }
+
+  // Число с правильным окончанием для уведомления: «1 строка», «2 строки», «5 строк»
+  function rowsWord(n) {
+    const m10 = n % 10, m100 = n % 100;
+    const w = m10 === 1 && m100 !== 11 ? 'строка' : (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 'строки' : 'строк');
+    return `${n} ${w}`;
+  }
+
+  const api = { parseNum, fmt, parseTsv, toTsv, fillDown, pasteCells, clearCells, sameValue, validateRow,
+    setFlag, rangeBetween, fillRange, dragFill, shiftRange, selectAll, columnSummary, rowsWord };
   root.xlgrid = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

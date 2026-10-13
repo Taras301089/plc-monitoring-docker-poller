@@ -10,6 +10,7 @@ import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
+import dayflags
 from auth import ROLES, require_editor
 from dictionary import SCOPES
 
@@ -165,17 +166,28 @@ async def list_downtimes(screen_id: int, request: Request, day: date | None = Qu
              "comments": item_comments.get(it["id"], 0), "last_comment": last_comment.get(it["id"]),
              "author": _author(it["author_last"], it["author_role"], it["created_by_name"])}
         )
+    # день без выпуска (закрытый, факт 0, без отметки «простой весь день»): автоматический простой не считается,
+    # остаются только строки, которые описали люди (описал, значит считается); «не описано» нет
+    st = await dayflags.day_state(pool, screen_id, day)
+    no_output = st is not None and st["state"] == dayflags.NO_OUTPUT
     out = []
     for r in rows:
         its = by_dt.get(r["id"], [])
-        if _num(r["minutes"]) <= 0 and not its:
-            continue
+        described = round(sum(i["minutes"] for i in its), 1)
+        if no_output:
+            if not its:
+                continue
+            minutes = described
+        else:
+            minutes = _num(r["minutes"])
+            if minutes <= 0 and not its:
+                continue
         out.append({
             "id": r["id"], "idx": r["idx"], "plan": r["plan"], "fact": r["fact"], "interval_min": r["interval_min"],
-            "minutes": _num(r["minutes"]), "described": round(sum(i["minutes"] for i in its), 1), "items": its,
+            "minutes": minutes, "described": described, "items": its,
             "comments": sum(i["comments"] for i in its),
         })
-    return {"date": day.isoformat(), "scope": scope, "downtimes": out}
+    return {"date": day.isoformat(), "scope": scope, "downtimes": out, "no_output": no_output}
 
 
 def _screen_path(template: str, name: str, bindings: Any) -> tuple[str, str]:
@@ -227,11 +239,16 @@ async def downtimes_list(
     groups: dict[int, list[asyncpg.Record]] = {}
     for r in rows:
         groups.setdefault(r["downtime_id"], []).append(r)
+    skip = await dayflags.no_output_days(pool, d1, d2)   # дни без выпуска: автоматический простой не считается
     out: list[dict[str, Any]] = []
     for recs in groups.values():
         head = recs[0]
         group, label = _screen_path(head["template"], head["screen_name"], head["bindings"])
         total = _num(head["minutes"])
+        if (head["screen_id"], head["prod_date"]) in skip:
+            total = round(sum(_num(r["item_minutes"]) for r in recs if r["item_id"] is not None), 1)   # остаются только описанные людьми строки
+            if not total:
+                continue
         base = {
             "downtime_id": head["downtime_id"], "screen_id": head["screen_id"], "group": group, "label": label,
             "date": head["prod_date"].isoformat(), "idx": head["idx"], "start_min": head["start_min"], "end_min": head["end_min"],

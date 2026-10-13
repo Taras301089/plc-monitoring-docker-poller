@@ -65,6 +65,10 @@ async def app(pool):
     import main
 
     async with main.app.router.lifespan_context(main.app):
+        # опрос Telegram в тестах не работает (никаких обращений в сеть): гасим до его первого шага
+        poll = getattr(main.app.state, "tg_poll_task", None)
+        if poll:
+            poll.cancel()
         yield main.app
 
 

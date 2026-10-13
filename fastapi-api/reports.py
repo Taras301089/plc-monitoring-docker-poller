@@ -15,8 +15,7 @@ from pydantic import BaseModel
 
 from auth import require_admin
 from downtime import _screen_path
-from history import build_day_report
-from period import build_period_report, month_bounds
+from combined import build_combined_report
 
 log = logging.getLogger("reports")
 
@@ -58,8 +57,9 @@ def _write_file(path: Path, data: bytes) -> None:
 
 
 async def save_day(pool: asyncpg.Pool, screen_id: int, day: date) -> tuple[Path | None, int]:
-    """Строит отчёт дня и кладёт его в «месяц/линия/файл.xlsx»; (путь, число интервалов). Без данных файл не создаётся."""
-    rep = await build_day_report(pool, screen_id, day)
+    """Строит комбинированный отчёт (день и с начала месяца, один лист) и кладёт его в «месяц/линия/Отчёт_линия_день.xlsx»;
+    (путь, число интервалов). Без данных за день файл не создаётся; отдельного месячного файла нет."""
+    rep = await build_combined_report(pool, screen_id, day)
     if rep is None:
         raise HTTPException(status_code=404, detail="Экран не найден")
     data, folder, fname, n = rep
@@ -70,45 +70,9 @@ async def save_day(pool: asyncpg.Pool, screen_id: int, day: date) -> tuple[Path 
     return path, n
 
 
-async def save_month(pool: asyncpg.Pool, screen_id: int, year: int, month: int) -> Path | None:
-    """Отчёт за месяц с графиками в «месяц/линия/линия_месяц_ГГГГ-ММ.xlsx»; без данных за месяц файл не создаётся."""
-    d1, d2 = month_bounds(year, month)
-    rep = await build_period_report(pool, screen_id, d1, d2)
-    if rep is None:
-        raise HTTPException(status_code=404, detail="Экран не найден")
-    data, folder, _, days = rep
-    if days == 0:
-        return None
-    path = REPORTS_DIR / d1.strftime("%Y-%m") / folder / f"Отчёт_{folder}_месяц_{d1.strftime('%Y-%m')}.xlsx"
-    await asyncio.to_thread(_write_file, path, data)
-    return path
-
-
-async def _tick_month(pool: asyncpg.Pool, today: date, hm: str) -> None:
-    """В первый день месяца, в заданное время линии, сохраняет отчёт за прошлый месяц."""
-    if today.day != 1:
-        return
-    prev = today - timedelta(days=1)
-    tag = prev.strftime("%Y-%m")
-    rows = await pool.fetch(
-        "SELECT screen_id FROM kpi_report_settings WHERE enabled AND save_time <= $1 AND last_month_saved IS DISTINCT FROM $2",
-        hm, tag,
-    )
-    for r in rows:
-        sid = r["screen_id"]
-        try:
-            path = await save_month(pool, sid, prev.year, prev.month)
-            if path:
-                log.info("Месячный отчёт сохранён: %s", path)
-            await pool.execute("UPDATE kpi_report_settings SET last_month_saved = $2 WHERE screen_id = $1", sid, tag)
-        except Exception:
-            log.exception("Не удалось сохранить месячный отчёт экрана %s", sid)
-
-
 async def _tick(pool: asyncpg.Pool) -> None:
     now = _local_now()
     today, hm = now.date(), now.strftime("%H:%M")
-    await _tick_month(pool, today, hm)
     rows = await pool.fetch(
         "SELECT screen_id, save_time FROM kpi_report_settings "
         "WHERE enabled AND last_saved_date IS DISTINCT FROM $1 AND save_time <= $2",
@@ -206,4 +170,4 @@ async def save_now(screen_id: int, request: Request, day: date | None = Query(de
     if not path:
         raise HTTPException(status_code=404, detail="За этот день нет данных, файл не создан")
     rel = path.relative_to(REPORTS_DIR)
-    return {"file": str(Path(REPORTS_HOST_DIR) / rel), "intervals": n}
+    return {"file": str(Path(REPORTS_HOST_DIR) / rel), "name": path.name, "path": str(path), "intervals": n}

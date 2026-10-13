@@ -4,6 +4,7 @@ from __future__ import annotations
 import io
 import math
 import os
+import re
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Any
 
@@ -47,6 +48,12 @@ async def ensure_trends_schema(pool: asyncpg.Pool) -> None:
             ADD COLUMN IF NOT EXISTS limit_high DOUBLE PRECISION
         """
     )
+    # «Графики переменных» читают telemetry только по (tag_id, ts): отдельный индекс создаётся, лишь если подходящего ещё нет
+    # (индекс idx_telemetry_tag_ts (tag_id, ts DESC) из init.sql подходит: диапазон читается в обе стороны)
+    has = await pool.fetchval(
+        "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'telemetry' AND indexdef ~ '\\(tag_id, ts( DESC)?\\)')")
+    if not has:
+        await pool.execute("CREATE INDEX IF NOT EXISTS ix_telemetry_tag_ts ON telemetry (tag_id, ts)")
 
 
 def _now() -> datetime:
@@ -289,3 +296,249 @@ async def update_record_tag(tag_id: int, body: TagRecordBody, request: Request, 
     if ok is None:
         raise HTTPException(status_code=404, detail="Переменная не найдена")
     return dict(await pool.fetchrow(_TAG_SELECT + "WHERE t.id = $1", tag_id))
+
+
+# ------------------------------------------------------------------ «Графики переменных»: ряды записанных переменных (telemetry)
+MAX_TAGS = 8            # переменных на один график
+RAW_LIMIT = 2000        # до стольких точек на переменную отдаются сырые данные, дальше корзины по времени
+MIN_BUCKETS, MAX_BUCKETS, DEFAULT_BUCKETS = 50, 2000, 1000
+XL_BUCKETS = 1500       # точек на ряд в Excel
+GAP_SEC = 10            # пропуск между секундными записями больше этого рисуется разрывом линии
+# цвета линий (светлая тема, как на экране: --chart-1…8 в downtime.css); в Excel те же
+CHART_COLORS = ["#2b6cb0", "#7c3aed", "#0e7490", "#be185d", "#1d2733", "#a16207", "#4f46e5", "#64748b"]
+
+
+def parse_tag_ids(raw: str) -> list[int]:
+    """Список id переменных из «8,9,10»: без повторов, от 1 до MAX_TAGS, иначе 422."""
+    parts = [p.strip() for p in (raw or "").split(",") if p.strip()]
+    if not parts:
+        raise HTTPException(status_code=422, detail="Не выбрано ни одной переменной")
+    ids: list[int] = []
+    for p in parts:
+        if not re.fullmatch(r"\d+", p) or int(p) <= 0:
+            raise HTTPException(status_code=422, detail=f"Неверный номер переменной: {p}")
+        if int(p) not in ids:
+            ids.append(int(p))
+    if len(ids) > MAX_TAGS:
+        raise HTTPException(status_code=422, detail=f"Не больше {MAX_TAGS} переменных на график")
+    return ids
+
+
+def check_window(f: datetime, t: datetime) -> tuple[datetime, datetime]:
+    """Окно графика: время без пояса считается временем завода; конец позже начала, не длиннее MAX_DAYS суток."""
+    f = f if f.tzinfo else f.replace(tzinfo=_tz())
+    t = t if t.tzinfo else t.replace(tzinfo=_tz())
+    if t <= f:
+        raise HTTPException(status_code=422, detail="Конец периода должен быть позже начала")
+    if t - f > timedelta(days=MAX_DAYS):
+        raise HTTPException(status_code=422, detail=f"Период не больше {MAX_DAYS} дней")
+    return f, t
+
+
+def bucket_width_sec(span_sec: float, buckets: int) -> int:
+    """Ширина корзины в секундах (целая, не меньше секунды): корзин получается не больше заказанного."""
+    return max(1, math.ceil(span_sec / max(1, buckets)))
+
+
+def use_raw(count: int) -> bool:
+    return count <= RAW_LIMIT
+
+
+def is_step(deadband: float | None) -> bool:
+    """Переменные с мёртвой зоной пишутся по изменению: значение держится до следующей записи, рисуются ступенькой."""
+    return deadband is not None and deadband > 0
+
+
+def stats_from_raw(vals: list[float]) -> dict[str, Any]:
+    if not vals:
+        return {"min": None, "avg": None, "max": None, "count": 0}
+    return {"min": min(vals), "avg": sum(vals) / len(vals), "max": max(vals), "count": len(vals)}
+
+
+def stats_from_buckets(rows: list[tuple[float, float, float, int]]) -> dict[str, Any]:
+    """Итоги по корзинам (min, avg, max, n): среднее взвешено числом точек, поэтому равно среднему по сырым данным."""
+    n = sum(r[3] for r in rows)
+    if not n:
+        return {"min": None, "avg": None, "max": None, "count": 0}
+    return {"min": min(r[0] for r in rows), "avg": sum(r[1] * r[3] for r in rows) / n, "max": max(r[2] for r in rows), "count": n}
+
+
+def _ms(dt: datetime) -> int:
+    return int(round(dt.timestamp() * 1000))
+
+
+async def fetch_series(pool: asyncpg.Pool, ids: list[int], f: datetime, t: datetime, buckets: int, force_agg: bool = False) -> dict[str, Any]:
+    """Ряды выбранных переменных за окно (одна функция для экрана и Excel).
+
+    Переменная с числом точек до RAW_LIMIT отдаётся сырыми [мс, значение]; остальные корзинами по времени
+    [начало корзины мс, min, avg, max, n] (пустые корзины не возвращаются); force_agg: всегда корзины (Excel).
+    Для ступенчатых добавляется prior: последняя запись до окна."""
+    meta_rows = await pool.fetch(
+        "SELECT t.id AS tag_id, t.plc_id, p.name AS plc_name, t.name, t.node_id, t.deadband, t.limit_low, t.limit_high "
+        "FROM plc_tags t JOIN plcs p ON p.id = t.plc_id WHERE t.id = ANY($1::int[])", ids)
+    meta = {r["tag_id"]: dict(r) for r in meta_rows}
+    missing = [i for i in ids if i not in meta]
+    if missing:
+        raise HTTPException(status_code=422, detail=f"Переменная не найдена: {missing[0]}")
+    span = (t - f).total_seconds()
+    w = bucket_width_sec(span, buckets)
+    if force_agg:
+        raw_ids: list[int] = []
+    else:
+        cnt = await pool.fetch(
+            "SELECT s.id, (SELECT count(*) FROM (SELECT 1 FROM telemetry m WHERE m.tag_id = s.id AND m.ts >= $2 AND m.ts <= $3 LIMIT $4) q) AS n "
+            "FROM unnest($1::int[]) s(id)", ids, f, t, RAW_LIMIT + 1)
+        over = {r["id"] for r in cnt if not use_raw(r["n"])}
+        raw_ids = [i for i in ids if i not in over]
+    agg_ids = [i for i in ids if i not in raw_ids]
+    raw: dict[int, list[list[Any]]] = {i: [] for i in raw_ids}
+    if raw_ids:
+        for r in await pool.fetch(
+                "SELECT tag_id, ts, value FROM telemetry WHERE tag_id = ANY($1::int[]) AND ts >= $2 AND ts <= $3 ORDER BY tag_id, ts", raw_ids, f, t):
+            raw[r["tag_id"]].append([_ms(r["ts"]), r["value"]])
+    agg: dict[int, list[list[Any]]] = {i: [] for i in agg_ids}
+    f_ms = _ms(f)
+    if agg_ids:
+        for r in await pool.fetch(
+                "SELECT tag_id, floor((extract(epoch from ts)::float8 - $4::float8) / $5::float8)::int AS b, "
+                "min(value) AS mn, avg(value) AS av, max(value) AS mx, count(*) AS n "
+                "FROM telemetry WHERE tag_id = ANY($1::int[]) AND ts >= $2 AND ts <= $3 GROUP BY tag_id, b ORDER BY tag_id, b",
+                agg_ids, f, t, f.timestamp(), float(w)):
+            agg[r["tag_id"]].append([f_ms + r["b"] * w * 1000, r["mn"], r["av"], r["mx"], r["n"]])
+    step_ids = [i for i in ids if is_step(meta[i]["deadband"])]
+    prior: dict[int, list[Any]] = {}
+    if step_ids:
+        for r in await pool.fetch(
+                "SELECT s.id, p.ts, p.value FROM unnest($1::int[]) s(id) CROSS JOIN LATERAL "
+                "(SELECT m.ts, m.value FROM telemetry m WHERE m.tag_id = s.id AND m.ts < $2 ORDER BY m.ts DESC LIMIT 1) p", step_ids, f):
+            prior[r["id"]] = [_ms(r["ts"]), r["value"]]
+    out = []
+    for i in ids:
+        m = meta[i]
+        if i in raw:
+            pts, st, mode = raw[i], stats_from_raw([p[1] for p in raw[i]]), "raw"
+        else:
+            pts, st, mode = agg[i], stats_from_buckets([(p[1], p[2], p[3], p[4]) for p in agg[i]]), "agg"
+        out.append({**m, "step": is_step(m["deadband"]), "gap_sec": GAP_SEC, "mode": mode, "points": pts, "prior": prior.get(i), "stats": st})
+    tz = _tz()
+    return {"from": f.astimezone(tz).isoformat(), "to": t.astimezone(tz).isoformat(), "from_ms": f_ms, "to_ms": _ms(t),
+            "now_ms": _ms(_now()), "offset_hours": UTC_OFFSET_HOURS, "bucket_sec": w, "series": out}
+
+
+@router.get("/vars")
+async def graph_vars(request: Request) -> dict[str, Any]:
+    """Записанные аналоговые переменные (отмечены «Архив») по ПЛК в порядке списка, с мёртвой зоной и границами; доступна всем без входа."""
+    pool = request.app.state.pool
+    plcs = await pool.fetch("SELECT id, name, is_active FROM plcs ORDER BY sort_order NULLS LAST, id")
+    rows = await pool.fetch(
+        "SELECT id AS tag_id, plc_id, name, node_id, deadband, limit_low, limit_high FROM plc_tags "
+        "WHERE is_archived AND upper(tag_type) = 'ANALOG' ORDER BY name, id")
+    by: dict[int, list[dict[str, Any]]] = {}
+    for r in rows:
+        by.setdefault(r["plc_id"], []).append(dict(r))
+    return {"offset_hours": UTC_OFFSET_HOURS,
+            "plcs": [{"plc_id": p["id"], "name": p["name"], "is_active": p["is_active"], "tags": by[p["id"]]} for p in plcs if p["id"] in by]}
+
+
+@router.get("/series")
+async def series(request: Request, date_from: datetime = Query(alias="from"), date_to: datetime = Query(alias="to"),
+                 tags: str = Query(), buckets: int = Query(default=DEFAULT_BUCKETS, ge=MIN_BUCKETS, le=MAX_BUCKETS)) -> dict[str, Any]:
+    """Ряды выбранных переменных за окно (сырые точки или min/avg/max по корзинам времени); доступна всем без входа."""
+    f, t = check_window(date_from, date_to)
+    return await fetch_series(request.app.state.pool, parse_tag_ids(tags), f, t, buckets)
+
+
+def series_file_name(plc_name: str, f: datetime, t: datetime) -> str:
+    """<ПЛК>_<период>.xlsx (перед ним экран «Тренды_»): целые сутки дают даты, часть суток даёт дату и время ЧЧ-ММ."""
+    tz = _tz()
+    a, b = f.astimezone(tz), t.astimezone(tz)
+    safe = re.sub(r'[\\/:*?"<>|\s]+', "_", plc_name).strip("_") or "ПЛК"
+    midnight = a.time() == time() and b.time() == time()
+    last = (b - timedelta(seconds=1)).date()
+    if midnight:
+        span = a.date().isoformat() if last == a.date() else f"{a.date().isoformat()}_{last.isoformat()}"
+    elif a.date() == b.date():
+        span = f"{a.date().isoformat()}_{a:%H-%M}_{b:%H-%M}"
+    else:
+        span = f"{a.date().isoformat()}_{a:%H-%M}_{b.date().isoformat()}_{b:%H-%M}"
+    return f"{safe}_{span}.xlsx"
+
+
+def _plain_dt(ms: int) -> datetime:
+    return datetime.fromtimestamp(ms / 1000, _tz()).replace(tzinfo=None)
+
+
+def build_series_workbook(rep: dict[str, Any], plc_name: str) -> bytes:
+    """Excel как экран «Графики переменных»: заголовок, график (линии по среднему в корзине), таблица «Статистика за видимый период»;
+    данные графика на скрытом листе «График» (общая сетка времени; пропуск пустой ячейкой, ступенчатые продолжаются до следующей записи)."""
+    buf = io.BytesIO()
+    wb = xlsxwriter.Workbook(buf, {"in_memory": True})
+    f = _fmts(wb)
+    num = wb.add_format({"num_format": "0.00"})
+    dt_f = wb.add_format({"num_format": "dd.mm.yyyy hh:mm:ss", "align": "left"})
+    ws = wb.add_worksheet("Графики переменных")
+    cs = wb.add_worksheet("График")
+    sr = rep["series"]
+    a, b = _plain_dt(rep["from_ms"]), _plain_dt(rep["to_ms"])
+    span = f"{a:%d.%m.%Y %H:%M} — {b:%d.%m.%Y %H:%M}"
+    ws.merge_range(0, 0, 0, 5, f"Графики переменных: {plc_name}, период {span}", f["title"])
+    # данные графика: строка на корзину общей сетки
+    w_ms = rep["bucket_sec"] * 1000
+    n_rows = (rep["to_ms"] - rep["from_ms"]) // w_ms + 1
+    cs.write(0, 0, "Время", f["head"])
+    for c, s in enumerate(sr, start=1):
+        cs.write(0, c, s["name"], f["head"])
+    for k in range(n_rows):
+        cs.write_datetime(1 + k, 0, _plain_dt(rep["from_ms"] + k * w_ms), dt_f)
+    for c, s in enumerate(sr, start=1):
+        by = {p[0]: p[2] for p in s["points"]}
+        held = s["prior"][1] if s["step"] and s["prior"] else None
+        for k in range(n_rows):
+            v = by.get(rep["from_ms"] + k * w_ms)
+            if v is None and s["step"]:
+                v = held
+            if v is not None:
+                held = v if s["step"] else None
+                cs.write_number(1 + k, c, v, num)
+    cs.set_column(0, 0, 20)
+    cs.hide()
+    chart_rows = 20
+    ws.write(2, 0, "Графики переменных", f["section"])
+    ch = wb.add_chart({"type": "line"})
+    for c, s in enumerate(sr, start=1):
+        ch.add_series({"name": s["name"], "categories": ["График", 1, 0, n_rows, 0], "values": ["График", 1, c, n_rows, c],
+                       "line": {"color": CHART_COLORS[(c - 1) % len(CHART_COLORS)], "width": 1.25}, "marker": {"type": "none"}})
+    ch.set_title({"name": "Графики переменных"})
+    ch.set_x_axis({"date_axis": True, "num_format": "dd.mm hh:mm", "major_gridlines": {"visible": True, "line": {"color": "#D9D9D9"}}})
+    ch.set_y_axis({"name": "Значение", "major_gridlines": {"visible": True, "line": {"color": "#D9D9D9"}}})
+    ch.set_legend({"position": "bottom"})
+    ch.show_blanks_as("gap")
+    ch.set_size({"width": 900, "height": 380})
+    ws.insert_chart(3, 0, ch)
+    top = 3 + chart_rows + 1
+    ws.write(top, 0, "Статистика за видимый период", f["section"])
+    ws.write_row(top + 1, 0, ["Переменная", "Минимум", "Среднее", "Максимум", "Точек"], f["head"])
+    for i, s in enumerate(sr):
+        st = s["stats"]
+        r = top + 2 + i
+        ws.write(r, 0, s["name"])
+        for c, key in ((1, "min"), (2, "avg"), (3, "max")):
+            if st[key] is None:
+                ws.write(r, c, "—")
+            else:
+                ws.write_number(r, c, st[key], num)
+        ws.write_number(r, 4, st["count"])
+    for c, wd in enumerate([46, 14, 14, 14, 12]):
+        ws.set_column(c, c, wd)
+    wb.close()
+    return buf.getvalue()
+
+
+@router.get("/series.xlsx")
+async def series_xlsx(request: Request, date_from: datetime = Query(alias="from"), date_to: datetime = Query(alias="to"),
+                      tags: str = Query(), plc: str = Query(default=""), src: str = Query(default="trends")) -> Response:
+    """Те же ряды в Excel: Тренды_<ПЛК>_<период>.xlsx (график по корзинам, до XL_BUCKETS точек на ряд); доступна всем без входа."""
+    f, t = check_window(date_from, date_to)
+    rep = await fetch_series(request.app.state.pool, parse_tag_ids(tags), f, t, XL_BUCKETS, force_agg=True)
+    name = plc.strip() or (rep["series"][0]["plc_name"] if rep["series"] else "ПЛК")
+    return _xlsx_response(build_series_workbook(rep, name), series_file_name(name, f, t), src)

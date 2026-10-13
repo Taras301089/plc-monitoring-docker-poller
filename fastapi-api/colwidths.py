@@ -84,3 +84,52 @@ async def delete_widths(key: str, request: Request, shared: bool = False, user: 
         "DELETE FROM ui_col_widths WHERE key = $1 AND user_id IS NOT DISTINCT FROM $2", key, None if shared else user["id"],
     )
     return {"status": "ok"}
+
+
+# ---------- порядок вкладок и списков: личный у вошедшего, общий по умолчанию (user_id = NULL) в той же таблице ----------
+class OrderBody(BaseModel):
+    key: str
+    order: list[str] = Field(max_length=200)
+    shared: bool = False
+
+
+@router.get("/order")
+async def get_order(key: str, request: Request, user: dict[str, Any] | None = Depends(current_user)) -> dict[str, list[str]]:
+    """Личный порядок вошедшего, иначе общий по умолчанию, иначе пустой список (тогда действует порядок по умолчанию экрана)."""
+    key = _key(key)
+    rows = await request.app.state.pool.fetch(
+        "SELECT user_id, widths FROM ui_col_widths WHERE key = $1 AND (user_id IS NULL OR user_id = $2)",
+        key, user["id"] if user else None,
+    )
+    by_owner = {r["user_id"]: json.loads(r["widths"]) for r in rows}
+    chosen = by_owner.get(user["id"]) if user and user["id"] in by_owner else by_owner.get(None)
+    return {"order": [str(x) for x in chosen] if isinstance(chosen, list) else []}
+
+
+@router.put("/order")
+async def put_order(body: OrderBody, request: Request, user: dict[str, Any] = Depends(require_user)) -> dict[str, Any]:
+    key = _key(body.key)
+    if any(not x or len(x) > 100 for x in body.order):
+        raise HTTPException(status_code=422, detail="Идентификатор в порядке должен быть от 1 до 100 символов")
+    if body.shared and user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Порядок по умолчанию для всех может задавать только администратор")
+    owner = None if body.shared else user["id"]
+    await request.app.state.pool.execute(
+        """
+        INSERT INTO ui_col_widths (user_id, key, widths) VALUES ($1, $2, $3::jsonb)
+        ON CONFLICT ((COALESCE(user_id, 0)), key) DO UPDATE SET widths = EXCLUDED.widths, updated_at = now()
+        """,
+        owner, key, json.dumps(body.order),
+    )
+    return {"status": "ok", "order": body.order}
+
+
+@router.delete("/order")
+async def delete_order(key: str, request: Request, shared: bool = False, user: dict[str, Any] = Depends(require_user)) -> dict[str, str]:
+    key = _key(key)
+    if shared:
+        await require_admin(user)
+    await request.app.state.pool.execute(
+        "DELETE FROM ui_col_widths WHERE key = $1 AND user_id IS NOT DISTINCT FROM $2", key, None if shared else user["id"],
+    )
+    return {"status": "ok"}
