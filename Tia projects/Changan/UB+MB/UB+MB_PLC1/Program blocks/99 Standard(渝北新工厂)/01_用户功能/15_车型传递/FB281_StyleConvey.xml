@@ -1,0 +1,3169 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V17" />
+  <DocumentInfo>
+    <Created>2026-10-14T05:19:21.1818778Z</Created>
+    <ExportSetting>WithDefaults</ExportSetting>
+    <InstalledProducts>
+      <Product>
+        <DisplayName>Totally Integrated Automation Portal</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>TIA Portal Openness</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>TIA Portal Version Control Interface</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>SINAMICS Startdrive Advanced</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G130, G150, S120, S150, SINAMICS MV, S210</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G110M, G120, G120C, G120D, G120P, G115D</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>STEP 7 Professional</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>STEP 7 Safety</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>WinCC Advanced / Unified PC</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+    </InstalledProducts>
+  </DocumentInfo>
+  <SW.Blocks.FB ID="0">
+    <AttributeList>
+      <AutoNumber>false</AutoNumber>
+      <HeaderAuthor />
+      <HeaderFamily />
+      <HeaderName />
+      <HeaderVersion>0.1</HeaderVersion>
+      <Interface><Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+  <Section Name="Input">
+    <Member Name="StationNumber" Datatype="Int" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><StringAttribute Name="S7_HiddenAssignment" SystemDefined="true">HideIfNoParamAssigned</StringAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">工位编号</MultiLanguageText></Comment></Member>
+    <Member Name="Change_StationNumber" Datatype="Int" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><StringAttribute Name="S7_HiddenAssignment" SystemDefined="true">HideIfNoParamAssigned</StringAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">修改的车型数据的工位号</MultiLanguageText></Comment></Member>
+    <Member Name="Change_CarDataEnable" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><StringAttribute Name="S7_HiddenAssignment" SystemDefined="true">HideIfNoParamAssigned</StringAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">修改的车型数据使能</MultiLanguageText></Comment></Member>
+    <Member Name="Read_CarDataLocalStation" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><StringAttribute Name="S7_HiddenAssignment" SystemDefined="true">HideIfNoParamAssigned</StringAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">手动读取当前选择工位的车型数据到公共数据区</MultiLanguageText></Comment></Member>
+    <Member Name="CarDataConveyEnable" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><StringAttribute Name="S7_HiddenAssignment" SystemDefined="true">HideIfNoParamAssigned</StringAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">车型数据传输使能</MultiLanguageText></Comment></Member>
+    <Member Name="UnClear_CarDataPreviousEnable" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><StringAttribute Name="S7_HiddenAssignment" SystemDefined="true">HideIfNoParamAssigned</StringAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">不清除前一工位车型使能</MultiLanguageText></Comment></Member>
+    <Member Name="Clear_DryRunCarDataEnable" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><StringAttribute Name="S7_HiddenAssignment" SystemDefined="true">HideIfNoParamAssigned</StringAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">清除每个工位的空循环数据使能-----当物流代码等于9999时认为是空循环车型数据</MultiLanguageText></Comment></Member>
+    <Member Name="CopyCarDataEnable" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><StringAttribute Name="S7_HiddenAssignment" SystemDefined="true">HideIfNoParamAssigned</StringAttribute></AttributeList></Member>
+  </Section>
+  <Section Name="Output">
+    <Member Name="Output_Fault_PartIn&amp;InPOS" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><StringAttribute Name="S7_HiddenAssignment" SystemDefined="true">HideIfNoParamAssigned</StringAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">车型与实际工件不符</MultiLanguageText></Comment></Member>
+    <Member Name="Output_CarData_Valid" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><StringAttribute Name="S7_HiddenAssignment" SystemDefined="true">HideIfNoParamAssigned</StringAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">车型数据不为零    有效</MultiLanguageText></Comment></Member>
+    <Member Name="Output_CarData_Invalid" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><StringAttribute Name="S7_HiddenAssignment" SystemDefined="true">HideIfNoParamAssigned</StringAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">车型数据为零    无效</MultiLanguageText></Comment></Member>
+    <Member Name="Output_Style" Datatype="&quot;Style&quot;" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><StringAttribute Name="S7_HiddenAssignment" SystemDefined="true">HideIfNoParamAssigned</StringAttribute></AttributeList><Sections><Section Name="None"><Member Name="Error_Style" Datatype="Bool" /><Member Name="Normal_Style" Datatype="Bool" /><Member Name="Style" Datatype="Int" /><Member Name="Station_Code" Datatype="Int" /><Member Name="Location_Code" Datatype="Int" /><Member Name="RotationNumber" Datatype="DInt" /></Section></Sections></Member>
+    <Member Name="Output_CarDataStatus" Datatype="&quot;CarDataConvey_Disp_UDT&quot;" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><StringAttribute Name="S7_HiddenAssignment" SystemDefined="true">HideIfNoParamAssigned</StringAttribute></AttributeList><Sections><Section Name="None"><Member Name="CarData_Valid" Datatype="Bool" /><Member Name="CarData_Invalid" Datatype="Bool" /><Member Name="Previous_Type1" Datatype="Bool" /><Member Name="Previous_Type2" Datatype="Bool" /><Member Name="Previous_Type3" Datatype="Bool" /><Member Name="Previous_Type4" Datatype="Bool" /><Member Name="Previous_Type5" Datatype="Bool" /><Member Name="Previous_Type6" Datatype="Bool" /><Member Name="Local_Type1_CS55" Datatype="Bool" /><Member Name="Local_Type2_CS75" Datatype="Bool" /><Member Name="Local_Type3" Datatype="Bool" /><Member Name="Local_Type4" Datatype="Bool" /><Member Name="Local_Type5" Datatype="Bool" /><Member Name="Local_Type6" Datatype="Bool" /><Member Name="Reserve1" Datatype="Bool" /><Member Name="Reserve2" Datatype="Bool" /></Section></Sections></Member>
+  </Section>
+  <Section Name="InOut">
+    <Member Name="CarDataPreviousStation" Datatype="&quot;CarData_VIN_UDT&quot;" Accessibility="Public"><AttributeList><StringAttribute Name="S7_HiddenAssignment" SystemDefined="true">HideIfNoParamAssigned</StringAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">前工位的车型数据</MultiLanguageText></Comment><Sections><Section Name="None"><Member Name="SN" Datatype="String[8]" /><Member Name="VIN" Datatype="String[18]" /><Member Name="RotationNumber" Datatype="DWord" /><Member Name="ID" Datatype="DWord" /><Member Name="Station_Code" Datatype="Int" /><Member Name="Location_Code" Datatype="Int" /><Member Name="Type" Datatype="Int" /></Section></Sections></Member>
+    <Member Name="CarDataLocalStation" Datatype="&quot;CarData_VIN_UDT&quot;" Accessibility="Public"><AttributeList><StringAttribute Name="S7_HiddenAssignment" SystemDefined="true">HideIfNoParamAssigned</StringAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">本工位的车型数据</MultiLanguageText></Comment><Sections><Section Name="None"><Member Name="SN" Datatype="String[8]" /><Member Name="VIN" Datatype="String[18]" /><Member Name="RotationNumber" Datatype="DWord" /><Member Name="ID" Datatype="DWord" /><Member Name="Station_Code" Datatype="Int" /><Member Name="Location_Code" Datatype="Int" /><Member Name="Type" Datatype="Int" /></Section></Sections></Member>
+    <Member Name="Change_CarData" Datatype="&quot;CarData_VIN_UDT&quot;" Accessibility="Public"><AttributeList><StringAttribute Name="S7_HiddenAssignment" SystemDefined="true">HideIfNoParamAssigned</StringAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">修改的车型数据</MultiLanguageText></Comment><Sections><Section Name="None"><Member Name="SN" Datatype="String[8]" /><Member Name="VIN" Datatype="String[18]" /><Member Name="RotationNumber" Datatype="DWord" /><Member Name="ID" Datatype="DWord" /><Member Name="Station_Code" Datatype="Int" /><Member Name="Location_Code" Datatype="Int" /><Member Name="Type" Datatype="Int" /></Section></Sections></Member>
+  </Section>
+  <Section Name="Static">
+    <Member Name="Fault_PartIn&amp;InPOS_Temp" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">车型与实际工件不符</MultiLanguageText></Comment></Member>
+    <Member Name="CarDataPreviousStation_Invalid_Temp" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">前工位车型数据都为零</MultiLanguageText></Comment></Member>
+    <Member Name="CarDataPreviousStation_Valid_Temp" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">前工位车型数据有效</MultiLanguageText></Comment></Member>
+    <Member Name="CarDataLocalStation_Valid_Temp" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">本工位车型数据都为零</MultiLanguageText></Comment></Member>
+    <Member Name="CarDataLocalStation_Invalid_Temp" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">本工位车型数据都为零</MultiLanguageText></Comment></Member>
+    <Member Name="PartIn_InPOS_OK" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">工位车型进入正常</MultiLanguageText></Comment></Member>
+    <Member Name="Always1" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList></Member>
+    <Member Name="Convey_StatusEnable" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">导车型数据的跟随码使能</MultiLanguageText></Comment></Member>
+    <Member Name="Plus_1" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">上升沿</MultiLanguageText></Comment></Member>
+    <Member Name="Plus_2" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">上升沿</MultiLanguageText></Comment></Member>
+    <Member Name="Plus_Change1" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList></Member>
+    <Member Name="Plus_Change2" Datatype="Bool" Remanence="SetInIDB" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList></Member>
+  </Section>
+  <Section Name="Temp">
+    <Member Name="DateTime" Datatype="Date_And_Time" />
+    <Member Name="Ret_VAL_Time" Datatype="Int" />
+  </Section>
+  <Section Name="Constant" />
+</Sections></Interface>
+      <IsIECCheckEnabled>false</IsIECCheckEnabled>
+      <MemoryLayout>Standard</MemoryLayout>
+      <Name>FB281_StyleConvey</Name>
+      <Number>281</Number>
+      <ProgrammingLanguage>LAD</ProgrammingLanguage>
+      <SetENOAutomatically>false</SetENOAutomatically>
+      <UDABlockProperties />
+      <UDAEnableTagReadback>false</UDAEnableTagReadback>
+    </AttributeList>
+    <ObjectList>
+      <MultilingualText ID="1" CompositionName="Comment">
+        <ObjectList>
+          <MultilingualTextItem ID="2" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="3" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="4" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="5" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="6" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+      <SW.Blocks.CompileUnit ID="7" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><FlgNet xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/v4">
+  <Parts>
+    <Access Scope="LocalVariable" UId="21">
+      <Symbol>
+        <Component Name="Always1" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="22">
+      <Symbol>
+        <Component Name="Always1" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="23">
+      <Symbol>
+        <Component Name="Always1" />
+      </Symbol>
+    </Access>
+    <Part Name="Contact" UId="24" />
+    <Part Name="Contact" UId="25">
+      <Negated Name="operand" />
+    </Part>
+    <Part Name="O" UId="26">
+      <TemplateValue Name="Card" Type="Cardinality">2</TemplateValue>
+    </Part>
+    <Part Name="Coil" UId="27" />
+  </Parts>
+  <Wires>
+    <Wire UId="28">
+      <Powerrail />
+      <NameCon UId="24" Name="in" />
+      <NameCon UId="25" Name="in" />
+    </Wire>
+    <Wire UId="29">
+      <IdentCon UId="21" />
+      <NameCon UId="24" Name="operand" />
+    </Wire>
+    <Wire UId="30">
+      <NameCon UId="24" Name="out" />
+      <NameCon UId="26" Name="in1" />
+    </Wire>
+    <Wire UId="31">
+      <IdentCon UId="22" />
+      <NameCon UId="25" Name="operand" />
+    </Wire>
+    <Wire UId="32">
+      <NameCon UId="25" Name="out" />
+      <NameCon UId="26" Name="in2" />
+    </Wire>
+    <Wire UId="33">
+      <NameCon UId="26" Name="out" />
+      <NameCon UId="27" Name="in" />
+    </Wire>
+    <Wire UId="34">
+      <IdentCon UId="23" />
+      <NameCon UId="27" Name="operand" />
+    </Wire>
+  </Wires>
+</FlgNet></NetworkSource>
+          <ProgrammingLanguage>LAD</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="8" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="9" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="A" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="B" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="C" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="D" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="E" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="F" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text>#Always1</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="10" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="11" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="12" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="13" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <SW.Blocks.CompileUnit ID="14" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><FlgNet xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/v4">
+  <Parts>
+    <Access Scope="LocalVariable" UId="21">
+      <Symbol>
+        <Component Name="Always1" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="22">
+      <Symbol>
+        <Component Name="CarDataPreviousStation" />
+        <Component Name="Type" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="23">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>10</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="24">
+      <Symbol>
+        <Component Name="CarDataPreviousStation" />
+        <Component Name="Station_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="25">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>10</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="26">
+      <Symbol>
+        <Component Name="CarDataPreviousStation" />
+        <Component Name="RotationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="TypedConstant" UId="27">
+      <Constant>
+        <ConstantValue>DINT#0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="28">
+      <Symbol>
+        <Component Name="CarDataPreviousStation_Valid_Temp" />
+      </Symbol>
+    </Access>
+    <Part Name="Contact" UId="29" />
+    <Part Name="Ge" UId="30">
+      <TemplateValue Name="SrcType" Type="Type">Int</TemplateValue>
+    </Part>
+    <Part Name="Ge" UId="31">
+      <TemplateValue Name="SrcType" Type="Type">Int</TemplateValue>
+    </Part>
+    <Part Name="Ne" UId="32">
+      <TemplateValue Name="SrcType" Type="Type">DWord</TemplateValue>
+    </Part>
+    <Part Name="Coil" UId="33" />
+  </Parts>
+  <Wires>
+    <Wire UId="34">
+      <Powerrail />
+      <NameCon UId="29" Name="in" />
+    </Wire>
+    <Wire UId="35">
+      <IdentCon UId="21" />
+      <NameCon UId="29" Name="operand" />
+    </Wire>
+    <Wire UId="36">
+      <NameCon UId="29" Name="out" />
+      <NameCon UId="30" Name="pre" />
+    </Wire>
+    <Wire UId="37">
+      <IdentCon UId="22" />
+      <NameCon UId="30" Name="in1" />
+    </Wire>
+    <Wire UId="38">
+      <IdentCon UId="23" />
+      <NameCon UId="30" Name="in2" />
+    </Wire>
+    <Wire UId="39">
+      <NameCon UId="30" Name="out" />
+      <NameCon UId="31" Name="pre" />
+    </Wire>
+    <Wire UId="40">
+      <IdentCon UId="24" />
+      <NameCon UId="31" Name="in1" />
+    </Wire>
+    <Wire UId="41">
+      <IdentCon UId="25" />
+      <NameCon UId="31" Name="in2" />
+    </Wire>
+    <Wire UId="42">
+      <NameCon UId="31" Name="out" />
+      <NameCon UId="32" Name="pre" />
+    </Wire>
+    <Wire UId="43">
+      <IdentCon UId="26" />
+      <NameCon UId="32" Name="in1" />
+    </Wire>
+    <Wire UId="44">
+      <IdentCon UId="27" />
+      <NameCon UId="32" Name="in2" />
+    </Wire>
+    <Wire UId="45">
+      <NameCon UId="32" Name="out" />
+      <NameCon UId="33" Name="in" />
+    </Wire>
+    <Wire UId="46">
+      <IdentCon UId="28" />
+      <NameCon UId="33" Name="operand" />
+    </Wire>
+  </Wires>
+</FlgNet></NetworkSource>
+          <ProgrammingLanguage>LAD</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="15" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="16" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="17" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="18" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="19" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="1A" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="1B" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="1C" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text>前工位车型数据判断</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="1D" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="1E" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="1F" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="20" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <SW.Blocks.CompileUnit ID="21" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><FlgNet xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/v4">
+  <Parts>
+    <Access Scope="LocalVariable" UId="21">
+      <Symbol>
+        <Component Name="Always1" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="22">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Type" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="23">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>10</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="24">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Station_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="25">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>10</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="26">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="ID" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="27">
+      <Constant>
+        <ConstantType>DWord</ConstantType>
+        <ConstantValue>0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="28">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Location_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="29">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>1</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="30">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="RotationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="TypedConstant" UId="31">
+      <Constant>
+        <ConstantValue>DINT#0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="32">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="SN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="33">
+      <Constant>
+        <ConstantType>String</ConstantType>
+        <ConstantValue>''</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="34">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="VIN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="35">
+      <Constant>
+        <ConstantType>String</ConstantType>
+        <ConstantValue>''</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="36">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="SN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="37">
+      <Constant>
+        <ConstantType>String</ConstantType>
+        <ConstantValue>'00000000'</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="38">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="VIN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="39">
+      <Constant>
+        <ConstantType>String</ConstantType>
+        <ConstantValue>'000000000000000000'</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="40">
+      <Symbol>
+        <Component Name="Output_CarData_Valid" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="41">
+      <Symbol>
+        <Component Name="Output_CarDataStatus" />
+        <Component Name="CarData_Valid" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="42">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Type" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="43">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="44">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Station_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="45">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="46">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="ID" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="47">
+      <Constant>
+        <ConstantType>DWord</ConstantType>
+        <ConstantValue>0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="48">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Location_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="49">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="50">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="RotationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="TypedConstant" UId="51">
+      <Constant>
+        <ConstantValue>DINT#0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="52">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="SN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="53">
+      <Constant>
+        <ConstantType>String</ConstantType>
+        <ConstantValue>'00000000'</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="54">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="SN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="55">
+      <Constant>
+        <ConstantType>String</ConstantType>
+        <ConstantValue>''</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="56">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="VIN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="57">
+      <Constant>
+        <ConstantType>String</ConstantType>
+        <ConstantValue>'00000000000000000'</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="58">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="VIN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="59">
+      <Constant>
+        <ConstantType>String</ConstantType>
+        <ConstantValue>''</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="60">
+      <Symbol>
+        <Component Name="CarDataLocalStation_Invalid_Temp" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="61">
+      <Symbol>
+        <Component Name="Output_CarData_Invalid" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="62">
+      <Symbol>
+        <Component Name="Output_CarDataStatus" />
+        <Component Name="CarData_Invalid" />
+      </Symbol>
+    </Access>
+    <Part Name="Contact" UId="63" />
+    <Part Name="Ge" UId="64">
+      <TemplateValue Name="SrcType" Type="Type">Int</TemplateValue>
+    </Part>
+    <Part Name="Ge" UId="65">
+      <TemplateValue Name="SrcType" Type="Type">Int</TemplateValue>
+    </Part>
+    <Part Name="Ne" UId="66">
+      <TemplateValue Name="SrcType" Type="Type">DWord</TemplateValue>
+    </Part>
+    <Part Name="Ge" UId="67">
+      <TemplateValue Name="SrcType" Type="Type">Int</TemplateValue>
+    </Part>
+    <Part Name="Ne" UId="68">
+      <TemplateValue Name="SrcType" Type="Type">DInt</TemplateValue>
+    </Part>
+    <Part Name="Ne" UId="69">
+      <TemplateValue Name="SrcType" Type="Type">String</TemplateValue>
+    </Part>
+    <Part Name="Ne" UId="70">
+      <TemplateValue Name="SrcType" Type="Type">String</TemplateValue>
+    </Part>
+    <Part Name="Ne" UId="71">
+      <TemplateValue Name="SrcType" Type="Type">String</TemplateValue>
+    </Part>
+    <Part Name="Ne" UId="72">
+      <TemplateValue Name="SrcType" Type="Type">String</TemplateValue>
+    </Part>
+    <Part Name="Coil" UId="73" />
+    <Part Name="Coil" UId="74" />
+    <Part Name="Eq" UId="75">
+      <TemplateValue Name="SrcType" Type="Type">Int</TemplateValue>
+    </Part>
+    <Part Name="Eq" UId="76">
+      <TemplateValue Name="SrcType" Type="Type">Int</TemplateValue>
+    </Part>
+    <Part Name="Eq" UId="77">
+      <TemplateValue Name="SrcType" Type="Type">DWord</TemplateValue>
+    </Part>
+    <Part Name="Eq" UId="78">
+      <TemplateValue Name="SrcType" Type="Type">Int</TemplateValue>
+    </Part>
+    <Part Name="Eq" UId="79">
+      <TemplateValue Name="SrcType" Type="Type">DInt</TemplateValue>
+    </Part>
+    <Part Name="Eq" UId="80">
+      <TemplateValue Name="SrcType" Type="Type">String</TemplateValue>
+    </Part>
+    <Part Name="Eq" UId="81">
+      <TemplateValue Name="SrcType" Type="Type">String</TemplateValue>
+    </Part>
+    <Part Name="O" UId="82">
+      <TemplateValue Name="Card" Type="Cardinality">2</TemplateValue>
+    </Part>
+    <Part Name="Eq" UId="83">
+      <TemplateValue Name="SrcType" Type="Type">String</TemplateValue>
+    </Part>
+    <Part Name="Eq" UId="84">
+      <TemplateValue Name="SrcType" Type="Type">String</TemplateValue>
+    </Part>
+    <Part Name="O" UId="85">
+      <TemplateValue Name="Card" Type="Cardinality">2</TemplateValue>
+    </Part>
+    <Part Name="Coil" UId="86" />
+    <Part Name="Coil" UId="87" />
+    <Part Name="Coil" UId="88" />
+  </Parts>
+  <Wires>
+    <Wire UId="89">
+      <Powerrail />
+      <NameCon UId="63" Name="in" />
+    </Wire>
+    <Wire UId="90">
+      <IdentCon UId="21" />
+      <NameCon UId="63" Name="operand" />
+    </Wire>
+    <Wire UId="91">
+      <NameCon UId="63" Name="out" />
+      <NameCon UId="64" Name="pre" />
+      <NameCon UId="75" Name="pre" />
+    </Wire>
+    <Wire UId="92">
+      <IdentCon UId="22" />
+      <NameCon UId="64" Name="in1" />
+    </Wire>
+    <Wire UId="93">
+      <IdentCon UId="23" />
+      <NameCon UId="64" Name="in2" />
+    </Wire>
+    <Wire UId="94">
+      <NameCon UId="64" Name="out" />
+      <NameCon UId="65" Name="pre" />
+    </Wire>
+    <Wire UId="95">
+      <IdentCon UId="24" />
+      <NameCon UId="65" Name="in1" />
+    </Wire>
+    <Wire UId="96">
+      <IdentCon UId="25" />
+      <NameCon UId="65" Name="in2" />
+    </Wire>
+    <Wire UId="97">
+      <NameCon UId="65" Name="out" />
+      <NameCon UId="66" Name="pre" />
+    </Wire>
+    <Wire UId="98">
+      <IdentCon UId="26" />
+      <NameCon UId="66" Name="in1" />
+    </Wire>
+    <Wire UId="99">
+      <IdentCon UId="27" />
+      <NameCon UId="66" Name="in2" />
+    </Wire>
+    <Wire UId="100">
+      <NameCon UId="66" Name="out" />
+      <NameCon UId="67" Name="pre" />
+    </Wire>
+    <Wire UId="101">
+      <IdentCon UId="28" />
+      <NameCon UId="67" Name="in1" />
+    </Wire>
+    <Wire UId="102">
+      <IdentCon UId="29" />
+      <NameCon UId="67" Name="in2" />
+    </Wire>
+    <Wire UId="103">
+      <NameCon UId="67" Name="out" />
+      <NameCon UId="68" Name="pre" />
+    </Wire>
+    <Wire UId="104">
+      <IdentCon UId="30" />
+      <NameCon UId="68" Name="in1" />
+    </Wire>
+    <Wire UId="105">
+      <IdentCon UId="31" />
+      <NameCon UId="68" Name="in2" />
+    </Wire>
+    <Wire UId="106">
+      <NameCon UId="68" Name="out" />
+      <NameCon UId="69" Name="pre" />
+    </Wire>
+    <Wire UId="107">
+      <IdentCon UId="32" />
+      <NameCon UId="69" Name="in1" />
+    </Wire>
+    <Wire UId="108">
+      <IdentCon UId="33" />
+      <NameCon UId="69" Name="in2" />
+    </Wire>
+    <Wire UId="109">
+      <NameCon UId="69" Name="out" />
+      <NameCon UId="70" Name="pre" />
+    </Wire>
+    <Wire UId="110">
+      <IdentCon UId="34" />
+      <NameCon UId="70" Name="in1" />
+    </Wire>
+    <Wire UId="111">
+      <IdentCon UId="35" />
+      <NameCon UId="70" Name="in2" />
+    </Wire>
+    <Wire UId="112">
+      <NameCon UId="70" Name="out" />
+      <NameCon UId="71" Name="pre" />
+    </Wire>
+    <Wire UId="113">
+      <IdentCon UId="36" />
+      <NameCon UId="71" Name="in1" />
+    </Wire>
+    <Wire UId="114">
+      <IdentCon UId="37" />
+      <NameCon UId="71" Name="in2" />
+    </Wire>
+    <Wire UId="115">
+      <NameCon UId="71" Name="out" />
+      <NameCon UId="72" Name="pre" />
+    </Wire>
+    <Wire UId="116">
+      <IdentCon UId="38" />
+      <NameCon UId="72" Name="in1" />
+    </Wire>
+    <Wire UId="117">
+      <IdentCon UId="39" />
+      <NameCon UId="72" Name="in2" />
+    </Wire>
+    <Wire UId="118">
+      <NameCon UId="72" Name="out" />
+      <NameCon UId="73" Name="in" />
+    </Wire>
+    <Wire UId="119">
+      <IdentCon UId="40" />
+      <NameCon UId="73" Name="operand" />
+    </Wire>
+    <Wire UId="120">
+      <NameCon UId="73" Name="out" />
+      <NameCon UId="74" Name="in" />
+    </Wire>
+    <Wire UId="121">
+      <IdentCon UId="41" />
+      <NameCon UId="74" Name="operand" />
+    </Wire>
+    <Wire UId="122">
+      <IdentCon UId="42" />
+      <NameCon UId="75" Name="in1" />
+    </Wire>
+    <Wire UId="123">
+      <IdentCon UId="43" />
+      <NameCon UId="75" Name="in2" />
+    </Wire>
+    <Wire UId="124">
+      <NameCon UId="75" Name="out" />
+      <NameCon UId="76" Name="pre" />
+    </Wire>
+    <Wire UId="125">
+      <IdentCon UId="44" />
+      <NameCon UId="76" Name="in1" />
+    </Wire>
+    <Wire UId="126">
+      <IdentCon UId="45" />
+      <NameCon UId="76" Name="in2" />
+    </Wire>
+    <Wire UId="127">
+      <NameCon UId="76" Name="out" />
+      <NameCon UId="77" Name="pre" />
+    </Wire>
+    <Wire UId="128">
+      <IdentCon UId="46" />
+      <NameCon UId="77" Name="in1" />
+    </Wire>
+    <Wire UId="129">
+      <IdentCon UId="47" />
+      <NameCon UId="77" Name="in2" />
+    </Wire>
+    <Wire UId="130">
+      <NameCon UId="77" Name="out" />
+      <NameCon UId="78" Name="pre" />
+    </Wire>
+    <Wire UId="131">
+      <IdentCon UId="48" />
+      <NameCon UId="78" Name="in1" />
+    </Wire>
+    <Wire UId="132">
+      <IdentCon UId="49" />
+      <NameCon UId="78" Name="in2" />
+    </Wire>
+    <Wire UId="133">
+      <NameCon UId="78" Name="out" />
+      <NameCon UId="79" Name="pre" />
+    </Wire>
+    <Wire UId="134">
+      <IdentCon UId="50" />
+      <NameCon UId="79" Name="in1" />
+    </Wire>
+    <Wire UId="135">
+      <IdentCon UId="51" />
+      <NameCon UId="79" Name="in2" />
+    </Wire>
+    <Wire UId="136">
+      <NameCon UId="79" Name="out" />
+      <NameCon UId="80" Name="pre" />
+      <NameCon UId="81" Name="pre" />
+    </Wire>
+    <Wire UId="137">
+      <IdentCon UId="52" />
+      <NameCon UId="80" Name="in1" />
+    </Wire>
+    <Wire UId="138">
+      <IdentCon UId="53" />
+      <NameCon UId="80" Name="in2" />
+    </Wire>
+    <Wire UId="139">
+      <NameCon UId="80" Name="out" />
+      <NameCon UId="82" Name="in1" />
+    </Wire>
+    <Wire UId="140">
+      <IdentCon UId="54" />
+      <NameCon UId="81" Name="in1" />
+    </Wire>
+    <Wire UId="141">
+      <IdentCon UId="55" />
+      <NameCon UId="81" Name="in2" />
+    </Wire>
+    <Wire UId="142">
+      <NameCon UId="81" Name="out" />
+      <NameCon UId="82" Name="in2" />
+    </Wire>
+    <Wire UId="143">
+      <NameCon UId="82" Name="out" />
+      <NameCon UId="83" Name="pre" />
+      <NameCon UId="84" Name="pre" />
+    </Wire>
+    <Wire UId="144">
+      <IdentCon UId="56" />
+      <NameCon UId="83" Name="in1" />
+    </Wire>
+    <Wire UId="145">
+      <IdentCon UId="57" />
+      <NameCon UId="83" Name="in2" />
+    </Wire>
+    <Wire UId="146">
+      <NameCon UId="83" Name="out" />
+      <NameCon UId="85" Name="in1" />
+    </Wire>
+    <Wire UId="147">
+      <IdentCon UId="58" />
+      <NameCon UId="84" Name="in1" />
+    </Wire>
+    <Wire UId="148">
+      <IdentCon UId="59" />
+      <NameCon UId="84" Name="in2" />
+    </Wire>
+    <Wire UId="149">
+      <NameCon UId="84" Name="out" />
+      <NameCon UId="85" Name="in2" />
+    </Wire>
+    <Wire UId="150">
+      <NameCon UId="85" Name="out" />
+      <NameCon UId="86" Name="in" />
+    </Wire>
+    <Wire UId="151">
+      <IdentCon UId="60" />
+      <NameCon UId="86" Name="operand" />
+    </Wire>
+    <Wire UId="152">
+      <NameCon UId="86" Name="out" />
+      <NameCon UId="87" Name="in" />
+    </Wire>
+    <Wire UId="153">
+      <IdentCon UId="61" />
+      <NameCon UId="87" Name="operand" />
+    </Wire>
+    <Wire UId="154">
+      <NameCon UId="87" Name="out" />
+      <NameCon UId="88" Name="in" />
+    </Wire>
+    <Wire UId="155">
+      <IdentCon UId="62" />
+      <NameCon UId="88" Name="operand" />
+    </Wire>
+  </Wires>
+</FlgNet></NetworkSource>
+          <ProgrammingLanguage>LAD</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="22" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="23" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="24" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="25" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="26" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="27" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="28" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="29" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text>本工位车型数据判断</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="2A" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="2B" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="2C" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="2D" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <SW.Blocks.CompileUnit ID="2E" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><FlgNet xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/v4">
+  <Parts>
+    <Access Scope="LocalVariable" UId="21">
+      <Symbol>
+        <Component Name="CarDataPreviousStation_Valid_Temp" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="22">
+      <Symbol>
+        <Component Name="CarDataLocalStation_Invalid_Temp" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="23">
+      <Symbol>
+        <Component Name="CarDataConveyEnable" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="24">
+      <Symbol>
+        <Component Name="CarDataPreviousStation" />
+        <Component Name="SN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="25">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="SN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="26">
+      <Symbol>
+        <Component Name="UnClear_CarDataPreviousEnable" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="27">
+      <Constant>
+        <ConstantType>String</ConstantType>
+        <ConstantValue>'00000000'</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="28">
+      <Symbol>
+        <Component Name="CarDataPreviousStation" />
+        <Component Name="SN" />
+      </Symbol>
+    </Access>
+    <Part Name="Contact" UId="29" />
+    <Part Name="Contact" UId="30" />
+    <Part Name="Contact" UId="31" />
+    <Part Name="S_Move" UId="32" DisabledENO="true" />
+    <Part Name="Contact" UId="33">
+      <Negated Name="operand" />
+    </Part>
+    <Part Name="S_Move" UId="34" DisabledENO="true" />
+  </Parts>
+  <Wires>
+    <Wire UId="35">
+      <Powerrail />
+      <NameCon UId="29" Name="in" />
+    </Wire>
+    <Wire UId="36">
+      <IdentCon UId="21" />
+      <NameCon UId="29" Name="operand" />
+    </Wire>
+    <Wire UId="37">
+      <NameCon UId="29" Name="out" />
+      <NameCon UId="30" Name="in" />
+    </Wire>
+    <Wire UId="38">
+      <IdentCon UId="22" />
+      <NameCon UId="30" Name="operand" />
+    </Wire>
+    <Wire UId="39">
+      <NameCon UId="30" Name="out" />
+      <NameCon UId="31" Name="in" />
+    </Wire>
+    <Wire UId="40">
+      <IdentCon UId="23" />
+      <NameCon UId="31" Name="operand" />
+    </Wire>
+    <Wire UId="41">
+      <NameCon UId="31" Name="out" />
+      <NameCon UId="32" Name="en" />
+    </Wire>
+    <Wire UId="42">
+      <IdentCon UId="24" />
+      <NameCon UId="32" Name="in" />
+    </Wire>
+    <Wire UId="43">
+      <NameCon UId="32" Name="eno" />
+      <NameCon UId="33" Name="in" />
+    </Wire>
+    <Wire UId="44">
+      <NameCon UId="32" Name="out" />
+      <IdentCon UId="25" />
+    </Wire>
+    <Wire UId="45">
+      <IdentCon UId="26" />
+      <NameCon UId="33" Name="operand" />
+    </Wire>
+    <Wire UId="46">
+      <NameCon UId="33" Name="out" />
+      <NameCon UId="34" Name="en" />
+    </Wire>
+    <Wire UId="47">
+      <IdentCon UId="27" />
+      <NameCon UId="34" Name="in" />
+    </Wire>
+    <Wire UId="48">
+      <NameCon UId="34" Name="out" />
+      <IdentCon UId="28" />
+    </Wire>
+  </Wires>
+</FlgNet></NetworkSource>
+          <ProgrammingLanguage>LAD</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="2F" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="30" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="31" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="32" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="33" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="34" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="35" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="36" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text>传递车型数据 SN</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="37" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="38" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="39" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="3A" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <SW.Blocks.CompileUnit ID="3B" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><FlgNet xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/v4">
+  <Parts>
+    <Access Scope="LocalVariable" UId="21">
+      <Symbol>
+        <Component Name="CarDataPreviousStation_Valid_Temp" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="22">
+      <Symbol>
+        <Component Name="CarDataLocalStation_Invalid_Temp" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="23">
+      <Symbol>
+        <Component Name="CarDataConveyEnable" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="24">
+      <Symbol>
+        <Component Name="CarDataPreviousStation" />
+        <Component Name="VIN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="25">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="VIN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="26">
+      <Symbol>
+        <Component Name="UnClear_CarDataPreviousEnable" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="27">
+      <Constant>
+        <ConstantType>String</ConstantType>
+        <ConstantValue>'00000000000000000'</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="28">
+      <Symbol>
+        <Component Name="CarDataPreviousStation" />
+        <Component Name="VIN" />
+      </Symbol>
+    </Access>
+    <Part Name="Contact" UId="29" />
+    <Part Name="Contact" UId="30" />
+    <Part Name="Contact" UId="31" />
+    <Part Name="S_Move" UId="32" DisabledENO="true" />
+    <Part Name="Contact" UId="33">
+      <Negated Name="operand" />
+    </Part>
+    <Part Name="S_Move" UId="34" DisabledENO="true" />
+  </Parts>
+  <Wires>
+    <Wire UId="35">
+      <Powerrail />
+      <NameCon UId="29" Name="in" />
+    </Wire>
+    <Wire UId="36">
+      <IdentCon UId="21" />
+      <NameCon UId="29" Name="operand" />
+    </Wire>
+    <Wire UId="37">
+      <NameCon UId="29" Name="out" />
+      <NameCon UId="30" Name="in" />
+    </Wire>
+    <Wire UId="38">
+      <IdentCon UId="22" />
+      <NameCon UId="30" Name="operand" />
+    </Wire>
+    <Wire UId="39">
+      <NameCon UId="30" Name="out" />
+      <NameCon UId="31" Name="in" />
+    </Wire>
+    <Wire UId="40">
+      <IdentCon UId="23" />
+      <NameCon UId="31" Name="operand" />
+    </Wire>
+    <Wire UId="41">
+      <NameCon UId="31" Name="out" />
+      <NameCon UId="32" Name="en" />
+    </Wire>
+    <Wire UId="42">
+      <IdentCon UId="24" />
+      <NameCon UId="32" Name="in" />
+    </Wire>
+    <Wire UId="43">
+      <NameCon UId="32" Name="eno" />
+      <NameCon UId="33" Name="in" />
+    </Wire>
+    <Wire UId="44">
+      <NameCon UId="32" Name="out" />
+      <IdentCon UId="25" />
+    </Wire>
+    <Wire UId="45">
+      <IdentCon UId="26" />
+      <NameCon UId="33" Name="operand" />
+    </Wire>
+    <Wire UId="46">
+      <NameCon UId="33" Name="out" />
+      <NameCon UId="34" Name="en" />
+    </Wire>
+    <Wire UId="47">
+      <IdentCon UId="27" />
+      <NameCon UId="34" Name="in" />
+    </Wire>
+    <Wire UId="48">
+      <NameCon UId="34" Name="out" />
+      <IdentCon UId="28" />
+    </Wire>
+  </Wires>
+</FlgNet></NetworkSource>
+          <ProgrammingLanguage>LAD</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="3C" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="3D" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="3E" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="3F" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="40" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="41" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="42" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="43" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text>传递车型数据 VIN</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="44" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="45" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="46" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="47" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <SW.Blocks.CompileUnit ID="48" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><FlgNet xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/v4">
+  <Parts>
+    <Access Scope="LocalVariable" UId="21">
+      <Symbol>
+        <Component Name="CarDataPreviousStation_Valid_Temp" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="22">
+      <Symbol>
+        <Component Name="CarDataLocalStation_Invalid_Temp" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="23">
+      <Symbol>
+        <Component Name="CarDataConveyEnable" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="24">
+      <Symbol>
+        <Component Name="CarDataPreviousStation" />
+        <Component Name="Type" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="25">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Type" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="26">
+      <Symbol>
+        <Component Name="UnClear_CarDataPreviousEnable" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="27">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="28">
+      <Symbol>
+        <Component Name="CarDataPreviousStation" />
+        <Component Name="Type" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="29">
+      <Symbol>
+        <Component Name="CarDataPreviousStation" />
+        <Component Name="Station_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="30">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Station_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="31">
+      <Symbol>
+        <Component Name="UnClear_CarDataPreviousEnable" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="32">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="33">
+      <Symbol>
+        <Component Name="CarDataPreviousStation" />
+        <Component Name="Station_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="34">
+      <Symbol>
+        <Component Name="CarDataPreviousStation" />
+        <Component Name="Location_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="35">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Location_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="36">
+      <Symbol>
+        <Component Name="UnClear_CarDataPreviousEnable" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="37">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="38">
+      <Symbol>
+        <Component Name="CarDataPreviousStation" />
+        <Component Name="Location_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="39">
+      <Symbol>
+        <Component Name="CarDataPreviousStation" />
+        <Component Name="RotationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="40">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="RotationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="41">
+      <Symbol>
+        <Component Name="UnClear_CarDataPreviousEnable" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="42">
+      <Constant>
+        <ConstantType>DWord</ConstantType>
+        <ConstantValue>0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="43">
+      <Symbol>
+        <Component Name="CarDataPreviousStation" />
+        <Component Name="RotationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="44">
+      <Symbol>
+        <Component Name="CarDataPreviousStation" />
+        <Component Name="ID" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="45">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="ID" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="46">
+      <Symbol>
+        <Component Name="UnClear_CarDataPreviousEnable" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="47">
+      <Constant>
+        <ConstantType>DWord</ConstantType>
+        <ConstantValue>0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="48">
+      <Symbol>
+        <Component Name="CarDataPreviousStation" />
+        <Component Name="ID" />
+      </Symbol>
+    </Access>
+    <Part Name="Contact" UId="49" />
+    <Part Name="Contact" UId="50" />
+    <Part Name="Contact" UId="51" />
+    <Part Name="Move" UId="52" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Contact" UId="53">
+      <Negated Name="operand" />
+    </Part>
+    <Part Name="Move" UId="54" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="55" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Contact" UId="56">
+      <Negated Name="operand" />
+    </Part>
+    <Part Name="Move" UId="57" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="58" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Contact" UId="59">
+      <Negated Name="operand" />
+    </Part>
+    <Part Name="Move" UId="60" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="61" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Contact" UId="62">
+      <Negated Name="operand" />
+    </Part>
+    <Part Name="Move" UId="63" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="64" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Contact" UId="65">
+      <Negated Name="operand" />
+    </Part>
+    <Part Name="Move" UId="66" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+  </Parts>
+  <Wires>
+    <Wire UId="67">
+      <Powerrail />
+      <NameCon UId="49" Name="in" />
+    </Wire>
+    <Wire UId="68">
+      <IdentCon UId="21" />
+      <NameCon UId="49" Name="operand" />
+    </Wire>
+    <Wire UId="69">
+      <NameCon UId="49" Name="out" />
+      <NameCon UId="50" Name="in" />
+    </Wire>
+    <Wire UId="70">
+      <IdentCon UId="22" />
+      <NameCon UId="50" Name="operand" />
+    </Wire>
+    <Wire UId="71">
+      <NameCon UId="50" Name="out" />
+      <NameCon UId="51" Name="in" />
+    </Wire>
+    <Wire UId="72">
+      <IdentCon UId="23" />
+      <NameCon UId="51" Name="operand" />
+    </Wire>
+    <Wire UId="73">
+      <NameCon UId="51" Name="out" />
+      <NameCon UId="52" Name="en" />
+      <NameCon UId="55" Name="en" />
+      <NameCon UId="58" Name="en" />
+      <NameCon UId="61" Name="en" />
+      <NameCon UId="64" Name="en" />
+    </Wire>
+    <Wire UId="74">
+      <IdentCon UId="24" />
+      <NameCon UId="52" Name="in" />
+    </Wire>
+    <Wire UId="75">
+      <NameCon UId="52" Name="eno" />
+      <NameCon UId="53" Name="in" />
+    </Wire>
+    <Wire UId="76">
+      <NameCon UId="52" Name="out1" />
+      <IdentCon UId="25" />
+    </Wire>
+    <Wire UId="77">
+      <IdentCon UId="26" />
+      <NameCon UId="53" Name="operand" />
+    </Wire>
+    <Wire UId="78">
+      <NameCon UId="53" Name="out" />
+      <NameCon UId="54" Name="en" />
+    </Wire>
+    <Wire UId="79">
+      <IdentCon UId="27" />
+      <NameCon UId="54" Name="in" />
+    </Wire>
+    <Wire UId="80">
+      <NameCon UId="54" Name="out1" />
+      <IdentCon UId="28" />
+    </Wire>
+    <Wire UId="81">
+      <IdentCon UId="29" />
+      <NameCon UId="55" Name="in" />
+    </Wire>
+    <Wire UId="82">
+      <NameCon UId="55" Name="eno" />
+      <NameCon UId="56" Name="in" />
+    </Wire>
+    <Wire UId="83">
+      <NameCon UId="55" Name="out1" />
+      <IdentCon UId="30" />
+    </Wire>
+    <Wire UId="84">
+      <IdentCon UId="31" />
+      <NameCon UId="56" Name="operand" />
+    </Wire>
+    <Wire UId="85">
+      <NameCon UId="56" Name="out" />
+      <NameCon UId="57" Name="en" />
+    </Wire>
+    <Wire UId="86">
+      <IdentCon UId="32" />
+      <NameCon UId="57" Name="in" />
+    </Wire>
+    <Wire UId="87">
+      <NameCon UId="57" Name="out1" />
+      <IdentCon UId="33" />
+    </Wire>
+    <Wire UId="88">
+      <IdentCon UId="34" />
+      <NameCon UId="58" Name="in" />
+    </Wire>
+    <Wire UId="89">
+      <NameCon UId="58" Name="eno" />
+      <NameCon UId="59" Name="in" />
+    </Wire>
+    <Wire UId="90">
+      <NameCon UId="58" Name="out1" />
+      <IdentCon UId="35" />
+    </Wire>
+    <Wire UId="91">
+      <IdentCon UId="36" />
+      <NameCon UId="59" Name="operand" />
+    </Wire>
+    <Wire UId="92">
+      <NameCon UId="59" Name="out" />
+      <NameCon UId="60" Name="en" />
+    </Wire>
+    <Wire UId="93">
+      <IdentCon UId="37" />
+      <NameCon UId="60" Name="in" />
+    </Wire>
+    <Wire UId="94">
+      <NameCon UId="60" Name="out1" />
+      <IdentCon UId="38" />
+    </Wire>
+    <Wire UId="95">
+      <IdentCon UId="39" />
+      <NameCon UId="61" Name="in" />
+    </Wire>
+    <Wire UId="96">
+      <NameCon UId="61" Name="eno" />
+      <NameCon UId="62" Name="in" />
+    </Wire>
+    <Wire UId="97">
+      <NameCon UId="61" Name="out1" />
+      <IdentCon UId="40" />
+    </Wire>
+    <Wire UId="98">
+      <IdentCon UId="41" />
+      <NameCon UId="62" Name="operand" />
+    </Wire>
+    <Wire UId="99">
+      <NameCon UId="62" Name="out" />
+      <NameCon UId="63" Name="en" />
+    </Wire>
+    <Wire UId="100">
+      <IdentCon UId="42" />
+      <NameCon UId="63" Name="in" />
+    </Wire>
+    <Wire UId="101">
+      <NameCon UId="63" Name="out1" />
+      <IdentCon UId="43" />
+    </Wire>
+    <Wire UId="102">
+      <IdentCon UId="44" />
+      <NameCon UId="64" Name="in" />
+    </Wire>
+    <Wire UId="103">
+      <NameCon UId="64" Name="eno" />
+      <NameCon UId="65" Name="in" />
+    </Wire>
+    <Wire UId="104">
+      <NameCon UId="64" Name="out1" />
+      <IdentCon UId="45" />
+    </Wire>
+    <Wire UId="105">
+      <IdentCon UId="46" />
+      <NameCon UId="65" Name="operand" />
+    </Wire>
+    <Wire UId="106">
+      <NameCon UId="65" Name="out" />
+      <NameCon UId="66" Name="en" />
+    </Wire>
+    <Wire UId="107">
+      <IdentCon UId="47" />
+      <NameCon UId="66" Name="in" />
+    </Wire>
+    <Wire UId="108">
+      <NameCon UId="66" Name="out1" />
+      <IdentCon UId="48" />
+    </Wire>
+  </Wires>
+</FlgNet></NetworkSource>
+          <ProgrammingLanguage>LAD</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="49" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="4A" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="4B" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="4C" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="4D" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="4E" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="4F" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="50" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text>传递车型数据</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="51" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="52" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="53" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="54" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <SW.Blocks.CompileUnit ID="55" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><FlgNet xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/v4">
+  <Parts>
+    <Access Scope="LocalVariable" UId="21">
+      <Symbol>
+        <Component Name="Change_CarDataEnable" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="22">
+      <Symbol>
+        <Component Name="Plus_1" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="23">
+      <Symbol>
+        <Component Name="StationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="24">
+      <Symbol>
+        <Component Name="Change_StationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="25">
+      <Symbol>
+        <Component Name="Change_CarData" />
+        <Component Name="SN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="26">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="SN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="27">
+      <Symbol>
+        <Component Name="Change_CarData" />
+        <Component Name="VIN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="28">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="VIN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="29">
+      <Symbol>
+        <Component Name="Change_CarData" />
+        <Component Name="Type" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="30">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Type" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="31">
+      <Symbol>
+        <Component Name="Change_CarData" />
+        <Component Name="Station_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="32">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Station_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="33">
+      <Symbol>
+        <Component Name="Change_CarData" />
+        <Component Name="Location_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="34">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Location_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="35">
+      <Symbol>
+        <Component Name="Change_CarData" />
+        <Component Name="RotationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="36">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="RotationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="37">
+      <Symbol>
+        <Component Name="Change_CarData" />
+        <Component Name="ID" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="38">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="ID" />
+      </Symbol>
+    </Access>
+    <Part Name="Contact" UId="39" />
+    <Part Name="PBox" UId="40" />
+    <Part Name="Eq" UId="41">
+      <TemplateValue Name="SrcType" Type="Type">Int</TemplateValue>
+    </Part>
+    <Part Name="S_Move" UId="42" DisabledENO="true" />
+    <Part Name="S_Move" UId="43" DisabledENO="true" />
+    <Part Name="Move" UId="44" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="45" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="46" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="47" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="48" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+  </Parts>
+  <Wires>
+    <Wire UId="49">
+      <Powerrail />
+      <NameCon UId="39" Name="in" />
+    </Wire>
+    <Wire UId="50">
+      <IdentCon UId="21" />
+      <NameCon UId="39" Name="operand" />
+    </Wire>
+    <Wire UId="51">
+      <NameCon UId="39" Name="out" />
+      <NameCon UId="40" Name="in" />
+    </Wire>
+    <Wire UId="52">
+      <IdentCon UId="22" />
+      <NameCon UId="40" Name="bit" />
+    </Wire>
+    <Wire UId="53">
+      <NameCon UId="40" Name="out" />
+      <NameCon UId="41" Name="pre" />
+    </Wire>
+    <Wire UId="54">
+      <IdentCon UId="23" />
+      <NameCon UId="41" Name="in1" />
+    </Wire>
+    <Wire UId="55">
+      <IdentCon UId="24" />
+      <NameCon UId="41" Name="in2" />
+    </Wire>
+    <Wire UId="56">
+      <NameCon UId="41" Name="out" />
+      <NameCon UId="42" Name="en" />
+      <NameCon UId="44" Name="en" />
+      <NameCon UId="46" Name="en" />
+      <NameCon UId="48" Name="en" />
+    </Wire>
+    <Wire UId="57">
+      <IdentCon UId="25" />
+      <NameCon UId="42" Name="in" />
+    </Wire>
+    <Wire UId="58">
+      <NameCon UId="42" Name="eno" />
+      <NameCon UId="43" Name="en" />
+    </Wire>
+    <Wire UId="59">
+      <NameCon UId="42" Name="out" />
+      <IdentCon UId="26" />
+    </Wire>
+    <Wire UId="60">
+      <IdentCon UId="27" />
+      <NameCon UId="43" Name="in" />
+    </Wire>
+    <Wire UId="61">
+      <NameCon UId="43" Name="out" />
+      <IdentCon UId="28" />
+    </Wire>
+    <Wire UId="62">
+      <IdentCon UId="29" />
+      <NameCon UId="44" Name="in" />
+    </Wire>
+    <Wire UId="63">
+      <NameCon UId="44" Name="eno" />
+      <NameCon UId="45" Name="en" />
+    </Wire>
+    <Wire UId="64">
+      <NameCon UId="44" Name="out1" />
+      <IdentCon UId="30" />
+    </Wire>
+    <Wire UId="65">
+      <IdentCon UId="31" />
+      <NameCon UId="45" Name="in" />
+    </Wire>
+    <Wire UId="66">
+      <NameCon UId="45" Name="out1" />
+      <IdentCon UId="32" />
+    </Wire>
+    <Wire UId="67">
+      <IdentCon UId="33" />
+      <NameCon UId="46" Name="in" />
+    </Wire>
+    <Wire UId="68">
+      <NameCon UId="46" Name="eno" />
+      <NameCon UId="47" Name="en" />
+    </Wire>
+    <Wire UId="69">
+      <NameCon UId="46" Name="out1" />
+      <IdentCon UId="34" />
+    </Wire>
+    <Wire UId="70">
+      <IdentCon UId="35" />
+      <NameCon UId="47" Name="in" />
+    </Wire>
+    <Wire UId="71">
+      <NameCon UId="47" Name="out1" />
+      <IdentCon UId="36" />
+    </Wire>
+    <Wire UId="72">
+      <IdentCon UId="37" />
+      <NameCon UId="48" Name="in" />
+    </Wire>
+    <Wire UId="73">
+      <NameCon UId="48" Name="out1" />
+      <IdentCon UId="38" />
+    </Wire>
+  </Wires>
+</FlgNet></NetworkSource>
+          <ProgrammingLanguage>LAD</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="56" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="57" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="58" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="59" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="5A" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="5B" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="5C" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="5D" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text>HMI修改车型数据 SN  VIN</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="5E" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="5F" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="60" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="61" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <SW.Blocks.CompileUnit ID="62" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><FlgNet xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/v4">
+  <Parts>
+    <Access Scope="LocalVariable" UId="21">
+      <Symbol>
+        <Component Name="StationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="22">
+      <Symbol>
+        <Component Name="Change_StationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="23">
+      <Symbol>
+        <Component Name="CopyCarDataEnable" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="24">
+      <Symbol>
+        <Component Name="Plus_2" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="25">
+      <Symbol>
+        <Component Name="StationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="26">
+      <Symbol>
+        <Component Name="Change_StationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="27">
+      <Symbol>
+        <Component Name="Read_CarDataLocalStation" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="28">
+      <Symbol>
+        <Component Name="Plus_Change1" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="29">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Type" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="30">
+      <Symbol>
+        <Component Name="Change_CarData" />
+        <Component Name="Type" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="31">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Station_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="32">
+      <Symbol>
+        <Component Name="Change_CarData" />
+        <Component Name="Station_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="33">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Location_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="34">
+      <Symbol>
+        <Component Name="Change_CarData" />
+        <Component Name="Location_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="35">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="RotationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="36">
+      <Symbol>
+        <Component Name="Change_CarData" />
+        <Component Name="RotationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="37">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="SN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="38">
+      <Symbol>
+        <Component Name="Change_CarData" />
+        <Component Name="SN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="39">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="VIN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="40">
+      <Symbol>
+        <Component Name="Change_CarData" />
+        <Component Name="VIN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="41">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="ID" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="42">
+      <Symbol>
+        <Component Name="Change_CarData" />
+        <Component Name="ID" />
+      </Symbol>
+    </Access>
+    <Part Name="Eq" UId="43">
+      <TemplateValue Name="SrcType" Type="Type">Int</TemplateValue>
+    </Part>
+    <Part Name="Contact" UId="44" />
+    <Part Name="PBox" UId="45" />
+    <Part Name="Eq" UId="46">
+      <TemplateValue Name="SrcType" Type="Type">Int</TemplateValue>
+    </Part>
+    <Part Name="Contact" UId="47" />
+    <Part Name="PBox" UId="48" />
+    <Part Name="O" UId="49">
+      <TemplateValue Name="Card" Type="Cardinality">2</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="50" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="51" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="52" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="53" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="S_Move" UId="54" DisabledENO="true" />
+    <Part Name="S_Move" UId="55" DisabledENO="true" />
+    <Part Name="Move" UId="56" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+  </Parts>
+  <Wires>
+    <Wire UId="57">
+      <Powerrail />
+      <NameCon UId="43" Name="pre" />
+      <NameCon UId="46" Name="pre" />
+    </Wire>
+    <Wire UId="58">
+      <IdentCon UId="21" />
+      <NameCon UId="43" Name="in1" />
+    </Wire>
+    <Wire UId="59">
+      <IdentCon UId="22" />
+      <NameCon UId="43" Name="in2" />
+    </Wire>
+    <Wire UId="60">
+      <NameCon UId="43" Name="out" />
+      <NameCon UId="44" Name="in" />
+    </Wire>
+    <Wire UId="61">
+      <IdentCon UId="23" />
+      <NameCon UId="44" Name="operand" />
+    </Wire>
+    <Wire UId="62">
+      <NameCon UId="44" Name="out" />
+      <NameCon UId="45" Name="in" />
+    </Wire>
+    <Wire UId="63">
+      <IdentCon UId="24" />
+      <NameCon UId="45" Name="bit" />
+    </Wire>
+    <Wire UId="64">
+      <NameCon UId="45" Name="out" />
+      <NameCon UId="49" Name="in1" />
+    </Wire>
+    <Wire UId="65">
+      <IdentCon UId="25" />
+      <NameCon UId="46" Name="in1" />
+    </Wire>
+    <Wire UId="66">
+      <IdentCon UId="26" />
+      <NameCon UId="46" Name="in2" />
+    </Wire>
+    <Wire UId="67">
+      <NameCon UId="46" Name="out" />
+      <NameCon UId="47" Name="in" />
+    </Wire>
+    <Wire UId="68">
+      <IdentCon UId="27" />
+      <NameCon UId="47" Name="operand" />
+    </Wire>
+    <Wire UId="69">
+      <NameCon UId="47" Name="out" />
+      <NameCon UId="48" Name="in" />
+    </Wire>
+    <Wire UId="70">
+      <IdentCon UId="28" />
+      <NameCon UId="48" Name="bit" />
+    </Wire>
+    <Wire UId="71">
+      <NameCon UId="48" Name="out" />
+      <NameCon UId="49" Name="in2" />
+    </Wire>
+    <Wire UId="72">
+      <NameCon UId="49" Name="out" />
+      <NameCon UId="50" Name="en" />
+      <NameCon UId="52" Name="en" />
+      <NameCon UId="54" Name="en" />
+      <NameCon UId="56" Name="en" />
+    </Wire>
+    <Wire UId="73">
+      <IdentCon UId="29" />
+      <NameCon UId="50" Name="in" />
+    </Wire>
+    <Wire UId="74">
+      <NameCon UId="50" Name="eno" />
+      <NameCon UId="51" Name="en" />
+    </Wire>
+    <Wire UId="75">
+      <NameCon UId="50" Name="out1" />
+      <IdentCon UId="30" />
+    </Wire>
+    <Wire UId="76">
+      <IdentCon UId="31" />
+      <NameCon UId="51" Name="in" />
+    </Wire>
+    <Wire UId="77">
+      <NameCon UId="51" Name="out1" />
+      <IdentCon UId="32" />
+    </Wire>
+    <Wire UId="78">
+      <IdentCon UId="33" />
+      <NameCon UId="52" Name="in" />
+    </Wire>
+    <Wire UId="79">
+      <NameCon UId="52" Name="eno" />
+      <NameCon UId="53" Name="en" />
+    </Wire>
+    <Wire UId="80">
+      <NameCon UId="52" Name="out1" />
+      <IdentCon UId="34" />
+    </Wire>
+    <Wire UId="81">
+      <IdentCon UId="35" />
+      <NameCon UId="53" Name="in" />
+    </Wire>
+    <Wire UId="82">
+      <NameCon UId="53" Name="out1" />
+      <IdentCon UId="36" />
+    </Wire>
+    <Wire UId="83">
+      <IdentCon UId="37" />
+      <NameCon UId="54" Name="in" />
+    </Wire>
+    <Wire UId="84">
+      <NameCon UId="54" Name="eno" />
+      <NameCon UId="55" Name="en" />
+    </Wire>
+    <Wire UId="85">
+      <NameCon UId="54" Name="out" />
+      <IdentCon UId="38" />
+    </Wire>
+    <Wire UId="86">
+      <IdentCon UId="39" />
+      <NameCon UId="55" Name="in" />
+    </Wire>
+    <Wire UId="87">
+      <NameCon UId="55" Name="out" />
+      <IdentCon UId="40" />
+    </Wire>
+    <Wire UId="88">
+      <IdentCon UId="41" />
+      <NameCon UId="56" Name="in" />
+    </Wire>
+    <Wire UId="89">
+      <NameCon UId="56" Name="out1" />
+      <IdentCon UId="42" />
+    </Wire>
+  </Wires>
+</FlgNet></NetworkSource>
+          <ProgrammingLanguage>LAD</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="63" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="64" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="65" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="66" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="67" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="68" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="69" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="6A" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text>本工位车型数据返回给HMI</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="6B" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="6C" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="6D" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="6E" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <SW.Blocks.CompileUnit ID="6F" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><FlgNet xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/v4">
+  <Parts>
+    <Access Scope="LocalVariable" UId="21">
+      <Symbol>
+        <Component Name="Clear_DryRunCarDataEnable" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="22">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Location_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="23">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>9999</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LiteralConstant" UId="24">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="25">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Type" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="26">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="27">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Station_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="28">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="29">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Location_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="30">
+      <Constant>
+        <ConstantType>DWord</ConstantType>
+        <ConstantValue>0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="31">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="RotationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="32">
+      <Constant>
+        <ConstantType>DWord</ConstantType>
+        <ConstantValue>0</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="33">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="ID" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="34">
+      <Constant>
+        <ConstantType>String</ConstantType>
+        <ConstantValue>'00000000'</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="35">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="SN" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="36">
+      <Constant>
+        <ConstantType>String</ConstantType>
+        <ConstantValue>'000000000000000'</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LocalVariable" UId="37">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="VIN" />
+      </Symbol>
+    </Access>
+    <Part Name="Contact" UId="38" />
+    <Part Name="Eq" UId="39">
+      <TemplateValue Name="SrcType" Type="Type">Int</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="40" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="41" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="42" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="43" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="44" DisabledENO="false">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="S_Move" UId="45" DisabledENO="true" />
+    <Part Name="S_Move" UId="46" DisabledENO="true" />
+  </Parts>
+  <Wires>
+    <Wire UId="47">
+      <Powerrail />
+      <NameCon UId="38" Name="in" />
+    </Wire>
+    <Wire UId="48">
+      <IdentCon UId="21" />
+      <NameCon UId="38" Name="operand" />
+    </Wire>
+    <Wire UId="49">
+      <NameCon UId="38" Name="out" />
+      <NameCon UId="39" Name="pre" />
+    </Wire>
+    <Wire UId="50">
+      <IdentCon UId="22" />
+      <NameCon UId="39" Name="in1" />
+    </Wire>
+    <Wire UId="51">
+      <IdentCon UId="23" />
+      <NameCon UId="39" Name="in2" />
+    </Wire>
+    <Wire UId="52">
+      <NameCon UId="39" Name="out" />
+      <NameCon UId="40" Name="en" />
+      <NameCon UId="42" Name="en" />
+      <NameCon UId="44" Name="en" />
+      <NameCon UId="45" Name="en" />
+    </Wire>
+    <Wire UId="53">
+      <IdentCon UId="24" />
+      <NameCon UId="40" Name="in" />
+    </Wire>
+    <Wire UId="54">
+      <NameCon UId="40" Name="eno" />
+      <NameCon UId="41" Name="en" />
+    </Wire>
+    <Wire UId="55">
+      <NameCon UId="40" Name="out1" />
+      <IdentCon UId="25" />
+    </Wire>
+    <Wire UId="56">
+      <IdentCon UId="26" />
+      <NameCon UId="41" Name="in" />
+    </Wire>
+    <Wire UId="57">
+      <NameCon UId="41" Name="out1" />
+      <IdentCon UId="27" />
+    </Wire>
+    <Wire UId="58">
+      <IdentCon UId="28" />
+      <NameCon UId="42" Name="in" />
+    </Wire>
+    <Wire UId="59">
+      <NameCon UId="42" Name="eno" />
+      <NameCon UId="43" Name="en" />
+    </Wire>
+    <Wire UId="60">
+      <NameCon UId="42" Name="out1" />
+      <IdentCon UId="29" />
+    </Wire>
+    <Wire UId="61">
+      <IdentCon UId="30" />
+      <NameCon UId="43" Name="in" />
+    </Wire>
+    <Wire UId="62">
+      <NameCon UId="43" Name="out1" />
+      <IdentCon UId="31" />
+    </Wire>
+    <Wire UId="63">
+      <IdentCon UId="32" />
+      <NameCon UId="44" Name="in" />
+    </Wire>
+    <Wire UId="64">
+      <NameCon UId="44" Name="out1" />
+      <IdentCon UId="33" />
+    </Wire>
+    <Wire UId="65">
+      <IdentCon UId="34" />
+      <NameCon UId="45" Name="in" />
+    </Wire>
+    <Wire UId="66">
+      <NameCon UId="45" Name="eno" />
+      <NameCon UId="46" Name="en" />
+    </Wire>
+    <Wire UId="67">
+      <NameCon UId="45" Name="out" />
+      <IdentCon UId="35" />
+    </Wire>
+    <Wire UId="68">
+      <IdentCon UId="36" />
+      <NameCon UId="46" Name="in" />
+    </Wire>
+    <Wire UId="69">
+      <NameCon UId="46" Name="out" />
+      <IdentCon UId="37" />
+    </Wire>
+  </Wires>
+</FlgNet></NetworkSource>
+          <ProgrammingLanguage>LAD</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="70" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="71" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="72" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="73" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="74" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="75" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="76" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="77" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text>清除每个工位的空循环数据使能-----当物流代码等于9999时认为是空循环车型数据，待定</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="78" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="79" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="7A" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="7B" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <SW.Blocks.CompileUnit ID="7C" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><FlgNet xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/v4">
+  <Parts>
+    <Access Scope="LocalVariable" UId="21">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Type" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="22">
+      <Symbol>
+        <Component Name="Output_Style" />
+        <Component Name="Style" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="23">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="RotationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="24">
+      <Symbol>
+        <Component Name="Output_Style" />
+        <Component Name="RotationNumber" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="25">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Station_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="26">
+      <Symbol>
+        <Component Name="Output_Style" />
+        <Component Name="Station_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="27">
+      <Symbol>
+        <Component Name="CarDataLocalStation" />
+        <Component Name="Location_Code" />
+      </Symbol>
+    </Access>
+    <Access Scope="LocalVariable" UId="28">
+      <Symbol>
+        <Component Name="Output_Style" />
+        <Component Name="Location_Code" />
+      </Symbol>
+    </Access>
+    <Part Name="Move" UId="29" DisabledENO="true">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="30" DisabledENO="true">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="31" DisabledENO="true">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+    <Part Name="Move" UId="32" DisabledENO="true">
+      <TemplateValue Name="Card" Type="Cardinality">1</TemplateValue>
+    </Part>
+  </Parts>
+  <Wires>
+    <Wire UId="33">
+      <Powerrail />
+      <NameCon UId="29" Name="en" />
+    </Wire>
+    <Wire UId="34">
+      <IdentCon UId="21" />
+      <NameCon UId="29" Name="in" />
+    </Wire>
+    <Wire UId="35">
+      <NameCon UId="29" Name="eno" />
+      <NameCon UId="30" Name="en" />
+    </Wire>
+    <Wire UId="36">
+      <NameCon UId="29" Name="out1" />
+      <IdentCon UId="22" />
+    </Wire>
+    <Wire UId="37">
+      <IdentCon UId="23" />
+      <NameCon UId="30" Name="in" />
+    </Wire>
+    <Wire UId="38">
+      <NameCon UId="30" Name="eno" />
+      <NameCon UId="31" Name="en" />
+    </Wire>
+    <Wire UId="39">
+      <NameCon UId="30" Name="out1" />
+      <IdentCon UId="24" />
+    </Wire>
+    <Wire UId="40">
+      <IdentCon UId="25" />
+      <NameCon UId="31" Name="in" />
+    </Wire>
+    <Wire UId="41">
+      <NameCon UId="31" Name="eno" />
+      <NameCon UId="32" Name="en" />
+    </Wire>
+    <Wire UId="42">
+      <NameCon UId="31" Name="out1" />
+      <IdentCon UId="26" />
+    </Wire>
+    <Wire UId="43">
+      <IdentCon UId="27" />
+      <NameCon UId="32" Name="in" />
+    </Wire>
+    <Wire UId="44">
+      <NameCon UId="32" Name="out1" />
+      <IdentCon UId="28" />
+    </Wire>
+  </Wires>
+</FlgNet></NetworkSource>
+          <ProgrammingLanguage>LAD</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="7D" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="7E" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="7F" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="80" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="81" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="82" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="83" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="84" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text>车型数据传递到本工位DB块</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="85" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="86" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="87" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="88" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <MultilingualText ID="89" CompositionName="Title">
+        <ObjectList>
+          <MultilingualTextItem ID="8A" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="8B" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="8C" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="8D" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="8E" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+    </ObjectList>
+  </SW.Blocks.FB>
+</Document>

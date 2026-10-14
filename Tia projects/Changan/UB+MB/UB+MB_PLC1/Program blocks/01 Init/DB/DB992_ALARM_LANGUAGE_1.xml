@@ -1,0 +1,139 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V17" />
+  <DocumentInfo>
+    <Created>2026-10-14T05:16:34.2468063Z</Created>
+    <ExportSetting>WithDefaults</ExportSetting>
+    <InstalledProducts>
+      <Product>
+        <DisplayName>Totally Integrated Automation Portal</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>TIA Portal Openness</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>TIA Portal Version Control Interface</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>SINAMICS Startdrive Advanced</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G130, G150, S120, S150, SINAMICS MV, S210</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G110M, G120, G120C, G120D, G120P, G115D</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>STEP 7 Professional</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>STEP 7 Safety</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>WinCC Advanced / Unified PC</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+    </InstalledProducts>
+  </DocumentInfo>
+  <SW.Blocks.GlobalDB ID="0">
+    <AttributeList>
+      <AutoNumber>false</AutoNumber>
+      <DBAccessibleFromOPCUA>true</DBAccessibleFromOPCUA>
+      <HeaderAuthor>SICAR</HeaderAuthor>
+      <HeaderFamily>ALARM</HeaderFamily>
+      <HeaderName />
+      <HeaderVersion>0.1</HeaderVersion>
+      <Interface><Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+  <Section Name="Static">
+    <Member Name="Alarm" Datatype="&quot;ALARM_STRUCT_UDT&quot;" Remanence="NonRetain" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">false</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">false</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">true</BooleanAttribute></AttributeList><Sections><Section Name="None"><Member Name="Language" Datatype="String"><StartValue>'en_us'</StartValue></Member><Member Name="Language_ID" Datatype="Int"><StartValue>1</StartValue></Member><Member Name="General" Datatype="&quot;ALARM_GENERAL_UDT&quot;"><Sections><Section Name="None"><Member Name="PLC" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]"><StartValue>'MB.PLC2'</StartValue></Member><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]"><Subelement Path="1"><StartValue>'Control not ON'</StartValue></Subelement><Subelement Path="2"><StartValue>'Control ON, Time monitoring Feedback missing'</StartValue></Subelement><Subelement Path="3"><StartValue>'Control ON, Feedback lost without command'</StartValue></Subelement><Subelement Path="4"><StartValue>'Control ON, Enable missing'</StartValue></Subelement></Member></Section></Sections></Member><Member Name="OPmode" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]" /></Section></Sections></Member><Member Name="PN_Diag" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]"><StartValue>'PN-Diagnostic'</StartValue></Member><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]"><Subelement Path="1"><StartValue>'Invalid Input or Userconsant "PN_DEV_DIAG_FB": PN_DEVDIAG_MAX-DEVICES [1..]'</StartValue></Subelement><Subelement Path="2"><StartValue>'Invalid Input or Userconstant "PN_DEV_DIAG_FB": PN_DEVDIAG_MAX-MODULES [1..128]'</StartValue></Subelement><Subelement Path="3"><StartValue>'Invalid Address "PN_DEV_DIAG_FB": LOG2GEO_LOCAL_PNIO-SYSTEM'</StartValue></Subelement><Subelement Path="4"><StartValue>'PROFINET Device-States: Error Read Device-States'</StartValue></Subelement><Subelement Path="5"><StartValue>'PROFINET-Device is Faulty'</StartValue></Subelement><Subelement Path="6"><StartValue>'PROFINET-Device with Problem'</StartValue></Subelement></Member></Section></Sections></Member></Section></Sections></Member><Member Name="Tec_Unit" Datatype="&quot;ALARM_TECUNIT_UDT&quot;"><Sections><Section Name="None"><Member Name="PosDev_2S2D2P" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]"><Subelement Path="1"><StartValue>'Drive not ready. Enable Drive missing'</StartValue></Subelement><Subelement Path="2"><StartValue>'Enable Hardware missing (ENABLE_HARDWARE := False)'</StartValue></Subelement><Subelement Path="3"><StartValue>'Limitposition "LS_ADVANCE"/"LS_RETURN" simultaneous active'</StartValue></Subelement><Subelement Path="4"><StartValue>'Position "SW_FS_ADVANCE"/"SW_FS_RETURN"  simultaneous active'</StartValue></Subelement><Subelement Path="5"><StartValue>'Movement advance (ADV) Input "ILOCK_ADV" = FALSE (MANUAL/AUTO)'</StartValue></Subelement><Subelement Path="6"><StartValue>'Movement return (RTN) Input "ILOCK_RTN" = FALSE (MANUAL/AUTO)'</StartValue></Subelement><Subelement Path="7"><StartValue>'Time mon. "T_VALUE_OPERATION" advance expired. Endpos. "LS_ADV" not reach'</StartValue></Subelement><Subelement Path="8"><StartValue>'Time mon. "T_VALUE_OPERATION" return expired. Endpos. "LS_RTN" not reach'</StartValue></Subelement><Subelement Path="9"><StartValue>'Limitposition "LS_ADVANCE" lost without command'</StartValue></Subelement><Subelement Path="10"><StartValue>'Limitposition "LS_RETURN" lost without command'</StartValue></Subelement><Subelement Path="11"><StartValue>'Time mon. "T_VALUE_POS_LEFT" advance expired. Endpos. "LS_RTN" not leave'</StartValue></Subelement><Subelement Path="12"><StartValue>'Time mon. "T_VALUE_POS_LEFT" return expired. Endpos. "LS_ADV" not leave'</StartValue></Subelement><Subelement Path="13"><StartValue>'ENABLE_SAFETY:= FALSE. Expected signal is TRUE (Default)'</StartValue></Subelement></Member></Section></Sections></Member><Member Name="PosDev_2S2D2P_PC" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]"><Subelement Path="1"><StartValue>'Drive not ready. Enable Drive missing'</StartValue></Subelement><Subelement Path="2"><StartValue>'Enable Hardware missing (ENABLE_HARDWARE := False)'</StartValue></Subelement><Subelement Path="3"><StartValue>'Limitposition "LS_ADVANCE"/"LS_RETURN" simultaneous active'</StartValue></Subelement><Subelement Path="4"><StartValue>'Position "SW_FS_ADVANCE"/"SW_FS_RETURN"  simultaneous active'</StartValue></Subelement><Subelement Path="5"><StartValue>'Interlock Advanced (ADV) missing. "ILOCK_ADV" = FALSE (MANUAL/AUTO)'</StartValue></Subelement><Subelement Path="6"><StartValue>'Interlock Return (RTN) missing. "ILOCK_RTN" = FALSE (MANUAL/AUTO)'</StartValue></Subelement><Subelement Path="7"><StartValue>'Time mon. "T_VALUE_OPERATION" advance expired. Endpos. "LS_ADV" not reach'</StartValue></Subelement><Subelement Path="8"><StartValue>'Time mon. "T_VALUE_OPERATION" return expired. Endpos. "LS_RTN" not reach'</StartValue></Subelement><Subelement Path="9"><StartValue>'Limitposition "LS_ADVANCE" lost without command'</StartValue></Subelement><Subelement Path="10"><StartValue>'Limitposition "LS_RETURN" lost without command'</StartValue></Subelement><Subelement Path="11"><StartValue>'Time mon. "T_VALUE_POS_LEFT" advance expired. Endpos. "LS_RTN" not left'</StartValue></Subelement><Subelement Path="12"><StartValue>'Time mon. "T_VALUE_POS_LEFT" return expired. Endpos. "LS_ADV" not left'</StartValue></Subelement><Subelement Path="13"><StartValue>'No part present'</StartValue></Subelement><Subelement Path="14"><StartValue>'ENABLE_SAFETY:= FALSE. Expected signal is TRUE (Default)'</StartValue></Subelement></Member></Section></Sections></Member><Member Name="Lifter_2S2D2P" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]"><Subelement Path="1"><StartValue>'Drive not ready. Enable Drive missing'</StartValue></Subelement><Subelement Path="2"><StartValue>'Enable Hardware missing (ENABLE_HARDWARE := False)'</StartValue></Subelement><Subelement Path="3"><StartValue>'Limitposition "LS_UP"/"LS_DOWN" simultaneous active'</StartValue></Subelement><Subelement Path="4"><StartValue>'Position "LS_UP"/"LS_DOWN" simultaneous active'</StartValue></Subelement><Subelement Path="5"><StartValue>'Interlock Up missing. "ILOCK_UP" = FALSE (MANUAL/AUTO)'</StartValue></Subelement><Subelement Path="6"><StartValue>'Interlock Down missing. "ILOCK_DOWN" = FALSE (MANUAL/AUTO)'</StartValue></Subelement><Subelement Path="7"><StartValue>'Time mon.  "T_VALUE_OPERATION" UP expired. "LS_UP" not reach'</StartValue></Subelement><Subelement Path="8"><StartValue>'Time mon.  "T_VALUE_OPERATION" DOWN expired. "LS_DN" not reach'</StartValue></Subelement><Subelement Path="9"><StartValue>'Limitposition "LS_Up" lost without command'</StartValue></Subelement><Subelement Path="10"><StartValue>'Limitposition "LS_DOWN" lost without command'</StartValue></Subelement><Subelement Path="11"><StartValue>'Time mon. "T_VALUE_POS_LEFT" up expired. "LS_UP" not left'</StartValue></Subelement><Subelement Path="12"><StartValue>'Time mon. "T_VALUE_POS_LEFT" down expired. "LS_DOWN" not left'</StartValue></Subelement><Subelement Path="13"><StartValue>'ENABLE_SAFETY:= FALSE. Expected signal is TRUE (Default)'</StartValue></Subelement></Member></Section></Sections></Member><Member Name="Device_OnOff" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]"><Subelement Path="1"><StartValue>'Enable Hardware missing (ENABLE_HARDWARE := False)'</StartValue></Subelement><Subelement Path="2"><StartValue>'Time mon. "T_VALUE_FEEDBACK_OFF" expired for feedback OFF'</StartValue></Subelement><Subelement Path="3"><StartValue>'Time mon. "T_VALUE_FEEDBACK_OFF"expired for feedback ON'</StartValue></Subelement><Subelement Path="4"><StartValue>'Feedback lost without command'</StartValue></Subelement><Subelement Path="5"><StartValue>'Interlock ON missing'</StartValue></Subelement><Subelement Path="6"><StartValue>'Interlock OFF missing'</StartValue></Subelement><Subelement Path="7"><StartValue>'ENABLE_SAFETY:= FALSE. Expected signal is TRUE (Default)'</StartValue></Subelement></Member></Section></Sections></Member><Member Name="DRV_1S2D2P" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]" /></Section></Sections></Member><Member Name="RB_2S1D1P" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]" /></Section></Sections></Member><Member Name="RB_2S2D2P" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]" /></Section></Sections></Member><Member Name="Valve_1_8_Pos" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]"><Subelement Path="1"><StartValue>''</StartValue></Subelement><Subelement Path="2"><StartValue>'Freigabe Hardware nicht gegeben (ENABLE_HARDWARE := False)'</StartValue></Subelement><Subelement Path="3"><StartValue>'Paarueberwachung, min. ein Endlagenpaar gleichzeitig'</StartValue></Subelement><Subelement Path="4"><StartValue>''</StartValue></Subelement><Subelement Path="5"><StartValue>'Verriegelung VOR (WORK) fehlt'</StartValue></Subelement><Subelement Path="6"><StartValue>'Verriegelung RUECK (HOME) fehlt'</StartValue></Subelement><Subelement Path="7"><StartValue>'Ueberwachungszeit abgelaufen, Positon VOR (WORK) nicht erreicht'</StartValue></Subelement><Subelement Path="8"><StartValue>'Ueberwachungszeit abgelaufen, Positon RUECK (HOME) nicht erreicht'</StartValue></Subelement><Subelement Path="9"><StartValue>'Positon VOR (WORK) verlassen ohne Fahrbefehl'</StartValue></Subelement><Subelement Path="10"><StartValue>'Positon RUECK (HOME) verlassen ohne Fahrbefehl'</StartValue></Subelement><Subelement Path="11"><StartValue>'Ueberwachungszeit abgelaufen, Positon VOR (WORK) nicht verlassen'</StartValue></Subelement><Subelement Path="12"><StartValue>'Ueberwachungszeit abgelaufen, Positon RUECK (HOME) nicht verlassen'</StartValue></Subelement><Subelement Path="13"><StartValue>''</StartValue></Subelement><Subelement Path="14"><StartValue>'ENABLE_SAFETY:= FALSE. Erwarteter Zustand ist TRUE (Default)'</StartValue></Subelement><Subelement Path="15"><StartValue>'Need Work Postion'</StartValue></Subelement><Subelement Path="16"><StartValue>'Need Home Postion'</StartValue></Subelement></Member></Section></Sections></Member><Member Name="Ident" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]"><Subelement Path="1"><StartValue>'Alarm when INIT'</StartValue></Subelement><Subelement Path="2"><StartValue>'Alarm when READ'</StartValue></Subelement><Subelement Path="3"><StartValue>'Alarm when WRITE'</StartValue></Subelement></Member></Section></Sections></Member><Member Name="Drive_Rollerbed" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]"><StartValue>'Drive-Rollerbed'</StartValue></Member><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]"><Subelement Path="1"><StartValue>'Drive 01 - Rollerbed faulty'</StartValue></Subelement></Member></Section></Sections></Member><Member Name="Sensor_Signal" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]" /></Section></Sections></Member><Member Name="Auto_Weld" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]" /></Section></Sections></Member><Member Name="SEW_61B" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]" /></Section></Sections></Member><Member Name="Table_High/slow" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]" /></Section></Sections></Member><Member Name="Table_simian" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]" /></Section></Sections></Member><Member Name="SEW_07B" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]" /></Section></Sections></Member><Member Name="FUNCK_ROBOT" Datatype="&quot;ALARM_TEXT_UDT&quot;"><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="WString[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[80]" /></Section></Sections></Member></Section></Sections></Member></Section></Sections></Member>
+  </Section>
+</Sections></Interface>
+      <IsOnlyStoredInLoadMemory>false</IsOnlyStoredInLoadMemory>
+      <IsRetainMemResEnabled>false</IsRetainMemResEnabled>
+      <IsWriteProtectedInAS>false</IsWriteProtectedInAS>
+      <MemoryLayout>Optimized</MemoryLayout>
+      <MemoryReserve>100</MemoryReserve>
+      <Name>DB992_ALARM_LANGUAGE_1</Name>
+      <Number>992</Number>
+      <ProgrammingLanguage>DB</ProgrammingLanguage>
+    </AttributeList>
+    <ObjectList>
+      <MultilingualText ID="1" CompositionName="Comment">
+        <ObjectList>
+          <MultilingualTextItem ID="2" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="3" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="4" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="5" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="6" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+      <MultilingualText ID="7" CompositionName="Title">
+        <ObjectList>
+          <MultilingualTextItem ID="8" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text>ALARM_LANGUAGE_1_DB</Text>
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="9" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text>ALARM_LANGUAGE_1_DB</Text>
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="A" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="B" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="C" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text>ALARM_LANGUAGE_1_DB</Text>
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+    </ObjectList>
+  </SW.Blocks.GlobalDB>
+</Document>

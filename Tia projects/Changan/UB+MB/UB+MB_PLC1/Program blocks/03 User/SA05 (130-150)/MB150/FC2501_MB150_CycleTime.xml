@@ -1,0 +1,724 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V17" />
+  <DocumentInfo>
+    <Created>2026-10-14T05:18:01.1079605Z</Created>
+    <ExportSetting>WithDefaults</ExportSetting>
+    <InstalledProducts>
+      <Product>
+        <DisplayName>Totally Integrated Automation Portal</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>TIA Portal Openness</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>TIA Portal Version Control Interface</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>SINAMICS Startdrive Advanced</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G130, G150, S120, S150, SINAMICS MV, S210</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G110M, G120, G120C, G120D, G120P, G115D</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>STEP 7 Professional</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>STEP 7 Safety</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>WinCC Advanced / Unified PC</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+    </InstalledProducts>
+  </DocumentInfo>
+  <SW.Blocks.FC ID="0">
+    <AttributeList>
+      <AutoNumber>false</AutoNumber>
+      <HeaderAuthor />
+      <HeaderFamily />
+      <HeaderName />
+      <HeaderVersion>0.1</HeaderVersion>
+      <Interface><Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+  <Section Name="Input" />
+  <Section Name="Output" />
+  <Section Name="InOut" />
+  <Section Name="Temp" />
+  <Section Name="Constant" />
+  <Section Name="Return">
+    <Member Name="Ret_Val" Datatype="Void" Accessibility="Public" />
+  </Section>
+</Sections></Interface>
+      <IsIECCheckEnabled>false</IsIECCheckEnabled>
+      <MemoryLayout>Optimized</MemoryLayout>
+      <Name>FC2501_MB150_CycleTime</Name>
+      <Number>2501</Number>
+      <ProgrammingLanguage>LAD</ProgrammingLanguage>
+      <SetENOAutomatically>false</SetENOAutomatically>
+      <UDABlockProperties />
+      <UDAEnableTagReadback>false</UDAEnableTagReadback>
+    </AttributeList>
+    <ObjectList>
+      <MultilingualText ID="1" CompositionName="Comment">
+        <ObjectList>
+          <MultilingualTextItem ID="2" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="3" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="4" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="5" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="6" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+      <SW.Blocks.CompileUnit ID="7" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><FlgNet xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/v4">
+  <Parts>
+    <Access Scope="GlobalVariable" UId="21">
+      <Symbol>
+        <Component Name="DB2500_MB150" />
+        <Component Name="Station" />
+        <Component Name="AutoModeRun" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="22">
+      <Symbol>
+        <Component Name="IDB2510_MB150_Graph_Work" />
+        <Component Name="InFwd" />
+        <Component Name="X" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="23">
+      <Symbol>
+        <Component Name="Input.Valve.MB150_A5.11-SQ01" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="24">
+      <Symbol>
+        <Component Name="IDB2510_MB150_Graph_Work" />
+        <Component Name="OutFwd" />
+        <Component Name="X" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="25">
+      <Symbol>
+        <Component Name="IDB2510_MB150_Graph_Work" />
+        <Component Name="R01/2/3/4 WorkDone" />
+        <Component Name="X" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="26">
+      <Symbol>
+        <Component Name="DB2500_MB150" />
+        <Component Name="progComp" AccessModifier="Array">
+          <Access Scope="LiteralConstant">
+            <Constant>
+              <ConstantType>DInt</ConstantType>
+              <ConstantValue>1</ConstantValue>
+            </Constant>
+          </Access>
+        </Component>
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="27">
+      <Symbol>
+        <Component Name="IDB2510_MB150_Graph_Work" />
+        <Component Name="R01/2/3/4 WorkDone" />
+        <Component Name="X" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="28">
+      <Symbol>
+        <Component Name="DB2500_MB150" />
+        <Component Name="progComp" AccessModifier="Array">
+          <Access Scope="LiteralConstant">
+            <Constant>
+              <ConstantType>DInt</ConstantType>
+              <ConstantValue>2</ConstantValue>
+            </Constant>
+          </Access>
+        </Component>
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="29">
+      <Symbol>
+        <Component Name="IDB2510_MB150_Graph_Work" />
+        <Component Name="R01/2/3/4 WorkDone" />
+        <Component Name="X" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="30">
+      <Symbol>
+        <Component Name="DB2500_MB150" />
+        <Component Name="progComp" AccessModifier="Array">
+          <Access Scope="LiteralConstant">
+            <Constant>
+              <ConstantType>DInt</ConstantType>
+              <ConstantValue>3</ConstantValue>
+            </Constant>
+          </Access>
+        </Component>
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="31">
+      <Symbol>
+        <Component Name="IDB2510_MB150_Graph_Work" />
+        <Component Name="R01/2/3/4 WorkDone" />
+        <Component Name="X" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="32">
+      <Symbol>
+        <Component Name="DB2500_MB150" />
+        <Component Name="progComp" AccessModifier="Array">
+          <Access Scope="LiteralConstant">
+            <Constant>
+              <ConstantType>DInt</ConstantType>
+              <ConstantValue>4</ConstantValue>
+            </Constant>
+          </Access>
+        </Component>
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="33">
+      <Symbol>
+        <Component Name="DB1005_To_HMI" />
+        <Component Name="Takt Time" />
+        <Component Name="ST150" />
+        <Component Name="Station" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="34">
+      <Symbol>
+        <Component Name="DB1005_To_HMI" />
+        <Component Name="Takt Time" />
+        <Component Name="ST150" />
+        <Component Name="R1" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="35">
+      <Symbol>
+        <Component Name="DB1005_To_HMI" />
+        <Component Name="Takt Time" />
+        <Component Name="ST150" />
+        <Component Name="R2" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="36">
+      <Symbol>
+        <Component Name="DB1005_To_HMI" />
+        <Component Name="Takt Time" />
+        <Component Name="ST150" />
+        <Component Name="R3" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="37">
+      <Symbol>
+        <Component Name="DB1005_To_HMI" />
+        <Component Name="Takt Time" />
+        <Component Name="ST150" />
+        <Component Name="R4" />
+      </Symbol>
+    </Access>
+    <Part Name="Contact" UId="38" />
+    <Part Name="Contact" UId="39" />
+    <Part Name="Contact" UId="40" />
+    <Part Name="Contact" UId="41" />
+    <Part Name="Contact" UId="42" />
+    <Part Name="Contact" UId="43" />
+    <Part Name="Contact" UId="44" />
+    <Part Name="Contact" UId="45" />
+    <Part Name="Contact" UId="46" />
+    <Part Name="Contact" UId="47" />
+    <Part Name="Contact" UId="48" />
+    <Part Name="Contact" UId="49" />
+    <Call UId="50">
+      <CallInfo Name="FB300_CycleTime" BlockType="FB">
+        <Instance Scope="GlobalVariable" UId="51">
+          <Component Name="IDB2501_MB150_A_Cycle Time" />
+        </Instance>
+        <Parameter Name="Station_Start" Section="Input" Type="Bool" />
+        <Parameter Name="Station_Stop" Section="Input" Type="Bool" />
+        <Parameter Name="Start_1" Section="Input" Type="Bool" />
+        <Parameter Name="Stop_1" Section="Input" Type="Bool" />
+        <Parameter Name="Start_2" Section="Input" Type="Bool" />
+        <Parameter Name="Stop_2" Section="Input" Type="Bool" />
+        <Parameter Name="Start_3" Section="Input" Type="Bool" />
+        <Parameter Name="Stop_3" Section="Input" Type="Bool" />
+        <Parameter Name="Start_4" Section="Input" Type="Bool" />
+        <Parameter Name="Stop_4" Section="Input" Type="Bool" />
+        <Parameter Name="Start_5" Section="Input" Type="Bool" />
+        <Parameter Name="Stop_5" Section="Input" Type="Bool" />
+        <Parameter Name="Start_6" Section="Input" Type="Bool" />
+        <Parameter Name="Stop_6" Section="Input" Type="Bool" />
+        <Parameter Name="Start_7" Section="Input" Type="Bool" />
+        <Parameter Name="Stop_7" Section="Input" Type="Bool" />
+        <Parameter Name="Start_8" Section="Input" Type="Bool" />
+        <Parameter Name="Stop_8" Section="Input" Type="Bool" />
+        <Parameter Name="Start_9" Section="Input" Type="Bool" />
+        <Parameter Name="Stop_9" Section="Input" Type="Bool" />
+        <Parameter Name="Start_10" Section="Input" Type="Bool" />
+        <Parameter Name="Stop_10" Section="Input" Type="Bool" />
+        <Parameter Name="Start_11" Section="Input" Type="Bool" />
+        <Parameter Name="Stop_11" Section="Input" Type="Bool" />
+        <Parameter Name="Start_12" Section="Input" Type="Bool" />
+        <Parameter Name="Stop_12" Section="Input" Type="Bool" />
+        <Parameter Name="Start_13" Section="Input" Type="Bool" />
+        <Parameter Name="Stop_13" Section="Input" Type="Bool" />
+        <Parameter Name="Start_14" Section="Input" Type="Bool" />
+        <Parameter Name="Stop_14" Section="Input" Type="Bool" />
+        <Parameter Name="Start_15" Section="Input" Type="Bool" />
+        <Parameter Name="Stop_15" Section="Input" Type="Bool" />
+        <Parameter Name="CLEAR_Station" Section="Input" Type="Bool" />
+        <Parameter Name="CLEAR_Track" Section="Input" Type="Bool" />
+        <Parameter Name="Station_Time_OUT" Section="Output" Type="&quot;Time_UDT&quot;" />
+        <Parameter Name="Time_OUT1" Section="Output" Type="&quot;Time_UDT&quot;" />
+        <Parameter Name="Time_OUT2" Section="Output" Type="&quot;Time_UDT&quot;" />
+        <Parameter Name="Time_OUT3" Section="Output" Type="&quot;Time_UDT&quot;" />
+        <Parameter Name="Time_OUT4" Section="Output" Type="&quot;Time_UDT&quot;" />
+        <Parameter Name="Time_OUT5" Section="Output" Type="&quot;Time_UDT&quot;" />
+        <Parameter Name="Time_OUT6" Section="Output" Type="&quot;Time_UDT&quot;" />
+        <Parameter Name="Time_OUT7" Section="Output" Type="&quot;Time_UDT&quot;" />
+        <Parameter Name="Time_OUT8" Section="Output" Type="&quot;Time_UDT&quot;" />
+        <Parameter Name="Time_OUT9" Section="Output" Type="&quot;Time_UDT&quot;" />
+        <Parameter Name="Time_OUT10" Section="Output" Type="&quot;Time_UDT&quot;" />
+        <Parameter Name="Time_OUT11" Section="Output" Type="&quot;Time_UDT&quot;" />
+        <Parameter Name="Time_OUT12" Section="Output" Type="&quot;Time_UDT&quot;" />
+        <Parameter Name="Time_OUT13" Section="Output" Type="&quot;Time_UDT&quot;" />
+        <Parameter Name="Time_OUT14" Section="Output" Type="&quot;Time_UDT&quot;" />
+        <Parameter Name="Time_OUT15" Section="Output" Type="&quot;Time_UDT&quot;" />
+        <Parameter Name="Out_AVI_Start_Time" Section="Output" Type="Array[0..16] of Int" />
+        <Parameter Name="Out_AVI_Stop_Time" Section="Output" Type="Array[0..16] of Int" />
+        <Parameter Name="TimeOut_Alarm" Section="Output" Type="Bool" />
+      </CallInfo>
+    </Call>
+  </Parts>
+  <Wires>
+    <Wire UId="90">
+      <Powerrail />
+      <NameCon UId="38" Name="in" />
+      <NameCon UId="39" Name="in" />
+      <NameCon UId="41" Name="in" />
+      <NameCon UId="42" Name="in" />
+      <NameCon UId="43" Name="in" />
+      <NameCon UId="44" Name="in" />
+      <NameCon UId="45" Name="in" />
+      <NameCon UId="46" Name="in" />
+      <NameCon UId="47" Name="in" />
+      <NameCon UId="48" Name="in" />
+      <NameCon UId="49" Name="in" />
+    </Wire>
+    <Wire UId="91">
+      <IdentCon UId="21" />
+      <NameCon UId="38" Name="operand" />
+    </Wire>
+    <Wire UId="92">
+      <NameCon UId="38" Name="out" />
+      <NameCon UId="50" Name="en" />
+    </Wire>
+    <Wire UId="93">
+      <IdentCon UId="22" />
+      <NameCon UId="39" Name="operand" />
+    </Wire>
+    <Wire UId="94">
+      <NameCon UId="39" Name="out" />
+      <NameCon UId="40" Name="in" />
+    </Wire>
+    <Wire UId="95">
+      <IdentCon UId="23" />
+      <NameCon UId="40" Name="operand" />
+    </Wire>
+    <Wire UId="96">
+      <NameCon UId="40" Name="out" />
+      <NameCon UId="50" Name="Station_Start" />
+    </Wire>
+    <Wire UId="97">
+      <IdentCon UId="24" />
+      <NameCon UId="41" Name="operand" />
+    </Wire>
+    <Wire UId="98">
+      <NameCon UId="41" Name="out" />
+      <NameCon UId="50" Name="Station_Stop" />
+    </Wire>
+    <Wire UId="99">
+      <IdentCon UId="25" />
+      <NameCon UId="42" Name="operand" />
+    </Wire>
+    <Wire UId="100">
+      <NameCon UId="42" Name="out" />
+      <NameCon UId="50" Name="Start_1" />
+    </Wire>
+    <Wire UId="101">
+      <IdentCon UId="26" />
+      <NameCon UId="43" Name="operand" />
+    </Wire>
+    <Wire UId="102">
+      <NameCon UId="43" Name="out" />
+      <NameCon UId="50" Name="Stop_1" />
+    </Wire>
+    <Wire UId="103">
+      <IdentCon UId="27" />
+      <NameCon UId="44" Name="operand" />
+    </Wire>
+    <Wire UId="104">
+      <NameCon UId="44" Name="out" />
+      <NameCon UId="50" Name="Start_2" />
+    </Wire>
+    <Wire UId="105">
+      <IdentCon UId="28" />
+      <NameCon UId="45" Name="operand" />
+    </Wire>
+    <Wire UId="106">
+      <NameCon UId="45" Name="out" />
+      <NameCon UId="50" Name="Stop_2" />
+    </Wire>
+    <Wire UId="107">
+      <IdentCon UId="29" />
+      <NameCon UId="46" Name="operand" />
+    </Wire>
+    <Wire UId="108">
+      <NameCon UId="46" Name="out" />
+      <NameCon UId="50" Name="Start_3" />
+    </Wire>
+    <Wire UId="109">
+      <IdentCon UId="30" />
+      <NameCon UId="47" Name="operand" />
+    </Wire>
+    <Wire UId="110">
+      <NameCon UId="47" Name="out" />
+      <NameCon UId="50" Name="Stop_3" />
+    </Wire>
+    <Wire UId="111">
+      <IdentCon UId="31" />
+      <NameCon UId="48" Name="operand" />
+    </Wire>
+    <Wire UId="112">
+      <NameCon UId="48" Name="out" />
+      <NameCon UId="50" Name="Start_4" />
+    </Wire>
+    <Wire UId="113">
+      <IdentCon UId="32" />
+      <NameCon UId="49" Name="operand" />
+    </Wire>
+    <Wire UId="114">
+      <NameCon UId="49" Name="out" />
+      <NameCon UId="50" Name="Stop_4" />
+    </Wire>
+    <Wire UId="115">
+      <OpenCon UId="52" />
+      <NameCon UId="50" Name="Start_5" />
+    </Wire>
+    <Wire UId="116">
+      <OpenCon UId="53" />
+      <NameCon UId="50" Name="Stop_5" />
+    </Wire>
+    <Wire UId="117">
+      <OpenCon UId="54" />
+      <NameCon UId="50" Name="Start_6" />
+    </Wire>
+    <Wire UId="118">
+      <OpenCon UId="55" />
+      <NameCon UId="50" Name="Stop_6" />
+    </Wire>
+    <Wire UId="119">
+      <OpenCon UId="56" />
+      <NameCon UId="50" Name="Start_7" />
+    </Wire>
+    <Wire UId="120">
+      <OpenCon UId="57" />
+      <NameCon UId="50" Name="Stop_7" />
+    </Wire>
+    <Wire UId="121">
+      <OpenCon UId="58" />
+      <NameCon UId="50" Name="Start_8" />
+    </Wire>
+    <Wire UId="122">
+      <OpenCon UId="59" />
+      <NameCon UId="50" Name="Stop_8" />
+    </Wire>
+    <Wire UId="123">
+      <OpenCon UId="60" />
+      <NameCon UId="50" Name="Start_9" />
+    </Wire>
+    <Wire UId="124">
+      <OpenCon UId="61" />
+      <NameCon UId="50" Name="Stop_9" />
+    </Wire>
+    <Wire UId="125">
+      <OpenCon UId="62" />
+      <NameCon UId="50" Name="Start_10" />
+    </Wire>
+    <Wire UId="126">
+      <OpenCon UId="63" />
+      <NameCon UId="50" Name="Stop_10" />
+    </Wire>
+    <Wire UId="127">
+      <OpenCon UId="64" />
+      <NameCon UId="50" Name="Start_11" />
+    </Wire>
+    <Wire UId="128">
+      <OpenCon UId="65" />
+      <NameCon UId="50" Name="Stop_11" />
+    </Wire>
+    <Wire UId="129">
+      <OpenCon UId="66" />
+      <NameCon UId="50" Name="Start_12" />
+    </Wire>
+    <Wire UId="130">
+      <OpenCon UId="67" />
+      <NameCon UId="50" Name="Stop_12" />
+    </Wire>
+    <Wire UId="131">
+      <OpenCon UId="68" />
+      <NameCon UId="50" Name="Start_13" />
+    </Wire>
+    <Wire UId="132">
+      <OpenCon UId="69" />
+      <NameCon UId="50" Name="Stop_13" />
+    </Wire>
+    <Wire UId="133">
+      <OpenCon UId="70" />
+      <NameCon UId="50" Name="Start_14" />
+    </Wire>
+    <Wire UId="134">
+      <OpenCon UId="71" />
+      <NameCon UId="50" Name="Stop_14" />
+    </Wire>
+    <Wire UId="135">
+      <OpenCon UId="72" />
+      <NameCon UId="50" Name="Start_15" />
+    </Wire>
+    <Wire UId="136">
+      <OpenCon UId="73" />
+      <NameCon UId="50" Name="Stop_15" />
+    </Wire>
+    <Wire UId="137">
+      <OpenCon UId="74" />
+      <NameCon UId="50" Name="CLEAR_Station" />
+    </Wire>
+    <Wire UId="138">
+      <OpenCon UId="75" />
+      <NameCon UId="50" Name="CLEAR_Track" />
+    </Wire>
+    <Wire UId="139">
+      <NameCon UId="50" Name="Station_Time_OUT" />
+      <IdentCon UId="33" />
+    </Wire>
+    <Wire UId="140">
+      <NameCon UId="50" Name="Time_OUT1" />
+      <IdentCon UId="34" />
+    </Wire>
+    <Wire UId="141">
+      <NameCon UId="50" Name="Time_OUT2" />
+      <IdentCon UId="35" />
+    </Wire>
+    <Wire UId="142">
+      <NameCon UId="50" Name="Time_OUT3" />
+      <IdentCon UId="36" />
+    </Wire>
+    <Wire UId="143">
+      <NameCon UId="50" Name="Time_OUT4" />
+      <IdentCon UId="37" />
+    </Wire>
+    <Wire UId="144">
+      <NameCon UId="50" Name="Time_OUT5" />
+      <OpenCon UId="76" />
+    </Wire>
+    <Wire UId="145">
+      <NameCon UId="50" Name="Time_OUT6" />
+      <OpenCon UId="77" />
+    </Wire>
+    <Wire UId="146">
+      <NameCon UId="50" Name="Time_OUT7" />
+      <OpenCon UId="78" />
+    </Wire>
+    <Wire UId="147">
+      <NameCon UId="50" Name="Time_OUT8" />
+      <OpenCon UId="79" />
+    </Wire>
+    <Wire UId="148">
+      <NameCon UId="50" Name="Time_OUT9" />
+      <OpenCon UId="80" />
+    </Wire>
+    <Wire UId="149">
+      <NameCon UId="50" Name="Time_OUT10" />
+      <OpenCon UId="81" />
+    </Wire>
+    <Wire UId="150">
+      <NameCon UId="50" Name="Time_OUT11" />
+      <OpenCon UId="82" />
+    </Wire>
+    <Wire UId="151">
+      <NameCon UId="50" Name="Time_OUT12" />
+      <OpenCon UId="83" />
+    </Wire>
+    <Wire UId="152">
+      <NameCon UId="50" Name="Time_OUT13" />
+      <OpenCon UId="84" />
+    </Wire>
+    <Wire UId="153">
+      <NameCon UId="50" Name="Time_OUT14" />
+      <OpenCon UId="85" />
+    </Wire>
+    <Wire UId="154">
+      <NameCon UId="50" Name="Time_OUT15" />
+      <OpenCon UId="86" />
+    </Wire>
+    <Wire UId="155">
+      <NameCon UId="50" Name="Out_AVI_Start_Time" />
+      <OpenCon UId="87" />
+    </Wire>
+    <Wire UId="156">
+      <NameCon UId="50" Name="Out_AVI_Stop_Time" />
+      <OpenCon UId="88" />
+    </Wire>
+    <Wire UId="157">
+      <NameCon UId="50" Name="TimeOut_Alarm" />
+      <OpenCon UId="89" />
+    </Wire>
+  </Wires>
+</FlgNet></NetworkSource>
+          <ProgrammingLanguage>LAD</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="8" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="9" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="A" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="B" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="C" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="D" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="E" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="F" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="10" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="11" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="12" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="13" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <MultilingualText ID="14" CompositionName="Title">
+        <ObjectList>
+          <MultilingualTextItem ID="15" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="16" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="17" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="18" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="19" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+    </ObjectList>
+  </SW.Blocks.FC>
+</Document>

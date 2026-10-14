@@ -1,0 +1,1456 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V17" />
+  <DocumentInfo>
+    <Created>2026-10-14T05:19:17.7819121Z</Created>
+    <ExportSetting>WithDefaults</ExportSetting>
+    <InstalledProducts>
+      <Product>
+        <DisplayName>Totally Integrated Automation Portal</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>TIA Portal Openness</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>TIA Portal Version Control Interface</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>SINAMICS Startdrive Advanced</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G130, G150, S120, S150, SINAMICS MV, S210</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G110M, G120, G120C, G120D, G120P, G115D</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>STEP 7 Professional</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>STEP 7 Safety</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>WinCC Advanced / Unified PC</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+    </InstalledProducts>
+  </DocumentInfo>
+  <SW.Blocks.FC ID="0">
+    <AttributeList>
+      <AutoNumber>false</AutoNumber>
+      <HeaderAuthor />
+      <HeaderFamily />
+      <HeaderName />
+      <HeaderVersion>0.1</HeaderVersion>
+      <Interface><Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+  <Section Name="Input">
+    <Member Name="INPUT" Datatype="Word" Accessibility="Public" />
+  </Section>
+  <Section Name="Output">
+    <Member Name="Unique_Check" Datatype="Bool" Accessibility="Public">
+      <Comment>
+        <MultiLanguageText Lang="zh-CN">1: Check Ok  只有一位为1</MultiLanguageText>
+      </Comment>
+    </Member>
+    <Member Name="Continuity_Check" Datatype="Bool" Accessibility="Public">
+      <Comment>
+        <MultiLanguageText Lang="zh-CN">1: Check OK</MultiLanguageText>
+      </Comment>
+    </Member>
+  </Section>
+  <Section Name="InOut" />
+  <Section Name="Temp">
+    <Member Name="Aux" Datatype="Bool" />
+  </Section>
+  <Section Name="Constant" />
+  <Section Name="Return">
+    <Member Name="Ret_Val" Datatype="Void" Accessibility="Public" />
+  </Section>
+</Sections></Interface>
+      <MemoryLayout>Standard</MemoryLayout>
+      <Name>FC440_Robot_Reqzone_Unique_Check</Name>
+      <Number>440</Number>
+      <ProgrammingLanguage>STL</ProgrammingLanguage>
+      <UDABlockProperties />
+      <UDAEnableTagReadback>false</UDAEnableTagReadback>
+    </AttributeList>
+    <ObjectList>
+      <MultilingualText ID="1" CompositionName="Comment">
+        <ObjectList>
+          <MultilingualTextItem ID="2" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="3" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="4" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="5" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="6" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+      <SW.Blocks.CompileUnit ID="7" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><StatementList xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/StatementList/v4">
+  <StlStatement UId="22">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="23">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="25">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>0</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="27">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="28">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="29">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="30">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="31">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="33">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>1</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="35">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="36">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="37">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="38">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="39">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="41">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>2</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="43">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="44">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="45">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="46">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="47">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="49">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>4</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="51">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="52">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="53">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="54">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="55">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="57">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>8</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="59">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="60">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="61">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="62">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="63">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="65">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>16</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="67">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="68">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="69">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="70">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="71">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="73">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>32</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="75">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="76">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="77">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="78">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="79">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="81">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>64</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="83">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="84">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="85">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="86">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="87">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="89">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>128</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="91">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="92">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="93">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="94">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="95">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="97">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>256</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="99">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="100">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="101">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="102">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="103">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="105">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>512</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="107">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="108">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="109">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="110">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="111">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="113">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>1024</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="115">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="116">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="117">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="118">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="119">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="121">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>2048</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="123">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="124">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="125">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="126">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="127">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="129">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>4096</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="131">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="132">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="133">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="134">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="135">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="137">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>8192</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="139">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="140">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="141">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="142">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="143">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="145">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>16384</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="147">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="148">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="149">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="150">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="151">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="153">
+    <StlToken Text="L" />
+    <Access Scope="TypedConstant">
+      <Constant>
+        <ConstantValue>DINT#32768</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="155">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="156">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="157">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="158">
+    <StlToken Text="Assign" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="Unique_Check" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+</StatementList></NetworkSource>
+          <ProgrammingLanguage>STL</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="8" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="9" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="A" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="B" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="C" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="D" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="E" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="F" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text>1: Check Ok  只有一位为1</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="10" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text>1: Check Ok  只有一位为1</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="11" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="12" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="13" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <SW.Blocks.CompileUnit ID="14" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><StatementList xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/StatementList/v4">
+  <StlStatement UId="160">
+    <LineComment Inserted="false">
+      <Text>2^0</Text>
+    </LineComment>
+    <StlToken Text="COMMENT" />
+  </StlStatement>
+  <StlStatement UId="162">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="163">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="165">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>0</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="167">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="168">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="169">
+    <LineComment Inserted="false">
+      <Text>2^1</Text>
+    </LineComment>
+    <StlToken Text="COMMENT" />
+  </StlStatement>
+  <StlStatement UId="171">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="172">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="174">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>1</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="176">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="177">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="178">
+    <LineComment Inserted="false">
+      <Text>2^2</Text>
+    </LineComment>
+    <StlToken Text="COMMENT" />
+  </StlStatement>
+  <StlStatement UId="180">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="181">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="183">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>3</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="185">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="186">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="187">
+    <LineComment Inserted="false">
+      <Text>2^3</Text>
+    </LineComment>
+    <StlToken Text="COMMENT" />
+  </StlStatement>
+  <StlStatement UId="189">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="190">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="192">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>7</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="194">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="195">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="196">
+    <LineComment Inserted="false">
+      <Text>2^4</Text>
+    </LineComment>
+    <StlToken Text="COMMENT" />
+  </StlStatement>
+  <StlStatement UId="198">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="199">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="201">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>15</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="203">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="204">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="205">
+    <LineComment Inserted="false">
+      <Text>2^5</Text>
+    </LineComment>
+    <StlToken Text="COMMENT" />
+  </StlStatement>
+  <StlStatement UId="207">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="208">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="210">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>31</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="212">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="213">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="214">
+    <LineComment Inserted="false">
+      <Text>2^6</Text>
+    </LineComment>
+    <StlToken Text="COMMENT" />
+  </StlStatement>
+  <StlStatement UId="216">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="217">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="219">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>63</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="221">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="222">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="223">
+    <LineComment Inserted="false">
+      <Text>2^7</Text>
+    </LineComment>
+    <StlToken Text="COMMENT" />
+  </StlStatement>
+  <StlStatement UId="225">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="226">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="228">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>127</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="230">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="231">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="232">
+    <LineComment Inserted="false">
+      <Text>2^8</Text>
+    </LineComment>
+    <StlToken Text="COMMENT" />
+  </StlStatement>
+  <StlStatement UId="234">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="235">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="237">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>255</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="239">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="240">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="241">
+    <LineComment Inserted="false">
+      <Text>2^9</Text>
+    </LineComment>
+    <StlToken Text="COMMENT" />
+  </StlStatement>
+  <StlStatement UId="243">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="244">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="246">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>511</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="248">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="249">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="250">
+    <LineComment Inserted="false">
+      <Text>2^10</Text>
+    </LineComment>
+    <StlToken Text="COMMENT" />
+  </StlStatement>
+  <StlStatement UId="252">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="253">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="255">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>1023</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="257">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="258">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="259">
+    <LineComment Inserted="false">
+      <Text>2^11</Text>
+    </LineComment>
+    <StlToken Text="COMMENT" />
+  </StlStatement>
+  <StlStatement UId="261">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="262">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="264">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>2047</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="266">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="267">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="268">
+    <LineComment Inserted="false">
+      <Text>2^12</Text>
+    </LineComment>
+    <StlToken Text="COMMENT" />
+  </StlStatement>
+  <StlStatement UId="270">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="271">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="273">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>4095</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="275">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="276">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="277">
+    <LineComment Inserted="false">
+      <Text>2^13</Text>
+    </LineComment>
+    <StlToken Text="COMMENT" />
+  </StlStatement>
+  <StlStatement UId="279">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="280">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="282">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>8191</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="284">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="285">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="286">
+    <LineComment Inserted="false">
+      <Text>2^14</Text>
+    </LineComment>
+    <StlToken Text="COMMENT" />
+  </StlStatement>
+  <StlStatement UId="288">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="289">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="291">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>16383</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="293">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="294">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="295">
+    <LineComment Inserted="false">
+      <Text>2^15</Text>
+    </LineComment>
+    <StlToken Text="COMMENT" />
+  </StlStatement>
+  <StlStatement UId="297">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="298">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="300">
+    <StlToken Text="L" />
+    <Access Scope="LiteralConstant">
+      <Constant>
+        <ConstantType>Int</ConstantType>
+        <ConstantValue>32767</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="302">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="303">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="304">
+    <LineComment Inserted="false">
+      <Text>2^16</Text>
+    </LineComment>
+    <StlToken Text="COMMENT" />
+  </StlStatement>
+  <StlStatement UId="306">
+    <StlToken Text="O_BRACK" />
+  </StlStatement>
+  <StlStatement UId="307">
+    <StlToken Text="L" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="INPUT" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="309">
+    <StlToken Text="L" />
+    <Access Scope="TypedConstant">
+      <Constant>
+        <ConstantValue>DINT#65535</ConstantValue>
+      </Constant>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="311">
+    <StlToken Text="EQ_I" />
+  </StlStatement>
+  <StlStatement UId="312">
+    <StlToken Text="BRACKET" />
+  </StlStatement>
+  <StlStatement UId="313">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="314">
+    <StlToken Text="Assign" />
+    <Access Scope="LocalVariable">
+      <Symbol>
+        <Component Name="Continuity_Check" />
+      </Symbol>
+    </Access>
+  </StlStatement>
+  <StlStatement UId="316">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+  <StlStatement UId="317">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+</StatementList></NetworkSource>
+          <ProgrammingLanguage>STL</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="15" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="16" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="17" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="18" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="19" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="1A" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="1B" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="1C" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text>1: Check OK</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="1D" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text>1: Check OK</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="1E" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="1F" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="20" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <SW.Blocks.CompileUnit ID="21" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><StatementList xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/StatementList/v4">
+  <StlStatement UId="318">
+    <StlToken Text="SET" />
+  </StlStatement>
+  <StlStatement UId="319">
+    <StlToken Text="SAVE" />
+  </StlStatement>
+  <StlStatement UId="320">
+    <StlToken Text="EMPTY_LINE" />
+  </StlStatement>
+</StatementList></NetworkSource>
+          <ProgrammingLanguage>STL</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="22" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="23" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="24" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="25" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="26" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="27" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="28" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="29" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="2A" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="2B" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="2C" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="2D" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <MultilingualText ID="2E" CompositionName="Title">
+        <ObjectList>
+          <MultilingualTextItem ID="2F" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text>Unique_Contin_Check</Text>
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="30" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="31" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="32" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="33" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+    </ObjectList>
+  </SW.Blocks.FC>
+</Document>

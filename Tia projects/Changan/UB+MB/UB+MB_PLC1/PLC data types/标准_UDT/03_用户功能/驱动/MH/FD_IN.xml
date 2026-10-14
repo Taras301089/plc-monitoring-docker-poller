@@ -1,0 +1,162 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V17" />
+  <DocumentInfo>
+    <Created>2026-10-14T05:20:17.9298299Z</Created>
+    <ExportSetting>WithDefaults</ExportSetting>
+    <InstalledProducts>
+      <Product>
+        <DisplayName>Totally Integrated Automation Portal</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>TIA Portal Openness</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>TIA Portal Version Control Interface</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>SINAMICS Startdrive Advanced</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G130, G150, S120, S150, SINAMICS MV, S210</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G110M, G120, G120C, G120D, G120P, G115D</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>STEP 7 Professional</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>STEP 7 Safety</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>WinCC Advanced / Unified PC</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+    </InstalledProducts>
+  </DocumentInfo>
+  <SW.Types.PlcStruct ID="0">
+    <AttributeList>
+      <Interface><Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+  <Section Name="None">
+    <Member Name="PLANT_IDENTIFIER" Datatype="WString[24]"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">设备名称</MultiLanguageText><MultiLanguageText Lang="en-US">Plant identifier</MultiLanguageText><MultiLanguageText Lang="de-DE">Betriebsmittel Kennzeichen</MultiLanguageText></Comment></Member>
+    <Member Name="PI" Datatype="&quot;Movfit_IN&quot;"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">true</BooleanAttribute></AttributeList><Sections><Section Name="None"><Member Name="Invert_StatusWord" Datatype="Struct"><Member Name="FaultCode" Datatype="Byte" /><Member Name="MotorRunning" Datatype="Bool" /><Member Name="DriveReady" Datatype="Bool" /><Member Name="CtrWordEnabled" Datatype="Bool" /><Member Name="RampGeneratorSet" Datatype="Bool" /><Member Name="ParameterSet" Datatype="Bool" /><Member Name="Fault" Datatype="Bool" /><Member Name="LimitSwitchCW" Datatype="Bool" /><Member Name="LimitSwitchCCW" Datatype="Bool" /></Member><Member Name="Invert_ActulSpeed" Datatype="Int" /><Member Name="Actualcurrent" Datatype="Int" /></Section></Sections></Member>
+    <Member Name="ENABLE_SAFETY" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">安全允许</MultiLanguageText><MultiLanguageText Lang="en-US">Enable Safety</MultiLanguageText><MultiLanguageText Lang="de-DE">Freigabe Sicherheiten</MultiLanguageText></Comment><StartValue>TRUE</StartValue></Member>
+    <Member Name="ENABLE_ADV_Entry" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">自动前进进车</MultiLanguageText><MultiLanguageText Lang="en-US">Enable UP</MultiLanguageText><MultiLanguageText Lang="de-DE">Freigabe Aufwaerts</MultiLanguageText></Comment></Member>
+    <Member Name="ENABLE_ADV_Out" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">自动前进出车</MultiLanguageText></Comment></Member>
+    <Member Name="ENABLE_RTN_Entry" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">自动后退进车</MultiLanguageText><MultiLanguageText Lang="en-US">Enable DN</MultiLanguageText><MultiLanguageText Lang="de-DE">Freigabe Abwaerts</MultiLanguageText></Comment></Member>
+    <Member Name="ENABLE_RTN_Out" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">自动后退出车</MultiLanguageText></Comment></Member>
+    <Member Name="ILOCK_ADV" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">前进互锁</MultiLanguageText><MultiLanguageText Lang="en-US">Interlock UP</MultiLanguageText><MultiLanguageText Lang="de-DE">Verriegelung Aufwaerts</MultiLanguageText></Comment><StartValue>TRUE</StartValue></Member>
+    <Member Name="ILOCK_RTN" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">后退互锁</MultiLanguageText><MultiLanguageText Lang="en-US">Interlock DN</MultiLanguageText><MultiLanguageText Lang="de-DE">Verriegelung Abwaerts</MultiLanguageText></Comment><StartValue>TRUE</StartValue></Member>
+    <Member Name="PB_ADV" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">操作箱前进</MultiLanguageText><MultiLanguageText Lang="en-US">Pushbutton UP</MultiLanguageText><MultiLanguageText Lang="de-DE">Taster Aufwaerts</MultiLanguageText></Comment></Member>
+    <Member Name="PB_RTN" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">操作箱后退</MultiLanguageText><MultiLanguageText Lang="en-US">Pushbutton DN</MultiLanguageText><MultiLanguageText Lang="de-DE">Taster Abwaerts</MultiLanguageText></Comment></Member>
+    <Member Name="ADV_POS" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">前进到位检测</MultiLanguageText></Comment></Member>
+    <Member Name="ADV_SLOW_POS" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">前进减速检测</MultiLanguageText></Comment></Member>
+    <Member Name="ADV_OVER" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">前进超程检测</MultiLanguageText></Comment></Member>
+    <Member Name="RTN_POS" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">后退到位检测</MultiLanguageText></Comment></Member>
+    <Member Name="RTN_SLOW_POS" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">后退减速检测</MultiLanguageText></Comment></Member>
+    <Member Name="RTN_OVER" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">后退超程检测</MultiLanguageText></Comment></Member>
+    <Member Name="RELEASE_THE_BRAKE" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">打开抱闸</MultiLanguageText></Comment></Member>
+    <Member Name="HIDE_ALARM_All" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">屏蔽所有报警</MultiLanguageText><MultiLanguageText Lang="en-US">Hide Alarm All</MultiLanguageText><MultiLanguageText Lang="de-DE">Alle Stoerungen unterdruecken</MultiLanguageText></Comment></Member>
+    <Member Name="HIDE_ALARM_MASK" Datatype="Word"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">false</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="en-US">Hide Alarm Mask</MultiLanguageText><MultiLanguageText Lang="de-DE">Einzelne Stoerungen unterdruecken (s. Beschreibung)</MultiLanguageText></Comment></Member>
+    <Member Name="OPMODE_USER_INTERFACE_OUT" Datatype="&quot;Opmode_OUT&quot;"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">false</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">true</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">OPMODE</MultiLanguageText><MultiLanguageText Lang="en-US">User interface OPmode</MultiLanguageText><MultiLanguageText Lang="de-DE">Anwender Schnittstelle Betriebsart</MultiLanguageText></Comment><Sections><Section Name="None"><Member Name="Automatic_active" Datatype="Bool" /><Member Name="SingleStep_active" Datatype="Bool" /><Member Name="Manual_active" Datatype="Bool" /><Member Name="StartUpWarning_active" Datatype="Bool" /><Member Name="Preselect_Automatic" Datatype="Bool" /><Member Name="DryRun_active" Datatype="Bool" /><Member Name="Req_ImmediateStop" Datatype="Bool" /><Member Name="Req_InitialPos" Datatype="Bool" /><Member Name="Req_StopEndCycle" Datatype="Bool" /><Member Name="Req_Entry" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="Req_EmptyLine" Datatype="Bool" /><Member Name="Reset" Datatype="Bool" /></Section></Sections></Member>
+    <Member Name="ALARM_TEXT" Datatype="&quot;Alarm_FRC_Motor_2S2D2P_Roller&quot;"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">true</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">报警文本</MultiLanguageText><MultiLanguageText Lang="en-US">Alarm Text</MultiLanguageText><MultiLanguageText Lang="de-DE">Alarm Text</MultiLanguageText></Comment><Sections><Section Name="None"><Member Name="Basic_Text" Datatype="String[24]" /><Member Name="Alarm_Text" Datatype="Array[1..16] of WString[40]" /></Section></Sections></Member>
+    <Member Name="T_VALUE_OPERATION" Datatype="Time"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="en-US">Time value monitoring time</MultiLanguageText><MultiLanguageText Lang="de-DE">Zeitwert Fahrtzeitueberwachung</MultiLanguageText></Comment></Member>
+    <Member Name="T_VALUE_POS_LEFT" Datatype="Time"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="en-US">Time value position left</MultiLanguageText><MultiLanguageText Lang="de-DE">Zeitwert Position verlassen</MultiLanguageText></Comment></Member>
+    <Member Name="T_ADVSensorDelay" Datatype="Time"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList></Member>
+    <Member Name="T_RTNSensorDelay" Datatype="Time"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList></Member>
+    <Member Name="C_PalletIndexInTimer" Datatype="Time"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList></Member>
+    <Member Name="HighSpeed_Set" Datatype="Int"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList></Member>
+    <Member Name="SlowSpeed_Set" Datatype="Int"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList></Member>
+    <Member Name="Ramp" Datatype="Int"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList></Member>
+    <Member Name="Setup" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">强制模式</MultiLanguageText></Comment></Member>
+    <Member Name="ResetTM" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">清除占位</MultiLanguageText></Comment></Member>
+    <Member Name="Check_ADV" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList></Member>
+    <Member Name="Check_RTN" Datatype="Bool"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList></Member>
+    <Member Name="FromNext" Datatype="&quot;InterlockToPrev&quot;"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">true</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">与下一工位互锁</MultiLanguageText></Comment><Sections><Section Name="None"><Member Name="Auto" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="DriveOK" Datatype="Bool" /><Member Name="InPosition" Datatype="Bool" /><Member Name="NoPallet" Datatype="Bool" /><Member Name="NoPalletPres" Datatype="Bool" /><Member Name="PalletPres" Datatype="Bool" /><Member Name="FwdPB" Datatype="Bool" /><Member Name="RevPB" Datatype="Bool" /><Member Name="PalletClrOfPrevRollers" Datatype="Bool" /><Member Name="PalletClrOfPrevTooling" Datatype="Bool" /><Member Name="HiSpdTransferSelected" Datatype="Bool" /><Member Name="DrvRunningFwd" Datatype="Bool" /><Member Name="DrvRunningRev" Datatype="Bool" /><Member Name="PalletEntering" Datatype="Bool" /><Member Name="FwdRecovery" Datatype="Bool" /><Member Name="ClrtoEnterFwd" Datatype="Bool" /><Member Name="ClrtoEnterRev" Datatype="Bool" /><Member Name="JobInTransitRev" Datatype="Bool" /><Member Name="HiSpdEn" Datatype="Bool" /><Member Name="RdyToExitFwd" Datatype="Bool" /></Section></Sections></Member>
+    <Member Name="FromPrev" Datatype="&quot;InterlockToNext&quot;"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">true</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">与上一工位互锁</MultiLanguageText></Comment><Sections><Section Name="None"><Member Name="Auto" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="DriveOK" Datatype="Bool" /><Member Name="InPosition" Datatype="Bool" /><Member Name="NoPallet" Datatype="Bool" /><Member Name="NoPalletPres" Datatype="Bool" /><Member Name="PalletPres" Datatype="Bool" /><Member Name="FwdPB" Datatype="Bool" /><Member Name="RevPB" Datatype="Bool" /><Member Name="PalletClrOfNextTooling" Datatype="Bool" /><Member Name="HiSpdTransferSelected" Datatype="Bool" /><Member Name="ClearFwd" Datatype="Bool" /><Member Name="ClearBwd" Datatype="Bool" /><Member Name="DrvRunningRev" Datatype="Bool" /><Member Name="DrvRunningFwd" Datatype="Bool" /><Member Name="PalletEntering" Datatype="Bool" /><Member Name="PalletExiting" Datatype="Bool" /><Member Name="ClrToEnterRev" Datatype="Bool" /><Member Name="RdyToExitFwd" Datatype="Bool" /><Member Name="JobInTransitFwd" Datatype="Bool" /><Member Name="HiSpdEn" Datatype="Bool" /></Section></Sections></Member>
+  </Section>
+</Sections></Interface>
+      <IsFailsafeCompliant>false</IsFailsafeCompliant>
+      <Name>FD_IN</Name>
+    </AttributeList>
+    <ObjectList>
+      <MultilingualText ID="1" CompositionName="Comment">
+        <ObjectList>
+          <MultilingualTextItem ID="2" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="3" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="4" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="5" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="6" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+      <MultilingualText ID="7" CompositionName="Title">
+        <ObjectList>
+          <MultilingualTextItem ID="8" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="9" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="A" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="B" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="C" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+    </ObjectList>
+  </SW.Types.PlcStruct>
+</Document>

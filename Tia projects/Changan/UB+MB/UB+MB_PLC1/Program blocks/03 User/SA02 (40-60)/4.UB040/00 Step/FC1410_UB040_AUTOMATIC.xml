@@ -1,0 +1,530 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V17" />
+  <DocumentInfo>
+    <Created>2026-10-14T05:17:05.5043165Z</Created>
+    <ExportSetting>WithDefaults</ExportSetting>
+    <InstalledProducts>
+      <Product>
+        <DisplayName>Totally Integrated Automation Portal</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>TIA Portal Openness</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>TIA Portal Version Control Interface</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>SINAMICS Startdrive Advanced</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G130, G150, S120, S150, SINAMICS MV, S210</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G110M, G120, G120C, G120D, G120P, G115D</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>STEP 7 Professional</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>STEP 7 Safety</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>WinCC Advanced / Unified PC</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+    </InstalledProducts>
+  </DocumentInfo>
+  <SW.Blocks.FC ID="0">
+    <AttributeList>
+      <AutoNumber>false</AutoNumber>
+      <HeaderAuthor />
+      <HeaderFamily />
+      <HeaderName />
+      <HeaderVersion>0.1</HeaderVersion>
+      <Interface><Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+  <Section Name="Input" />
+  <Section Name="Output" />
+  <Section Name="InOut" />
+  <Section Name="Temp" />
+  <Section Name="Constant" />
+  <Section Name="Return">
+    <Member Name="Ret_Val" Datatype="Void" Accessibility="Public" />
+  </Section>
+</Sections></Interface>
+      <IsIECCheckEnabled>false</IsIECCheckEnabled>
+      <MemoryLayout>Optimized</MemoryLayout>
+      <Name>FC1410_UB040_AUTOMATIC</Name>
+      <Number>1410</Number>
+      <ProgrammingLanguage>LAD</ProgrammingLanguage>
+      <SetENOAutomatically>false</SetENOAutomatically>
+      <UDABlockProperties />
+      <UDAEnableTagReadback>false</UDAEnableTagReadback>
+    </AttributeList>
+    <ObjectList>
+      <MultilingualText ID="1" CompositionName="Comment">
+        <ObjectList>
+          <MultilingualTextItem ID="2" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text>1、命名：FB编号+工位+车型+设备类型+Graph_Work（夹具如果是通用的，就不写车型，如果是专用       的，就加车型）
+      例如工位：FB2200_ST050_CD701_Graph_Work
+      例如抓手：FB2201_ST050_Graph_R1
+2、一副夹具一个Graph
+3、步序最上面描述详细工艺时序</Text>
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="3" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text>1、命名：FB编号+工位+车型+设备类型+Graph_Work（夹具如果是通用的，就不写车型，如果是专用       的，就加车型）
+      例如工位：FB2200_ST050_CD701_Graph_Work
+      例如抓手：FB2201_ST050_Graph_R1
+2、一副夹具一个Graph
+3、步序最上面描述详细工艺时序</Text>
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="4" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="5" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="6" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+      <SW.Blocks.CompileUnit ID="7" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><FlgNet xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/v4">
+  <Parts>
+    <Access Scope="GlobalVariable" UId="21">
+      <Symbol>
+        <Component Name="DB1005_To_HMI" />
+        <Component Name="Mode" />
+        <Component Name="ST040" />
+        <Component Name="ManualMode" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="22">
+      <Symbol>
+        <Component Name="DB1006_From_HMI" />
+        <Component Name="Station_OP" />
+        <Component Name="ST040" />
+        <Component Name="Init_PB" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="23">
+      <Symbol>
+        <Component Name="DB1400_UB040" />
+        <Component Name="Station" />
+        <Component Name="FaultReset" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="24">
+      <Symbol>
+        <Component Name="DB1005_To_HMI" />
+        <Component Name="Mode" />
+        <Component Name="ST040" />
+      </Symbol>
+    </Access>
+    <Access Scope="LiteralConstant" UId="25">
+      <Constant>
+        <ConstantType>USInt</ConstantType>
+        <ConstantValue>50</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LiteralConstant" UId="26">
+      <Constant>
+        <ConstantType>USInt</ConstantType>
+        <ConstantValue>100</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="LiteralConstant" UId="27">
+      <Constant>
+        <ConstantType>Bool</ConstantType>
+        <ConstantValue>false</ConstantValue>
+      </Constant>
+    </Access>
+    <Access Scope="GlobalVariable" UId="28">
+      <Symbol>
+        <Component Name="DB1020_GraphControl" />
+        <Component Name="HMI_GraphControl" AccessModifier="Array">
+          <Access Scope="LiteralConstant">
+            <Constant>
+              <ConstantType>DInt</ConstantType>
+              <ConstantValue>4</ConstantValue>
+            </Constant>
+          </Access>
+        </Component>
+        <Component Name="S_Prev" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="29">
+      <Symbol>
+        <Component Name="DB1020_GraphControl" />
+        <Component Name="HMI_GraphControl" AccessModifier="Array">
+          <Access Scope="LiteralConstant">
+            <Constant>
+              <ConstantType>DInt</ConstantType>
+              <ConstantValue>4</ConstantValue>
+            </Constant>
+          </Access>
+        </Component>
+        <Component Name="S_Next" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="30">
+      <Symbol>
+        <Component Name="DB1020_GraphControl" />
+        <Component Name="HMI_GraphControl" AccessModifier="Array">
+          <Access Scope="LiteralConstant">
+            <Constant>
+              <ConstantType>DInt</ConstantType>
+              <ConstantValue>4</ConstantValue>
+            </Constant>
+          </Access>
+        </Component>
+        <Component Name="Step-Number" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="31">
+      <Symbol>
+        <Component Name="DB1020_GraphControl" />
+        <Component Name="HMI_GraphControl" AccessModifier="Array">
+          <Access Scope="LiteralConstant">
+            <Constant>
+              <ConstantType>DInt</ConstantType>
+              <ConstantValue>4</ConstantValue>
+            </Constant>
+          </Access>
+        </Component>
+        <Component Name="Step-Selcet" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="32">
+      <Symbol>
+        <Component Name="DB1020_GraphControl" />
+        <Component Name="HMI_GraphControl" AccessModifier="Array">
+          <Access Scope="LiteralConstant">
+            <Constant>
+              <ConstantType>DInt</ConstantType>
+              <ConstantValue>4</ConstantValue>
+            </Constant>
+          </Access>
+        </Component>
+        <Component Name="Step-ON" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="33">
+      <Symbol>
+        <Component Name="DB1020_GraphControl" />
+        <Component Name="HMI_GraphControl" AccessModifier="Array">
+          <Access Scope="LiteralConstant">
+            <Constant>
+              <ConstantType>DInt</ConstantType>
+              <ConstantValue>4</ConstantValue>
+            </Constant>
+          </Access>
+        </Component>
+        <Component Name="Step-OFF" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="34">
+      <Symbol>
+        <Component Name="DB1400_UB040" />
+        <Component Name="Station" />
+        <Component Name="ManualModeRun" />
+      </Symbol>
+    </Access>
+    <Access Scope="GlobalVariable" UId="35">
+      <Symbol>
+        <Component Name="DB1400_UB040" />
+        <Component Name="Station" />
+        <Component Name="AutoModeRun" />
+      </Symbol>
+    </Access>
+    <Part Name="Contact" UId="36" />
+    <Part Name="Contact" UId="37" />
+    <Part Name="Contact" UId="38" />
+    <Call UId="39">
+      <CallInfo Name="FB1410_UB040_Graph_Work" BlockType="FB">
+        <Instance Scope="GlobalVariable" UId="40">
+          <Component Name="IDB1410_UB040_Graph_Work" />
+        </Instance>
+        <Parameter Name="OFF_SQ" Section="Input" Type="Bool" />
+        <Parameter Name="INIT_SQ" Section="Input" Type="Bool" />
+        <Parameter Name="OP_Mode" Section="Input" Type="&quot;Mode Status_UDT&quot;" />
+        <Parameter Name="Fault_Reset" Section="Input" Type="Bool" />
+        <Parameter Name="EN_LMODE" Section="Input" Type="Bool" />
+        <Parameter Name="LMODE_THRESHOLD_WARN" Section="Input" Type="USInt" />
+        <Parameter Name="LMODE_THRESHOLD_MAX" Section="Input" Type="USInt" />
+        <Parameter Name="ACK_EF" Section="Input" Type="Bool" />
+        <Parameter Name="EXTERN_ALARM" Section="Input" Type="Bool" />
+        <Parameter Name="S_PREV" Section="Input" Type="Bool" />
+        <Parameter Name="S_NEXT" Section="Input" Type="Bool" />
+        <Parameter Name="S_SEL" Section="Input" Type="Int" />
+        <Parameter Name="S_SELOK" Section="Input" Type="Bool" />
+        <Parameter Name="S_ON" Section="Input" Type="Bool" />
+        <Parameter Name="S_OFF" Section="Input" Type="Bool" />
+        <Parameter Name="DISP_SALL" Section="Input" Type="Bool" />
+        <Parameter Name="DISP_SACT" Section="Input" Type="Bool" />
+        <Parameter Name="ERR_FLT" Section="Output" Type="Bool" />
+        <Parameter Name="LMODE_ENABLED" Section="Output" Type="Bool" />
+        <Parameter Name="S_NO" Section="Output" Type="Int" />
+        <Parameter Name="INITIAL_FINISH" Section="InOut" Type="Bool" />
+        <Parameter Name="EMPTY_FINISH" Section="InOut" Type="Bool" />
+        <Parameter Name="END_OF_CYCLE_FINISH" Section="InOut" Type="Bool" />
+        <Parameter Name="STOP_FINISH" Section="InOut" Type="Bool" />
+      </CallInfo>
+    </Call>
+  </Parts>
+  <Wires>
+    <Wire UId="51">
+      <Powerrail />
+      <NameCon UId="39" Name="en" />
+      <NameCon UId="36" Name="in" />
+      <NameCon UId="38" Name="in" />
+    </Wire>
+    <Wire UId="52">
+      <IdentCon UId="21" />
+      <NameCon UId="36" Name="operand" />
+    </Wire>
+    <Wire UId="53">
+      <NameCon UId="36" Name="out" />
+      <NameCon UId="37" Name="in" />
+    </Wire>
+    <Wire UId="54">
+      <IdentCon UId="22" />
+      <NameCon UId="37" Name="operand" />
+    </Wire>
+    <Wire UId="55">
+      <NameCon UId="37" Name="out" />
+      <NameCon UId="39" Name="INIT_SQ" />
+    </Wire>
+    <Wire UId="56">
+      <IdentCon UId="23" />
+      <NameCon UId="38" Name="operand" />
+    </Wire>
+    <Wire UId="57">
+      <NameCon UId="38" Name="out" />
+      <NameCon UId="39" Name="Fault_Reset" />
+    </Wire>
+    <Wire UId="58">
+      <OpenCon UId="41" />
+      <NameCon UId="39" Name="OFF_SQ" />
+    </Wire>
+    <Wire UId="59">
+      <IdentCon UId="24" />
+      <NameCon UId="39" Name="OP_Mode" />
+    </Wire>
+    <Wire UId="60">
+      <OpenCon UId="42" />
+      <NameCon UId="39" Name="EN_LMODE" />
+    </Wire>
+    <Wire UId="61">
+      <IdentCon UId="25" />
+      <NameCon UId="39" Name="LMODE_THRESHOLD_WARN" />
+    </Wire>
+    <Wire UId="62">
+      <IdentCon UId="26" />
+      <NameCon UId="39" Name="LMODE_THRESHOLD_MAX" />
+    </Wire>
+    <Wire UId="63">
+      <IdentCon UId="27" />
+      <NameCon UId="39" Name="ACK_EF" />
+    </Wire>
+    <Wire UId="64">
+      <OpenCon UId="43" />
+      <NameCon UId="39" Name="EXTERN_ALARM" />
+    </Wire>
+    <Wire UId="65">
+      <IdentCon UId="28" />
+      <NameCon UId="39" Name="S_PREV" />
+    </Wire>
+    <Wire UId="66">
+      <IdentCon UId="29" />
+      <NameCon UId="39" Name="S_NEXT" />
+    </Wire>
+    <Wire UId="67">
+      <IdentCon UId="30" />
+      <NameCon UId="39" Name="S_SEL" />
+    </Wire>
+    <Wire UId="68">
+      <IdentCon UId="31" />
+      <NameCon UId="39" Name="S_SELOK" />
+    </Wire>
+    <Wire UId="69">
+      <IdentCon UId="32" />
+      <NameCon UId="39" Name="S_ON" />
+    </Wire>
+    <Wire UId="70">
+      <IdentCon UId="33" />
+      <NameCon UId="39" Name="S_OFF" />
+    </Wire>
+    <Wire UId="71">
+      <IdentCon UId="34" />
+      <NameCon UId="39" Name="DISP_SALL" />
+    </Wire>
+    <Wire UId="72">
+      <IdentCon UId="35" />
+      <NameCon UId="39" Name="DISP_SACT" />
+    </Wire>
+    <Wire UId="73">
+      <OpenCon UId="44" />
+      <NameCon UId="39" Name="INITIAL_FINISH" />
+    </Wire>
+    <Wire UId="74">
+      <OpenCon UId="45" />
+      <NameCon UId="39" Name="EMPTY_FINISH" />
+    </Wire>
+    <Wire UId="75">
+      <OpenCon UId="46" />
+      <NameCon UId="39" Name="END_OF_CYCLE_FINISH" />
+    </Wire>
+    <Wire UId="76">
+      <OpenCon UId="47" />
+      <NameCon UId="39" Name="STOP_FINISH" />
+    </Wire>
+    <Wire UId="77">
+      <NameCon UId="39" Name="ERR_FLT" />
+      <OpenCon UId="48" />
+    </Wire>
+    <Wire UId="78">
+      <NameCon UId="39" Name="LMODE_ENABLED" />
+      <OpenCon UId="49" />
+    </Wire>
+    <Wire UId="79">
+      <NameCon UId="39" Name="S_NO" />
+      <OpenCon UId="50" />
+    </Wire>
+  </Wires>
+</FlgNet></NetworkSource>
+          <ProgrammingLanguage>LAD</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="8" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="9" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="A" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="B" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="C" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="D" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="E" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="F" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text>ST040_Graph3_Work  调用70Graph</Text>
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="10" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="11" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="12" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="13" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <MultilingualText ID="14" CompositionName="Title">
+        <ObjectList>
+          <MultilingualTextItem ID="15" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="16" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="17" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="18" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="19" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+    </ObjectList>
+  </SW.Blocks.FC>
+</Document>

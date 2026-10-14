@@ -1,0 +1,143 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V17" />
+  <DocumentInfo>
+    <Created>2026-10-14T05:16:34.801192Z</Created>
+    <ExportSetting>WithDefaults</ExportSetting>
+    <InstalledProducts>
+      <Product>
+        <DisplayName>Totally Integrated Automation Portal</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>TIA Portal Openness</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>TIA Portal Version Control Interface</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>SINAMICS Startdrive Advanced</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G130, G150, S120, S150, SINAMICS MV, S210</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G110M, G120, G120C, G120D, G120P, G115D</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>STEP 7 Professional</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>STEP 7 Safety</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>WinCC Advanced / Unified PC</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+    </InstalledProducts>
+  </DocumentInfo>
+  <SW.Blocks.GlobalDB ID="0">
+    <AttributeList>
+      <AutoNumber>false</AutoNumber>
+      <DBAccessibleFromOPCUA>true</DBAccessibleFromOPCUA>
+      <HeaderAuthor>SICAR</HeaderAuthor>
+      <HeaderFamily>Base</HeaderFamily>
+      <HeaderName />
+      <HeaderVersion>1.0</HeaderVersion>
+      <Interface><Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+  <Section Name="Static">
+    <Member Name="OPmode" Datatype="Array[1..20] of &quot;Opmode&quot;" Remanence="NonRetain" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Sections><Section Name="None"><Member Name="Active" Datatype="&quot;Panel_IN&quot;"><Sections><Section Name="None"><Member Name="Automatic" Datatype="Bool" /><Member Name="SingleStep" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="Start" Datatype="Bool" /><Member Name="Req_InitialPosition" Datatype="Bool" /><Member Name="Req_StopEndOfCycle" Datatype="Bool" /><Member Name="Req_ImmediateStop" Datatype="Bool" /><Member Name="Req_Entry" Datatype="Bool" /><Member Name="DryRun" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="EmptyLine" Datatype="Bool" /><Member Name="Reset" Datatype="Bool" /><Member Name="OPmode_Selected" Datatype="USInt" /></Section></Sections></Member><Member Name="PreSelect" Datatype="&quot;Panel_IN&quot;"><Sections><Section Name="None"><Member Name="Automatic" Datatype="Bool" /><Member Name="SingleStep" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="Start" Datatype="Bool" /><Member Name="Req_InitialPosition" Datatype="Bool" /><Member Name="Req_StopEndOfCycle" Datatype="Bool" /><Member Name="Req_ImmediateStop" Datatype="Bool" /><Member Name="Req_Entry" Datatype="Bool" /><Member Name="DryRun" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="EmptyLine" Datatype="Bool" /><Member Name="Reset" Datatype="Bool" /><Member Name="OPmode_Selected" Datatype="USInt" /></Section></Sections></Member><Member Name="User_Interface_IN" Datatype="&quot;Opmode_IN&quot;"><Sections><Section Name="None"><Member Name="EStop" Datatype="Bool" /><Member Name="Safety" Datatype="Bool" /><Member Name="BasicStartCondition" Datatype="Bool" /><Member Name="Pos_ImmediateStop" Datatype="Bool" /><Member Name="Pos_InitialPos" Datatype="Bool" /><Member Name="Pos_StopEndCycle" Datatype="Bool" /><Member Name="Pos_OpenDoor" Datatype="Bool" /><Member Name="Empty_finish" Datatype="Bool" /><Member Name="Alarm" Datatype="Bool" /></Section></Sections></Member><Member Name="User_Interface_OUT" Datatype="&quot;Opmode_OUT&quot;"><Sections><Section Name="None"><Member Name="Automatic_active" Datatype="Bool" /><Member Name="SingleStep_active" Datatype="Bool" /><Member Name="Manual_active" Datatype="Bool" /><Member Name="StartUpWarning_active" Datatype="Bool" /><Member Name="Preselect_Automatic" Datatype="Bool" /><Member Name="DryRun_active" Datatype="Bool" /><Member Name="Req_ImmediateStop" Datatype="Bool" /><Member Name="Req_InitialPos" Datatype="Bool" /><Member Name="Req_StopEndCycle" Datatype="Bool" /><Member Name="Req_Entry" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="Req_EmptyLine" Datatype="Bool" /><Member Name="Reset" Datatype="Bool" /></Section></Sections></Member><Member Name="Panel" Datatype="Array[1..16] of &quot;HMI_Panel_Exchanger_Opmode&quot;"><Sections><Section Name="None"><Member Name="HMI_PANEL_NO" Datatype="USInt" /><Member Name="Type" Datatype="USInt" /><Member Name="IN_internal" Datatype="&quot;Panel_IN&quot;"><Sections><Section Name="None"><Member Name="Automatic" Datatype="Bool" /><Member Name="SingleStep" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="Start" Datatype="Bool" /><Member Name="Req_InitialPosition" Datatype="Bool" /><Member Name="Req_StopEndOfCycle" Datatype="Bool" /><Member Name="Req_ImmediateStop" Datatype="Bool" /><Member Name="Req_Entry" Datatype="Bool" /><Member Name="DryRun" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="EmptyLine" Datatype="Bool" /><Member Name="Reset" Datatype="Bool" /><Member Name="OPmode_Selected" Datatype="USInt" /></Section></Sections></Member><Member Name="PP_IN" Datatype="&quot;Panel_IN&quot;"><Sections><Section Name="None"><Member Name="Automatic" Datatype="Bool" /><Member Name="SingleStep" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="Start" Datatype="Bool" /><Member Name="Req_InitialPosition" Datatype="Bool" /><Member Name="Req_StopEndOfCycle" Datatype="Bool" /><Member Name="Req_ImmediateStop" Datatype="Bool" /><Member Name="Req_Entry" Datatype="Bool" /><Member Name="DryRun" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="EmptyLine" Datatype="Bool" /><Member Name="Reset" Datatype="Bool" /><Member Name="OPmode_Selected" Datatype="USInt" /></Section></Sections></Member><Member Name="NP_IN" Datatype="&quot;Panel_IN&quot;"><Sections><Section Name="None"><Member Name="Automatic" Datatype="Bool" /><Member Name="SingleStep" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="Start" Datatype="Bool" /><Member Name="Req_InitialPosition" Datatype="Bool" /><Member Name="Req_StopEndOfCycle" Datatype="Bool" /><Member Name="Req_ImmediateStop" Datatype="Bool" /><Member Name="Req_Entry" Datatype="Bool" /><Member Name="DryRun" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="EmptyLine" Datatype="Bool" /><Member Name="Reset" Datatype="Bool" /><Member Name="OPmode_Selected" Datatype="USInt" /></Section></Sections></Member><Member Name="OUT" Datatype="&quot;Panel_OUT&quot;"><Sections><Section Name="None"><Member Name="Automatic" Datatype="Bool" /><Member Name="SingleStep" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="Start" Datatype="Bool" /><Member Name="InitialPosition" Datatype="Bool" /><Member Name="StopEndOfCycle" Datatype="Bool" /><Member Name="ImmediateStop" Datatype="Bool" /><Member Name="RequestEntry" Datatype="Bool" /><Member Name="DryRun" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="EmptyLine" Datatype="Bool" /><Member Name="Alarm" Datatype="Bool" /></Section></Sections></Member><Member Name="IN_OUT_OPmode" Datatype="Array[1..12] of Struct"><Member Name="IN" Datatype="&quot;Panel_IN&quot;"><Sections><Section Name="None"><Member Name="Automatic" Datatype="Bool" /><Member Name="SingleStep" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="Start" Datatype="Bool" /><Member Name="Req_InitialPosition" Datatype="Bool" /><Member Name="Req_StopEndOfCycle" Datatype="Bool" /><Member Name="Req_ImmediateStop" Datatype="Bool" /><Member Name="Req_Entry" Datatype="Bool" /><Member Name="DryRun" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="EmptyLine" Datatype="Bool" /><Member Name="Reset" Datatype="Bool" /><Member Name="OPmode_Selected" Datatype="USInt" /></Section></Sections></Member><Member Name="OUT" Datatype="&quot;Panel_OUT&quot;"><Sections><Section Name="None"><Member Name="Automatic" Datatype="Bool" /><Member Name="SingleStep" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="Start" Datatype="Bool" /><Member Name="InitialPosition" Datatype="Bool" /><Member Name="StopEndOfCycle" Datatype="Bool" /><Member Name="ImmediateStop" Datatype="Bool" /><Member Name="RequestEntry" Datatype="Bool" /><Member Name="DryRun" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="EmptyLine" Datatype="Bool" /><Member Name="Alarm" Datatype="Bool" /></Section></Sections></Member><Member Name="PP_IN" Datatype="&quot;Panel_IN&quot;"><Sections><Section Name="None"><Member Name="Automatic" Datatype="Bool" /><Member Name="SingleStep" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="Start" Datatype="Bool" /><Member Name="Req_InitialPosition" Datatype="Bool" /><Member Name="Req_StopEndOfCycle" Datatype="Bool" /><Member Name="Req_ImmediateStop" Datatype="Bool" /><Member Name="Req_Entry" Datatype="Bool" /><Member Name="DryRun" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="EmptyLine" Datatype="Bool" /><Member Name="Reset" Datatype="Bool" /><Member Name="OPmode_Selected" Datatype="USInt" /></Section></Sections></Member><Member Name="NP_IN" Datatype="&quot;Panel_IN&quot;"><Sections><Section Name="None"><Member Name="Automatic" Datatype="Bool" /><Member Name="SingleStep" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="Start" Datatype="Bool" /><Member Name="Req_InitialPosition" Datatype="Bool" /><Member Name="Req_StopEndOfCycle" Datatype="Bool" /><Member Name="Req_ImmediateStop" Datatype="Bool" /><Member Name="Req_Entry" Datatype="Bool" /><Member Name="DryRun" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="EmptyLine" Datatype="Bool" /><Member Name="Reset" Datatype="Bool" /><Member Name="OPmode_Selected" Datatype="USInt" /></Section></Sections></Member></Member></Section></Sections></Member><Member Name="ImpStart_delayed" Datatype="Bool" /><Member Name="CondResetGeneral" Datatype="Bool" /><Member Name="CondResetStart" Datatype="Bool" /><Member Name="NE_OPmode_Start" Datatype="Bool" /><Member Name="NP_OPmode_Start" Datatype="Bool" /><Member Name="StartUp_Warning_active" Datatype="Bool" /><Member Name="StartUp_Warning_expired" Datatype="Bool" /><Member Name="OR_Start_AND_Auto_select" Datatype="Bool" /><Member Name="NoPanel_config" Datatype="Bool" /><Member Name="PE_PreSelect" Datatype="&quot;Panel_IN&quot;"><Sections><Section Name="None"><Member Name="Automatic" Datatype="Bool" /><Member Name="SingleStep" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="Start" Datatype="Bool" /><Member Name="Req_InitialPosition" Datatype="Bool" /><Member Name="Req_StopEndOfCycle" Datatype="Bool" /><Member Name="Req_ImmediateStop" Datatype="Bool" /><Member Name="Req_Entry" Datatype="Bool" /><Member Name="DryRun" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="EmptyLine" Datatype="Bool" /><Member Name="Reset" Datatype="Bool" /><Member Name="OPmode_Selected" Datatype="USInt" /></Section></Sections></Member><Member Name="PP_PreSelect" Datatype="&quot;Panel_IN&quot;"><Sections><Section Name="None"><Member Name="Automatic" Datatype="Bool" /><Member Name="SingleStep" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="Start" Datatype="Bool" /><Member Name="Req_InitialPosition" Datatype="Bool" /><Member Name="Req_StopEndOfCycle" Datatype="Bool" /><Member Name="Req_ImmediateStop" Datatype="Bool" /><Member Name="Req_Entry" Datatype="Bool" /><Member Name="DryRun" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="EmptyLine" Datatype="Bool" /><Member Name="Reset" Datatype="Bool" /><Member Name="OPmode_Selected" Datatype="USInt" /></Section></Sections></Member><Member Name="NE_PreSelect" Datatype="&quot;Panel_IN&quot;"><Sections><Section Name="None"><Member Name="Automatic" Datatype="Bool" /><Member Name="SingleStep" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="Start" Datatype="Bool" /><Member Name="Req_InitialPosition" Datatype="Bool" /><Member Name="Req_StopEndOfCycle" Datatype="Bool" /><Member Name="Req_ImmediateStop" Datatype="Bool" /><Member Name="Req_Entry" Datatype="Bool" /><Member Name="DryRun" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="EmptyLine" Datatype="Bool" /><Member Name="Reset" Datatype="Bool" /><Member Name="OPmode_Selected" Datatype="USInt" /></Section></Sections></Member><Member Name="NP_PreSelect" Datatype="&quot;Panel_IN&quot;"><Sections><Section Name="None"><Member Name="Automatic" Datatype="Bool" /><Member Name="SingleStep" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="Start" Datatype="Bool" /><Member Name="Req_InitialPosition" Datatype="Bool" /><Member Name="Req_StopEndOfCycle" Datatype="Bool" /><Member Name="Req_ImmediateStop" Datatype="Bool" /><Member Name="Req_Entry" Datatype="Bool" /><Member Name="DryRun" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="EmptyLine" Datatype="Bool" /><Member Name="Reset" Datatype="Bool" /><Member Name="OPmode_Selected" Datatype="USInt" /></Section></Sections></Member><Member Name="DeSelect" Datatype="&quot;Panel_IN&quot;"><Sections><Section Name="None"><Member Name="Automatic" Datatype="Bool" /><Member Name="SingleStep" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="Start" Datatype="Bool" /><Member Name="Req_InitialPosition" Datatype="Bool" /><Member Name="Req_StopEndOfCycle" Datatype="Bool" /><Member Name="Req_ImmediateStop" Datatype="Bool" /><Member Name="Req_Entry" Datatype="Bool" /><Member Name="DryRun" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="EmptyLine" Datatype="Bool" /><Member Name="Reset" Datatype="Bool" /><Member Name="OPmode_Selected" Datatype="USInt" /></Section></Sections></Member><Member Name="SetValue_StartUpWarning" Datatype="UInt" /><Member Name="ActValue_StartUpWarning" Datatype="UInt" /><Member Name="Display" Datatype="&quot;Panel_OUT&quot;"><Sections><Section Name="None"><Member Name="Automatic" Datatype="Bool" /><Member Name="SingleStep" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /><Member Name="Start" Datatype="Bool" /><Member Name="InitialPosition" Datatype="Bool" /><Member Name="StopEndOfCycle" Datatype="Bool" /><Member Name="ImmediateStop" Datatype="Bool" /><Member Name="RequestEntry" Datatype="Bool" /><Member Name="DryRun" Datatype="Bool" /><Member Name="SingleStep_plus1" Datatype="Bool" /><Member Name="EmptyLine" Datatype="Bool" /><Member Name="Alarm" Datatype="Bool" /></Section></Sections></Member><Member Name="Preselect_Panel" Datatype="Array[1..16] of Struct"><Member Name="Automatic" Datatype="Bool" /><Member Name="SingleStep" Datatype="Bool" /><Member Name="Manual" Datatype="Bool" /></Member></Section></Sections></Member>
+    <Member Name="Initial" Datatype="Bool" Remanence="NonRetain" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">一键初始化</MultiLanguageText></Comment></Member>
+    <Member Name="RESET" Datatype="Bool" Remanence="NonRetain" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">车车型清零清零</MultiLanguageText></Comment></Member>
+    <Member Name="Lnit" Datatype="Bool" Remanence="NonRetain" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList></Member>
+    <Member Name="Initial_Status" Datatype="&quot;Cur_Station_Status&quot;" Remanence="NonRetain" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Sections><Section Name="None"><Member Name="Auto_Mode" Datatype="Bool" /><Member Name="Manual_Mode" Datatype="Bool" /><Member Name="PX01_Stop" Datatype="Bool" /><Member Name="PX02_SlowAdv" Datatype="Bool" /><Member Name="PX03_SlowRtn" Datatype="Bool" /><Member Name="PX04_Occupy" Datatype="Bool" /><Member Name="Clamp_CY01Open" Datatype="Bool" /><Member Name="Clamp_CY01Close" Datatype="Bool" /><Member Name="Convery_Pos" Datatype="Bool" /><Member Name="Up_Pos" Datatype="Bool" /><Member Name="Down_Pos" Datatype="Bool" /><Member Name="RunExternalSafe" Datatype="Bool" /><Member Name="PartPresent" Datatype="Bool" /><Member Name="NoPartPresent" Datatype="Bool" /><Member Name="Running_Forward" Datatype="Bool" /><Member Name="Running_Reverse" Datatype="Bool" /><Member Name="Motor_Running" Datatype="Bool" /><Member Name="Adv_SendReq" Datatype="Bool" /><Member Name="Adv_RecPer" Datatype="Bool" /><Member Name="Rtn_SendReq" Datatype="Bool" /><Member Name="Rtn_RecPer" Datatype="Bool" /><Member Name="HighSpeed" Datatype="Bool" /><Member Name="MiddleSpeed" Datatype="Bool" /><Member Name="LowSpeed" Datatype="Bool" /><Member Name="OverTime" Datatype="Bool" /><Member Name="PX05_OverAdv" Datatype="Bool" /><Member Name="PX06_OverRtn" Datatype="Bool" /></Section></Sections></Member>
+  </Section>
+</Sections></Interface>
+      <IsOnlyStoredInLoadMemory>false</IsOnlyStoredInLoadMemory>
+      <IsRetainMemResEnabled>false</IsRetainMemResEnabled>
+      <IsWriteProtectedInAS>false</IsWriteProtectedInAS>
+      <MemoryLayout>Optimized</MemoryLayout>
+      <MemoryReserve>0</MemoryReserve>
+      <Name>SYSTEM_DB</Name>
+      <Number>200</Number>
+      <ProgrammingLanguage>DB</ProgrammingLanguage>
+    </AttributeList>
+    <ObjectList>
+      <MultilingualText ID="1" CompositionName="Comment">
+        <ObjectList>
+          <MultilingualTextItem ID="2" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="3" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="4" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="5" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="6" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+      <MultilingualText ID="7" CompositionName="Title">
+        <ObjectList>
+          <MultilingualTextItem ID="8" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="9" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="A" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="B" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="C" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+    </ObjectList>
+  </SW.Blocks.GlobalDB>
+</Document>

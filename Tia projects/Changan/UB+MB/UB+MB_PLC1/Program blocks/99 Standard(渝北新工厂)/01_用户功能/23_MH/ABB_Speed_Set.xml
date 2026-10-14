@@ -1,0 +1,485 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V17" />
+  <DocumentInfo>
+    <Created>2026-10-14T05:19:34.9155484Z</Created>
+    <ExportSetting>WithDefaults</ExportSetting>
+    <InstalledProducts>
+      <Product>
+        <DisplayName>Totally Integrated Automation Portal</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>TIA Portal Openness</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>TIA Portal Version Control Interface</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>SINAMICS Startdrive Advanced</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G130, G150, S120, S150, SINAMICS MV, S210</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G110M, G120, G120C, G120D, G120P, G115D</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>STEP 7 Professional</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>STEP 7 Safety</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>WinCC Advanced / Unified PC</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+    </InstalledProducts>
+  </DocumentInfo>
+  <SW.Blocks.FB ID="0">
+    <AttributeList>
+      <AutoNumber>false</AutoNumber>
+      <HeaderAuthor />
+      <HeaderFamily />
+      <HeaderName />
+      <HeaderVersion>0.1</HeaderVersion>
+      <Interface><Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+  <Section Name="Input">
+    <Member Name="I_Feedback_Speed" Datatype="Byte" Remanence="NonRetain" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute></AttributeList></Member>
+    <Member Name="I_Robot_LowSpeed" Datatype="Bool" Remanence="NonRetain" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute></AttributeList></Member>
+  </Section>
+  <Section Name="Output">
+    <Member Name="O_Set_Speed" Datatype="Byte" Remanence="NonRetain" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute></AttributeList></Member>
+    <Member Name="O_Enable" Datatype="Bool" Remanence="NonRetain" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute></AttributeList></Member>
+  </Section>
+  <Section Name="InOut" />
+  <Section Name="Static">
+    <Member Name="Robot_Speed" Datatype="&quot;ABB_Speed&quot;" Remanence="Retain" Accessibility="Public"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">true</BooleanAttribute></AttributeList><Sections><Section Name="None"><Member Name="Enable" Datatype="Bool" /><Member Name="Set_Speed" Datatype="Byte" /><Member Name="Feedback_Speed" Datatype="Byte" /></Section></Sections></Member>
+  </Section>
+  <Section Name="Temp" />
+  <Section Name="Constant" />
+</Sections></Interface>
+      <IsIECCheckEnabled>false</IsIECCheckEnabled>
+      <IsRetainMemResEnabled>false</IsRetainMemResEnabled>
+      <MemoryLayout>Optimized</MemoryLayout>
+      <MemoryReserve>100</MemoryReserve>
+      <Name>ABB_Speed_Set</Name>
+      <Number>14501</Number>
+      <ProgrammingLanguage>LAD</ProgrammingLanguage>
+      <SetENOAutomatically>false</SetENOAutomatically>
+      <UDABlockProperties />
+      <UDAEnableTagReadback>false</UDAEnableTagReadback>
+    </AttributeList>
+    <ObjectList>
+      <MultilingualText ID="1" CompositionName="Comment">
+        <ObjectList>
+          <MultilingualTextItem ID="2" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="3" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="4" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="5" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="6" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+      <SW.Blocks.CompileUnit ID="7" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><StructuredText xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/StructuredText/v3">
+  <Access Scope="LocalVariable" UId="21">
+    <Symbol UId="22">
+      <Component Name="Robot_Speed" UId="23" />
+      <Token Text="." UId="24" />
+      <Component Name="Feedback_Speed" UId="25" />
+    </Symbol>
+  </Access>
+  <Blank Num="1" UId="26" />
+  <Token Text=":=" UId="27" />
+  <Blank Num="1" UId="28" />
+  <Access Scope="LocalVariable" UId="29">
+    <Symbol UId="30">
+      <Component Name="I_Feedback_Speed" UId="31" />
+    </Symbol>
+  </Access>
+  <Blank Num="1" UId="32" />
+  <Token Text=";" UId="33" />
+  <NewLine Num="1" UId="34" />
+  <Access Scope="LocalVariable" UId="35">
+    <Symbol UId="36">
+      <Component Name="O_Enable" UId="37" />
+    </Symbol>
+  </Access>
+  <Blank Num="1" UId="38" />
+  <Token Text=":=" UId="39" />
+  <Blank Num="1" UId="40" />
+  <Access Scope="LocalVariable" UId="41">
+    <Symbol UId="42">
+      <Component Name="Robot_Speed" UId="43" />
+      <Token Text="." UId="44" />
+      <Component Name="Enable" UId="45" />
+    </Symbol>
+  </Access>
+  <Token Text=";" UId="46" />
+  <NewLine Num="1" UId="47" />
+  <Token Text="IF" UId="48" />
+  <Blank Num="1" UId="49" />
+  <Access Scope="LocalVariable" UId="50">
+    <Symbol UId="51">
+      <Component Name="Robot_Speed" UId="52" />
+      <Token Text="." UId="53" />
+      <Component Name="Set_Speed" UId="54" />
+    </Symbol>
+  </Access>
+  <Blank Num="1" UId="55" />
+  <Token Text="&gt;" UId="56" />
+  <Blank Num="1" UId="57" />
+  <Access Scope="LiteralConstant" UId="58">
+    <Constant UId="59">
+      <ConstantValue UId="61">100</ConstantValue>
+    </Constant>
+  </Access>
+  <NewLine Num="1" UId="62" />
+  <Token Text="THEN" UId="63" />
+  <NewLine Num="1" UId="64" />
+  <Blank Num="4" UId="65" />
+  <Access Scope="LocalVariable" UId="66">
+    <Symbol UId="67">
+      <Component Name="Robot_Speed" UId="68" />
+      <Token Text="." UId="69" />
+      <Component Name="Set_Speed" UId="70" />
+    </Symbol>
+  </Access>
+  <Blank Num="1" UId="71" />
+  <Token Text=":=" UId="72" />
+  <Blank Num="1" UId="73" />
+  <Access Scope="LiteralConstant" UId="74">
+    <Constant UId="75">
+      <ConstantValue UId="77">100</ConstantValue>
+    </Constant>
+  </Access>
+  <Blank Num="1" UId="78" />
+  <Token Text=";" UId="79" />
+  <NewLine Num="1" UId="80" />
+  <Token Text="END_IF" UId="81" />
+  <Blank Num="1" UId="82" />
+  <Token Text=";" UId="83" />
+  <NewLine Num="1" UId="84" />
+  <Token Text="IF" UId="85" />
+  <Blank Num="1" UId="86" />
+  <Access Scope="LocalVariable" UId="87">
+    <Symbol UId="88">
+      <Component Name="Robot_Speed" UId="89" />
+      <Token Text="." UId="90" />
+      <Component Name="Set_Speed" UId="91" />
+    </Symbol>
+  </Access>
+  <Blank Num="1" UId="92" />
+  <Token Text="&lt;" UId="93" />
+  <Blank Num="1" UId="94" />
+  <Access Scope="LiteralConstant" UId="95">
+    <Constant UId="96">
+      <ConstantValue UId="98">0</ConstantValue>
+    </Constant>
+  </Access>
+  <NewLine Num="1" UId="99" />
+  <Token Text="THEN" UId="100" />
+  <NewLine Num="1" UId="101" />
+  <Blank Num="4" UId="102" />
+  <Access Scope="LocalVariable" UId="103">
+    <Symbol UId="104">
+      <Component Name="Robot_Speed" UId="105" />
+      <Token Text="." UId="106" />
+      <Component Name="Set_Speed" UId="107" />
+    </Symbol>
+  </Access>
+  <Blank Num="1" UId="108" />
+  <Token Text=":=" UId="109" />
+  <Blank Num="1" UId="110" />
+  <Access Scope="LiteralConstant" UId="111">
+    <Constant UId="112">
+      <ConstantValue UId="114">0</ConstantValue>
+    </Constant>
+  </Access>
+  <Blank Num="1" UId="115" />
+  <Token Text=";" UId="116" />
+  <NewLine Num="1" UId="117" />
+  <Token Text="END_IF" UId="118" />
+  <Blank Num="1" UId="119" />
+  <Token Text=";" UId="120" />
+  <NewLine Num="1" UId="121" />
+  <Token Text="IF" UId="122" />
+  <Blank Num="1" UId="123" />
+  <Access Scope="LocalVariable" UId="124">
+    <Symbol UId="125">
+      <Component Name="Robot_Speed" UId="126" />
+      <Token Text="." UId="127" />
+      <Component Name="Set_Speed" UId="128" />
+    </Symbol>
+  </Access>
+  <Blank Num="1" UId="129" />
+  <Token Text="&gt;=" UId="130" />
+  <Blank Num="1" UId="131" />
+  <Access Scope="LiteralConstant" UId="132">
+    <Constant UId="133">
+      <ConstantValue UId="135">0</ConstantValue>
+    </Constant>
+  </Access>
+  <Blank Num="1" UId="136" />
+  <Token Text="AND" UId="137" />
+  <Blank Num="1" UId="138" />
+  <Access Scope="LocalVariable" UId="139">
+    <Symbol UId="140">
+      <Component Name="Robot_Speed" UId="141" />
+      <Token Text="." UId="142" />
+      <Component Name="Set_Speed" UId="143" />
+    </Symbol>
+  </Access>
+  <Blank Num="1" UId="144" />
+  <Token Text="&lt;=" UId="145" />
+  <Blank Num="1" UId="146" />
+  <Access Scope="LiteralConstant" UId="147">
+    <Constant UId="148">
+      <ConstantValue UId="150">100</ConstantValue>
+    </Constant>
+  </Access>
+  <Blank Num="1" UId="151" />
+  <Token Text="AND" UId="152" />
+  <Blank Num="1" UId="153" />
+  <Access Scope="LocalVariable" UId="154">
+    <Symbol UId="155">
+      <Component Name="Robot_Speed" UId="156" />
+      <Token Text="." UId="157" />
+      <Component Name="Enable" UId="158" />
+    </Symbol>
+  </Access>
+  <NewLine Num="1" UId="159" />
+  <Token Text="THEN" UId="160" />
+  <NewLine Num="1" UId="161" />
+  <Blank Num="4" UId="162" />
+  <Access Scope="LocalVariable" UId="163">
+    <Symbol UId="164">
+      <Component Name="O_Set_Speed" UId="165" />
+    </Symbol>
+  </Access>
+  <Blank Num="1" UId="166" />
+  <Token Text=":=" UId="167" />
+  <Blank Num="1" UId="168" />
+  <Access Scope="LocalVariable" UId="169">
+    <Symbol UId="170">
+      <Component Name="Robot_Speed" UId="171" />
+      <Token Text="." UId="172" />
+      <Component Name="Set_Speed" UId="173" />
+    </Symbol>
+  </Access>
+  <Blank Num="1" UId="174" />
+  <Token Text=";" UId="175" />
+  <NewLine Num="1" UId="176" />
+  <Token Text="END_IF" UId="177" />
+  <Blank Num="1" UId="178" />
+  <Token Text=";" UId="179" />
+  <NewLine Num="1" UId="180" />
+  <Token Text="IF" UId="181" />
+  <Blank Num="1" UId="182" />
+  <Token Text="NOT" UId="183" />
+  <Blank Num="1" UId="184" />
+  <Access Scope="LocalVariable" UId="185">
+    <Symbol UId="186">
+      <Component Name="Robot_Speed" UId="187" />
+      <Token Text="." UId="188" />
+      <Component Name="Enable" UId="189" />
+    </Symbol>
+  </Access>
+  <NewLine Num="1" UId="190" />
+  <Token Text="THEN" UId="191" />
+  <NewLine Num="1" UId="192" />
+  <Blank Num="4" UId="193" />
+  <Access Scope="LocalVariable" UId="194">
+    <Symbol UId="195">
+      <Component Name="O_Set_Speed" UId="196" />
+    </Symbol>
+  </Access>
+  <Blank Num="1" UId="197" />
+  <Token Text=":=" UId="198" />
+  <Blank Num="1" UId="199" />
+  <Access Scope="LiteralConstant" UId="200">
+    <Constant UId="201">
+      <ConstantValue UId="203">100</ConstantValue>
+    </Constant>
+  </Access>
+  <Token Text=";" UId="204" />
+  <NewLine Num="1" UId="205" />
+  <Token Text="END_IF" UId="206" />
+  <Token Text=";" UId="207" />
+  <NewLine Num="1" UId="208" />
+  <Token Text="IF" UId="209" />
+  <Blank Num="1" UId="210" />
+  <Access Scope="LocalVariable" UId="211">
+    <Symbol UId="212">
+      <Component Name="I_Robot_LowSpeed" UId="213" />
+    </Symbol>
+  </Access>
+  <NewLine Num="1" UId="214" />
+  <Token Text="THEN" UId="215" />
+  <NewLine Num="1" UId="216" />
+  <Blank Num="4" UId="217" />
+  <Access Scope="LocalVariable" UId="218">
+    <Symbol UId="219">
+      <Component Name="O_Set_Speed" UId="220" />
+    </Symbol>
+  </Access>
+  <Blank Num="1" UId="221" />
+  <Token Text=":=" UId="222" />
+  <Blank Num="1" UId="223" />
+  <Access Scope="LiteralConstant" UId="224">
+    <Constant UId="225">
+      <ConstantValue UId="227">10</ConstantValue>
+    </Constant>
+  </Access>
+  <Token Text=";" UId="228" />
+  <LineComment Inserted="false" NoClosingBracket="false" UId="229">
+    <Text UId="230">预热功能</Text>
+  </LineComment>
+  <NewLine Num="1" UId="231" />
+  <Token Text="END_IF" UId="232" />
+  <Token Text=";" UId="233" />
+  <NewLine Num="1" UId="234" />
+</StructuredText></NetworkSource>
+          <ProgrammingLanguage>SCL</ProgrammingLanguage>
+        </AttributeList>
+        <ObjectList>
+          <MultilingualText ID="8" CompositionName="Comment">
+            <ObjectList>
+              <MultilingualTextItem ID="9" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="A" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="B" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="C" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="D" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+          <MultilingualText ID="E" CompositionName="Title">
+            <ObjectList>
+              <MultilingualTextItem ID="F" CompositionName="Items">
+                <AttributeList>
+                  <Culture>zh-CN</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="10" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-US</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="11" CompositionName="Items">
+                <AttributeList>
+                  <Culture>en-GB</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="12" CompositionName="Items">
+                <AttributeList>
+                  <Culture>sv-SE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+              <MultilingualTextItem ID="13" CompositionName="Items">
+                <AttributeList>
+                  <Culture>de-DE</Culture>
+                  <Text />
+                </AttributeList>
+              </MultilingualTextItem>
+            </ObjectList>
+          </MultilingualText>
+        </ObjectList>
+      </SW.Blocks.CompileUnit>
+      <MultilingualText ID="14" CompositionName="Title">
+        <ObjectList>
+          <MultilingualTextItem ID="15" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="16" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="17" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="18" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="19" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+    </ObjectList>
+  </SW.Blocks.FB>
+</Document>

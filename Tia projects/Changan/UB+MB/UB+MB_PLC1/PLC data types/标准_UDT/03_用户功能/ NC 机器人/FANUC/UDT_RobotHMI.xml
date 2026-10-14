@@ -1,0 +1,130 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V17" />
+  <DocumentInfo>
+    <Created>2026-10-14T05:20:14.185663Z</Created>
+    <ExportSetting>WithDefaults</ExportSetting>
+    <InstalledProducts>
+      <Product>
+        <DisplayName>Totally Integrated Automation Portal</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>TIA Portal Openness</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>TIA Portal Version Control Interface</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>SINAMICS Startdrive Advanced</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G130, G150, S120, S150, SINAMICS MV, S210</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <OptionPackage>
+        <DisplayName>SINAMICS Startdrive G110M, G120, G120C, G120D, G120P, G115D</DisplayName>
+        <DisplayVersion>V17 SP1</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>STEP 7 Professional</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+      <OptionPackage>
+        <DisplayName>STEP 7 Safety</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </OptionPackage>
+      <Product>
+        <DisplayName>WinCC Advanced / Unified PC</DisplayName>
+        <DisplayVersion>V17</DisplayVersion>
+      </Product>
+    </InstalledProducts>
+  </DocumentInfo>
+  <SW.Types.PlcStruct ID="0">
+    <AttributeList>
+      <Interface><Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+  <Section Name="None">
+    <Member Name="sts" Datatype="&quot;UDT_StsRobot&quot;"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">机器人状态</MultiLanguageText></Comment><Sections><Section Name="None"><Member Name="atHome" Datatype="Bool" /><Member Name="atPeo" Datatype="Bool" /><Member Name="lifeBit" Datatype="Bool" /><Member Name="estop" Datatype="Bool" /><Member Name="stopped" Datatype="Bool" /><Member Name="robotOk" Datatype="Bool" /><Member Name="motorOn" Datatype="Bool" /><Member Name="onPath" Datatype="Bool" /><Member Name="busy" Datatype="Bool" /><Member Name="held" Datatype="Bool" /><Member Name="paused" Datatype="Bool" /><Member Name="servicePos" Datatype="Bool" /><Member Name="tipChangePos" Datatype="Bool" /><Member Name="selectAuto" Datatype="Bool" /><Member Name="styleAny" Datatype="Bool" /><Member Name="waitForSeg" Datatype="Bool" /><Member Name="endOfSeg" Datatype="Bool" /><Member Name="taskOK" Datatype="Bool" /><Member Name="procOn" Datatype="Bool" /><Member Name="tryOut" Datatype="Bool" /><Member Name="commOk" Datatype="Bool" /><Member Name="faulted" Datatype="Bool" /><Member Name="colError" Datatype="Bool" /><Member Name="clearSetup" Datatype="Bool" /><Member Name="sendPgno" Datatype="Int" /><Member Name="fbPgno" Datatype="Int" /><Member Name="sendSeg" Datatype="Int" /><Member Name="fbSeg" Datatype="Int" /><Member Name="tipDressCount" Datatype="Int" /><Member Name="spotCount" Datatype="Int" /><Member Name="sendText" Datatype="WString[24]" /></Section></Sections></Member>
+    <Member Name="operPB" Datatype="&quot;UDT_zRobotFromHMI&quot;"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">true</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">HMI操作按钮</MultiLanguageText></Comment><Sections><Section Name="None"><Member Name="initilization" Datatype="Bool" /><Member Name="gun1ToDress" Datatype="Bool" /><Member Name="gun2ToDress" Datatype="Bool" /><Member Name="gun3ToDress" Datatype="Bool" /><Member Name="gun4ToDress" Datatype="Bool" /><Member Name="gun1ToChange" Datatype="Bool" /><Member Name="gun2ToChange" Datatype="Bool" /><Member Name="gun3ToChange" Datatype="Bool" /><Member Name="gun4ToChange" Datatype="Bool" /><Member Name="tool0ToChange" Datatype="Bool" /><Member Name="tool1ToChange" Datatype="Bool" /><Member Name="tool2ToChange" Datatype="Bool" /><Member Name="tool3ToChange" Datatype="Bool" /><Member Name="tool4ToChange" Datatype="Bool" /><Member Name="tool0ToService" Datatype="Bool" /><Member Name="tool1ToService" Datatype="Bool" /><Member Name="tool2ToService" Datatype="Bool" /><Member Name="tool3ToService" Datatype="Bool" /><Member Name="tool4ToService" Datatype="Bool" /><Member Name="Special_Technology" Datatype="Bool" /><Member Name="GunHomeCheck_PB" Datatype="Bool" /><Member Name="GunDefCheck_PB" Datatype="Bool" /><Member Name="TipCenterCheck_PB" Datatype="Bool" /><Member Name="TipDressLight_PB" Datatype="Bool" /><Member Name="ResTest_PB" Datatype="Bool" /><Member Name="ArcWeldCleanGun" Datatype="Bool" /><Member Name="LaserPowerDetect" Datatype="Bool" /><Member Name="retToHome" Datatype="Bool" /><Member Name="spotCount" Datatype="Int" /><Member Name="tipDressCount" Datatype="Int" /><Member Name="soptMax" Datatype="Int" /><Member Name="tipDressMax" Datatype="Int" /><Member Name="SpeedControl" Datatype="Word" /></Section></Sections></Member>
+    <Member Name="selected" Datatype="Int"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">true</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">选择的机器人编号</MultiLanguageText></Comment></Member>
+    <Member Name="selectGun" Datatype="Int"><AttributeList><BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="ExternalWritable" SystemDefined="true">true</BooleanAttribute><BooleanAttribute Name="SetPoint" SystemDefined="true">false</BooleanAttribute></AttributeList><Comment><MultiLanguageText Lang="zh-CN">选择的焊枪编号</MultiLanguageText></Comment></Member>
+  </Section>
+</Sections></Interface>
+      <IsFailsafeCompliant>false</IsFailsafeCompliant>
+      <Name>UDT_RobotHMI</Name>
+    </AttributeList>
+    <ObjectList>
+      <MultilingualText ID="1" CompositionName="Comment">
+        <ObjectList>
+          <MultilingualTextItem ID="2" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="3" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="4" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="5" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="6" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+      <MultilingualText ID="7" CompositionName="Title">
+        <ObjectList>
+          <MultilingualTextItem ID="8" CompositionName="Items">
+            <AttributeList>
+              <Culture>zh-CN</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="9" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-US</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="A" CompositionName="Items">
+            <AttributeList>
+              <Culture>en-GB</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="B" CompositionName="Items">
+            <AttributeList>
+              <Culture>sv-SE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+          <MultilingualTextItem ID="C" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+    </ObjectList>
+  </SW.Types.PlcStruct>
+</Document>
