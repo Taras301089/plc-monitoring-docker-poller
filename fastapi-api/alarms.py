@@ -12,10 +12,11 @@ from xml.etree import ElementTree as ET
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, Field
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response
 
-from auth import require_admin, require_user
+from auth import ROLES, require_admin, require_editor, require_user
 
 router = APIRouter(prefix="/api/alarms")
 
@@ -86,6 +87,34 @@ async def ensure_alarms_schema(pool: asyncpg.Pool) -> None:
             enabled    BOOLEAN NOT NULL DEFAULT TRUE
         )
         """
+    )
+    # Убрано из статистики аналитики: авария (бит) или станция целиком. Возврат не стирает строку, а ставит restored_at (это и журнал)
+    await pool.execute(
+        """
+        CREATE TABLE IF NOT EXISTS alarm_exclusions (
+            id            BIGSERIAL   PRIMARY KEY,
+            plc_id        INTEGER     NOT NULL REFERENCES plcs(id) ON DELETE CASCADE,
+            kind          TEXT        NOT NULL CHECK (kind IN ('alarm', 'station')),
+            bit_index     INTEGER,
+            station       TEXT,
+            reason        TEXT,
+            created_by    INTEGER,
+            created_name  TEXT,
+            created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+            restored_at   TIMESTAMPTZ,
+            restored_by   INTEGER,
+            restored_name TEXT,
+            CHECK ((kind = 'alarm' AND bit_index IS NOT NULL) OR (kind = 'station' AND station IS NOT NULL))
+        )
+        """
+    )
+    await pool.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_alarm_excl_alarm ON alarm_exclusions (plc_id, bit_index) "
+        "WHERE kind = 'alarm' AND restored_at IS NULL"
+    )
+    await pool.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_alarm_excl_station ON alarm_exclusions (plc_id, station) "
+        "WHERE kind = 'station' AND restored_at IS NULL"
     )
 
 
@@ -279,6 +308,118 @@ async def get_catalog(
         "offset": offset,
         "items": [dict(r) for r in rows],
     }
+
+
+# ------------------------------------------------------------------ убрано из статистики
+MAX_BIT = 5000 * 16 - 1      # слов до 5000 (alarm_sources.word_count), бит 16 на слово
+RECENT_RESTORED_DAYS = 30
+
+
+def author_label(user: dict[str, Any]) -> str:
+    """«Фамилия, должность» (должность по роли пользователя)."""
+    name = (user.get("last_name") or user.get("login") or "").strip()
+    pos = ROLES.get(user.get("role") or "", "")
+    return f"{name}, {pos}" if name and pos else name
+
+
+def removed_note(removed: dict[str, Any]) -> str:
+    """Строка «Убрано из статистики: N (аварий A, станций S)»; тот же текст на экране (anRemovedNote в alarms.js) и в Excel."""
+    a, s = int(removed["alarms"]), int(removed["stations"])
+    return f"Убрано из статистики: {a + s} (аварий {a}, станций {s})"
+
+
+def exclusion_item(r: Any) -> dict[str, Any]:
+    return {
+        "id": r["id"], "plc_id": r["plc_id"], "plc": r["plc"], "kind": r["kind"], "bit_index": r["bit_index"],
+        "station": r["station"] if r["kind"] == "station" else (r["cat_station"] or ""),
+        "code": r["code"] or "", "text": r["text"] if r["kind"] == "alarm" and r["text"] else "",
+        "reason": r["reason"] or "", "created_by": r["created_by"], "created_name": r["created_name"] or "",
+        "created_at": _iso(r["created_at"]),
+        "restored_at": _iso(r["restored_at"]) if r["restored_at"] else None, "restored_name": r["restored_name"] or "",
+        "active": r["restored_at"] is None,
+    }
+
+
+_EXCL_SQL = """
+    SELECT x.id, x.plc_id, p.name AS plc, x.kind, x.bit_index, x.station, x.reason, x.created_by, x.created_name, x.created_at,
+           x.restored_at, x.restored_name, c.code, c.text, c.station AS cat_station
+    FROM alarm_exclusions x
+    JOIN plcs p ON p.id = x.plc_id
+    LEFT JOIN alarm_catalog c ON c.plc_id = x.plc_id AND c.bit_index = x.bit_index AND x.kind = 'alarm'
+"""
+
+
+async def load_exclusions(pool: asyncpg.Pool, plc_ids: list[int] | None, active_only: bool = True) -> list[dict[str, Any]]:
+    """Записи «убрано из статистики»: активные (и, если active_only=False, возвращённые за последние 30 дней)."""
+    cond = ["($1::int[] IS NULL OR x.plc_id = ANY($1::int[]))"]
+    if active_only:
+        cond.append("x.restored_at IS NULL")
+    else:
+        cond.append(f"(x.restored_at IS NULL OR x.restored_at > now() - interval '{RECENT_RESTORED_DAYS} days')")
+    rows = await pool.fetch(_EXCL_SQL + " WHERE " + " AND ".join(cond) + " ORDER BY x.created_at DESC, x.id DESC", plc_ids)
+    return [exclusion_item(r) for r in rows]
+
+
+class ExclusionIn(BaseModel):
+    plc_id: int
+    kind: str = Field(..., pattern="^(alarm|station)$")
+    bit_index: int | None = Field(None, ge=0, le=MAX_BIT)
+    station: str | None = Field(None, max_length=50)
+    reason: str | None = Field(None, max_length=300)
+
+
+@router.get("/exclusions", summary="Что убрано из статистики аналитики аварий (чтение без входа)")
+async def get_exclusions(request: Request, plc_id: int | None = Query(None), active_only: bool = Query(False)):
+    items = await load_exclusions(request.app.state.pool, [plc_id] if plc_id is not None else None, active_only)
+    return {"items": items, "active": sum(1 for i in items if i["active"])}
+
+
+@router.post("/exclusions", summary="Убрать аварию или станцию из статистики аналитики (вошедший пользователь, кроме роли «Просмотр»)")
+async def add_exclusion(request: Request, body: ExclusionIn, user: dict = Depends(require_editor)):
+    pool: asyncpg.Pool = request.app.state.pool
+    if not await pool.fetchval("SELECT 1 FROM plcs WHERE id = $1", body.plc_id):
+        raise HTTPException(status_code=404, detail="ПЛК не найден")
+    station = (body.station or "").strip()
+    if body.kind == "alarm":
+        if body.bit_index is None:
+            raise HTTPException(status_code=422, detail="Не указан номер бита аварии")
+        station = ""
+    else:
+        if not station:
+            raise HTTPException(status_code=422, detail="Не указана станция")
+        if not await pool.fetchval("SELECT 1 FROM alarm_catalog WHERE plc_id = $1 AND station = $2", body.plc_id, station):
+            raise HTTPException(status_code=422, detail=f"Станции «{station}» нет в словаре аварий этого ПЛК")
+    bit = body.bit_index if body.kind == "alarm" else None
+    reason = (body.reason or "").strip() or None
+    find = ("SELECT id FROM alarm_exclusions WHERE plc_id = $1 AND kind = $2 AND restored_at IS NULL AND "
+            "COALESCE(bit_index, -1) = COALESCE($3, -1) AND COALESCE(station, '') = $4")
+    found = await pool.fetchval(find, body.plc_id, body.kind, bit, station)
+    created = False
+    if found is None:
+        try:
+            found = await pool.fetchval(
+                "INSERT INTO alarm_exclusions (plc_id, kind, bit_index, station, reason, created_by, created_name) "
+                "VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+                body.plc_id, body.kind, bit, station or None, reason, user["id"], author_label(user))
+            created = True
+        except asyncpg.UniqueViolationError:      # одновременный повтор: запись уже есть
+            found = await pool.fetchval(find, body.plc_id, body.kind, bit, station)
+    row = await pool.fetchrow(_EXCL_SQL + " WHERE x.id = $1", found)
+    return {"created": created, "item": exclusion_item(row)}
+
+
+@router.delete("/exclusions/{excl_id}", summary="Вернуть аварию или станцию в статистику (запись остаётся в журнале с отметкой возврата)")
+async def restore_exclusion(request: Request, excl_id: int, user: dict = Depends(require_editor)):
+    pool: asyncpg.Pool = request.app.state.pool
+    done = await pool.fetchval(
+        "UPDATE alarm_exclusions SET restored_at = now(), restored_by = $2, restored_name = $3 "
+        "WHERE id = $1 AND restored_at IS NULL RETURNING id", excl_id, user["id"], author_label(user))
+    if done is None:
+        if await pool.fetchval("SELECT 1 FROM alarm_exclusions WHERE id = $1", excl_id):
+            raise HTTPException(status_code=409, detail="Уже возвращено в статистику")
+        raise HTTPException(status_code=404, detail="Запись не найдена")
+    row = await pool.fetchrow(_EXCL_SQL + " WHERE x.id = $1", excl_id)
+    return {"item": exclusion_item(row)}
 
 
 # ------------------------------------------------------------------ журнал событий
@@ -688,18 +829,27 @@ async def load_work_intervals(pool: asyncpg.Pool, plc_ids: list[int], d1: date, 
 
 def build_analytics(
     events: list[dict[str, Any]], work: dict[int, list[tuple[datetime, datetime]] | None] | None, now: datetime, include_all: bool,
+    exclusions: dict[str, set] | None = None,
 ) -> dict[str, Any]:
     """Единственное место расчёта аналитики аварий (экран и Excel берут результат отсюда).
 
     events: plc_id, plc, bit_index, started_at, ended_at, code, text, station, in_catalog.
     work: рабочие интервалы по ПЛК (None у ПЛК без экрана KPI: рабочее всё время); не используется при include_all.
-    Авария учитывается, если НАЧАЛАСЬ в рабочее время; её длительность обрезается границами рабочих интервалов."""
+    Авария учитывается, если НАЧАЛАСЬ в рабочее время; её длительность обрезается границами рабочих интервалов.
+    exclusions: {"alarms": {(plc_id, bit_index)}, "stations": {(plc_id, станция)}}: убранные из статистики аварии и станции целиком;
+    такие события не входят ни в один расчёт (плитки, Парето, топы, станции, дни) и считаются отдельно в removed_events."""
+    ex_alarms = (exclusions or {}).get("alarms", set())
+    ex_stations = (exclusions or {}).get("stations", set())
+    removed_events = 0
     by_alarm: dict[tuple[int, int], dict[str, Any]] = {}
     by_station: dict[tuple[int, str], dict[str, Any]] = {}
     by_day: dict[date, dict[str, Any]] = {}
     cases: list[dict[str, Any]] = []
     excluded = 0
     for ev in events:
+        if (ev["plc_id"], ev["bit_index"]) in ex_alarms or (ev["station"] and (ev["plc_id"], ev["station"]) in ex_stations):
+            removed_events += 1
+            continue
         s = ev["started_at"]
         e = max(ev["ended_at"] or now, s)
         iv = None if include_all or work is None else work.get(ev["plc_id"])
@@ -728,7 +878,7 @@ def build_analytics(
         dd = by_day.setdefault(day, {"date": day, "count": 0, "total_sec": 0.0})
         dd["count"] += 1
         dd["total_sec"] += dur
-        cases.append({"plc": ev["plc"], "station": station, "code": code, "text": text, "started_at": _iso(s),
+        cases.append({"plc_id": ev["plc_id"], "bit_index": ev["bit_index"], "plc": ev["plc"], "station": station, "code": code, "text": text, "started_at": _iso(s),
                       "duration_sec": int(round(dur)), "active": ev["ended_at"] is None})
 
     n_events = sum(a["count"] for a in by_alarm.values())
@@ -767,6 +917,7 @@ def build_analytics(
     return {
         "tiles": {"events": n_events, "total_sec": int(round(total_sec)), "distinct": len(by_alarm)},
         "excluded": excluded,
+        "removed_events": removed_events,
         "include_all": include_all,
         "frequent": frequent,
         "longest": longest,
@@ -814,7 +965,12 @@ async def fetch_analytics(pool: asyncpg.Pool, d1: date, d2: date, brand: str, pl
             "SELECT plc_id FROM alarm_events WHERE plc_id = ANY($1::int[])) x", ids)
         if not include_all:
             work = await load_work_intervals(pool, ids, d1, d2)
-    out = build_analytics(events, work, now, include_all)
+    items = await load_exclusions(pool, ids) if ids else []
+    exclusions = {"alarms": {(i["plc_id"], i["bit_index"]) for i in items if i["kind"] == "alarm"},
+                  "stations": {(i["plc_id"], i["station"]) for i in items if i["kind"] == "station"}}
+    out = build_analytics(events, work, now, include_all, exclusions)
+    out["removed"] = {"alarms": sum(1 for i in items if i["kind"] == "alarm"), "stations": sum(1 for i in items if i["kind"] == "station"),
+                      "events": out.pop("removed_events"), "items": items}
     out.update({
         "from": d1.isoformat(), "to": d2.isoformat(), "now": _iso(now), "offset_hours": UTC_OFFSET_HOURS,
         "scope": {"brand": brand, "plc_id": plc_id, "label": label, "plcs": [{"id": p["id"], "name": p["name"]} for p in scope],
@@ -882,6 +1038,8 @@ def build_analytics_workbook(data: dict[str, Any], metric: str) -> bytes:
         ws.write(2, 0, "Учитываются все аварии, в том числе вне смены и в дни без выпуска", f["muted"])
     else:
         ws.write(2, 0, f"Учитываются аварии, начавшиеся в рабочее время линии. Не учтено вне смены и в дни без выпуска: {data['excluded']}", f["muted"])
+    if data["removed"]["alarms"] + data["removed"]["stations"]:
+        ws.write(3, 0, removed_note(data["removed"]), f["muted"])
     t = data["tiles"]
     for c, name in enumerate(TILE_NAMES):
         ws.write(4, c, name, f["tile_l"])
