@@ -114,8 +114,35 @@ async def clean_data(request, pool):
         for r in await pool.fetch("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
         if r["tablename"] not in KEEP_TABLES and r["tablename"] not in SEEDED_TABLES
     ]
-    if tables:
-        await pool.execute("TRUNCATE " + ", ".join(f'"{t}"' for t in tables) + " RESTART IDENTITY CASCADE")
+    if not tables:
+        return
+    # TRUNCATE стоит ~2.5 с на тест (Docker на Windows), даже на пустых таблицах. Вместо него DELETE только
+    # из непустых таблиц, без проверки внешних ключей: связанные непустые таблицы очищаются в том же проходе
+    dirty = [
+        r["t"]
+        for r in await pool.fetch(
+            " UNION ALL ".join(f"SELECT '{t}' AS t WHERE EXISTS (SELECT 1 FROM \"{t}\")" for t in tables)
+        )
+    ]
+    # Счётчики id, которые сдвигались (в том числе отменённой вставкой), возвращаем к 1, как RESTART IDENTITY
+    seqs = [
+        r["seq"]
+        for r in await pool.fetch(
+            "SELECT s.sequencename AS seq, t.relname AS tbl FROM pg_sequences s "
+            "JOIN pg_class sc ON sc.relname = s.sequencename AND sc.relkind = 'S' "
+            "JOIN pg_depend d ON d.objid = sc.oid AND d.deptype IN ('a', 'i') "
+            "JOIN pg_class t ON t.oid = d.refobjid "
+            "WHERE s.schemaname = 'public' AND s.last_value IS NOT NULL"
+        )
+        if r["tbl"] in tables
+    ]
+    if not dirty and not seqs:
+        return
+    sql = "SET LOCAL session_replication_role = replica;"
+    sql += "".join(f'DELETE FROM "{t}";' for t in dirty)
+    sql += "".join(f'ALTER SEQUENCE "{s}" RESTART;' for s in seqs)
+    async with pool.acquire() as con, con.transaction():
+        await con.execute(sql)
 
 
 SEEDED_TABLES: set[str] = set()
