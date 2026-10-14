@@ -9,8 +9,8 @@ Unsupported instructions are reported explicitly; the original network tree
 is retained. No current PLC values or automatic time-monitoring inference.
 The expression is descriptive; live evaluation is not implemented yet.
 
-Regression check against the exported UB020 fixture:
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tia-connector\test-inspect.ps1
+Regression check against a separately provided UB020 export (not bundled):
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tia-connector\test-inspect.ps1 -XmlPath "D:\Exports\UB020.xml"
 
 Build (Windows PowerShell):
   .\tia-connector\build.ps1

@@ -1,4 +1,4 @@
-param([string]$XmlPath = (Join-Path $PSScriptRoot '..\Tia projects\GWM\UB\Partial export\UB020_20261014_074311.xml'))
+param([Parameter(Mandatory=$true)][string]$XmlPath)
 $ErrorActionPreference = 'Stop'
 $exe = Join-Path $PSScriptRoot 'bin\TiaConnector.exe'
 $result = (& $exe inspect $XmlPath 30 17) | ConvertFrom-Json
