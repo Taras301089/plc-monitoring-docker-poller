@@ -1,0 +1,13 @@
+/* Панель «Проекты TIA» во вкладке «Переменные ПЛК» (только администратор) */
+.area-tia .tia-body { padding: 8px 12px 12px; }
+.area-tia .panel-header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.tia-svc { margin-left: auto; font-size: var(--fs-small); font-weight: 400; }
+.tia-svc.on { color: var(--ok); }
+.tia-svc.off { color: var(--danger); }
+.tia-table { width: 100%; }
+.tia-table th, .tia-table td { font-size: var(--fs-small); text-align: left; padding: 5px 10px; }
+.tia-table .tia-chk { width: 34px; text-align: center; }
+.tia-ok { color: var(--ok); }
+.tia-err { color: var(--danger); }
+.tia-run { color: var(--accent); }
+.tia-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 10px; }

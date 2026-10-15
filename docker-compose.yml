@@ -56,6 +56,7 @@ services:
     volumes:
       - ${REPORTS_HOST_DIR:-C:/Andon-Reports}:/reports
       - ${BACKUP_HOST_DIR:-C:/plc-backups}:/backups:ro
+      - ${TIA_BRIDGE_HOST_DIR:-C:/tia-bridge}:/tia-bridge
     depends_on:
       - postgres
       - plc-monitoring-docker-poller
