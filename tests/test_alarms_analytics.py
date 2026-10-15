@@ -495,6 +495,25 @@ def test_js_pareto_svg():
     assert "fill:" not in svg and "#" not in svg          # цвета только через CSS-переменные
 
 
+@pytest.mark.skipif(not NODE, reason="нет node")
+def test_js_days_svg():
+    days = [{"date": "2026-10-13", "count": 55, "total_sec": 2100}, {"date": "2026-10-14", "count": 24, "total_sec": 1080},
+            {"date": "2026-10-15", "count": 0, "total_sec": 0}]
+    svg = node(f"u.daysSvg({json.dumps(days)}, 'count', 560)")
+    assert svg.count('class="al-bar"') == 3 and ">13.10<" in svg and ">55<" in svg
+    assert ">35<" in node(f"u.daysSvg({json.dumps(days)}, 'time', 560)")
+    assert node("u.daysSvg([], 'count', 560)") == ""
+    assert "fill:" not in svg and "#" not in svg
+
+
+def test_fill_days_has_no_gaps():
+    from alarms import fill_days
+    rows = fill_days([{"date": "2026-10-13", "count": 2, "total_sec": 120}, {"date": "2026-10-15", "count": 1, "total_sec": 60}],
+                     date(2026, 10, 12), date(2026, 10, 15))
+    assert [(r["date"], r["count"], r["total_sec"]) for r in rows] == [
+        ("2026-10-12", 0, 0), ("2026-10-13", 2, 120), ("2026-10-14", 0, 0), ("2026-10-15", 1, 60)]
+
+
 def test_screen_static_checks():
     assert "/static/alarms.js" in INDEX and "/static/alarms.css" in INDEX         # подключение не менялось
     assert 'id="al-t-an"' in JS and "setMode('analytics')" in JS and "refreshAn" in JS
@@ -506,7 +525,10 @@ def test_screen_static_checks():
     assert re.search(r'<input type="checkbox" id="al-an-all" title="[^"]{20,}"', JS)
     for el in ("al-an-brand", "al-an-area", "al-an-reset", "al-an-xl"):
         assert re.search(rf'id="{el}"[^>]*title="[^"]{{15,}}"', JS), el
-    assert re.search(r'data-m="count" title="[^"]{15,}"', JS) and re.search(r'data-m="time" title="[^"]{15,}"', JS)
+    assert "data-m=" not in JS                                     # переключателя Парето нет: оба графика рядом
+    assert 'id="al-an-pareto-count"' in JS and 'id="al-an-pareto-time"' in JS
+    assert 'id="al-an-dcount"' in JS and 'id="al-an-dmin"' in JS
+    assert re.search(r"<h3 title=\"[^\"]{20,}\">\$\{AN_DAYS_TITLE\}</h3>", JS)
     assert "Нет данных: для выбранных ПЛК нет словаря аварий и событий" in JS
     css = (STATIC / "alarms.css").read_text(encoding="utf-8")
     assert ".al-bar { fill: var(--accent)" in css and ".al-cum { fill: none; stroke: var(--ok)" in css

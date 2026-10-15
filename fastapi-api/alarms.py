@@ -716,6 +716,7 @@ async def get_events_xlsx(
 # ------------------------------------------------------------------ аналитика аварий
 TOP_N = 20          # строк в таблицах «Самые частые», «Самые длительные», «Самые долгие случаи»
 PARETO_N = 10       # столбцов в Парето
+DYNAMICS_DAYS = 14  # дней в графиках «Динамика по дням», когда выбран один день
 KPI_TEMPLATES = ("body_counter", "fl_counter")   # экраны, у которых есть почасовые данные kpi_hourly
 NO_VALUE = "—"
 TILE_NAMES = ["Событий", "Суммарное время аварий", "Разных аварий"]
@@ -928,6 +929,33 @@ def build_analytics(
     }
 
 
+def fill_days(days: list[dict[str, Any]], d1: date, d2: date) -> list[dict[str, Any]]:
+    """Ряд по дням без пропусков: день без аварий даёт нули, чтобы на графике он был виден."""
+    by = {d["date"]: d for d in days}
+    out = []
+    d = d1
+    while d <= d2:
+        r = by.get(d.isoformat())
+        out.append({"date": d.isoformat(), "count": r["count"] if r else 0, "total_sec": r["total_sec"] if r else 0})
+        d += timedelta(days=1)
+    return out
+
+
+async def _load_events(pool: asyncpg.Pool, ids: list[int], names: dict[int, str], d1: date, d2: date) -> list[dict[str, Any]]:
+    rows = await pool.fetch(
+        """
+        SELECT e.plc_id, e.bit_index, e.started_at, e.ended_at, c.plc_id IS NOT NULL AS cat, c.code, c.text, c.station
+        FROM alarm_events e LEFT JOIN alarm_catalog c ON c.plc_id = e.plc_id AND c.bit_index = e.bit_index
+        WHERE e.plc_id = ANY($1::int[]) AND e.started_at >= $2 AND e.started_at < $3
+        ORDER BY e.started_at, e.id
+        """,
+        ids, plant_day_start_utc(d1), plant_day_start_utc(d2 + timedelta(days=1)),
+    )
+    return [{"plc_id": r["plc_id"], "plc": names[r["plc_id"]], "bit_index": r["bit_index"], "started_at": r["started_at"],
+             "ended_at": r["ended_at"], "code": r["code"] or "", "text": r["text"] or "", "station": r["station"] or "",
+             "in_catalog": bool(r["cat"])} for r in rows]
+
+
 async def fetch_analytics(pool: asyncpg.Pool, d1: date, d2: date, brand: str, plc_id: int | None, include_all: bool) -> dict[str, Any]:
     """Аналитика аварий за период для выбранных ПЛК: «все» (brand и plc_id пусты), бренд или один ПЛК."""
     _check_period(d1, d2)
@@ -948,18 +976,7 @@ async def fetch_analytics(pool: asyncpg.Pool, d1: date, d2: date, brand: str, pl
     with_data = 0
     work = None
     if ids:
-        rows = await pool.fetch(
-            """
-            SELECT e.plc_id, e.bit_index, e.started_at, e.ended_at, c.plc_id IS NOT NULL AS cat, c.code, c.text, c.station
-            FROM alarm_events e LEFT JOIN alarm_catalog c ON c.plc_id = e.plc_id AND c.bit_index = e.bit_index
-            WHERE e.plc_id = ANY($1::int[]) AND e.started_at >= $2 AND e.started_at < $3
-            ORDER BY e.started_at, e.id
-            """,
-            ids, plant_day_start_utc(d1), plant_day_start_utc(d2 + timedelta(days=1)),
-        )
-        events = [{"plc_id": r["plc_id"], "plc": names[r["plc_id"]], "bit_index": r["bit_index"], "started_at": r["started_at"],
-                   "ended_at": r["ended_at"], "code": r["code"] or "", "text": r["text"] or "", "station": r["station"] or "",
-                   "in_catalog": bool(r["cat"])} for r in rows]
+        events = await _load_events(pool, ids, names, d1, d2)
         with_data = await pool.fetchval(
             "SELECT count(*) FROM (SELECT plc_id FROM alarm_catalog WHERE plc_id = ANY($1::int[]) UNION "
             "SELECT plc_id FROM alarm_events WHERE plc_id = ANY($1::int[])) x", ids)
@@ -971,6 +988,15 @@ async def fetch_analytics(pool: asyncpg.Pool, d1: date, d2: date, brand: str, pl
     out = build_analytics(events, work, now, include_all, exclusions)
     out["removed"] = {"alarms": sum(1 for i in items if i["kind"] == "alarm"), "stations": sum(1 for i in items if i["kind"] == "station"),
                       "events": out.pop("removed_events"), "items": items}
+    # Динамика по дням: за выбранный период, а за один день за последние DYNAMICS_DAYS дней, заканчивая выбранным днём
+    # (убранное из статистики не учитывается и здесь, как в плитках)
+    dd1 = d1 if d1 != d2 else d2 - timedelta(days=DYNAMICS_DAYS - 1)
+    day_rows = out["days"]
+    if dd1 != d1 and ids:
+        ev2 = await _load_events(pool, ids, names, dd1, d2)
+        work2 = None if include_all else await load_work_intervals(pool, ids, dd1, d2)
+        day_rows = build_analytics(ev2, work2, now, include_all, exclusions)["days"]
+    out["dynamics"] = fill_days(day_rows, dd1, d2)
     out.update({
         "from": d1.isoformat(), "to": d2.isoformat(), "now": _iso(now), "offset_hours": UTC_OFFSET_HOURS,
         "scope": {"brand": brand, "plc_id": plc_id, "label": label, "plcs": [{"id": p["id"], "name": p["name"]} for p in scope],

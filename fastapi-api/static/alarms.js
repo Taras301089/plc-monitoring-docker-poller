@@ -115,6 +115,11 @@
   const AN_TILES = ['Событий', 'Суммарное время аварий', 'Разных аварий'];
   const AN_PARETO_TITLE = 'Парето аварий (топ-10)';
   const AN_METRICS = { count: 'по числу появлений', time: 'по времени' };
+  const AN_DAYS_TITLE = 'Динамика по дням';
+  const AN_DAYS_COUNT = 'Число аварий по дням';
+  const AN_DAYS_MIN = 'Минуты аварий по дням';
+  const AN_PARETO_COUNT = 'По числу';
+  const AN_PARETO_TIME = 'По времени';
 
   // Таблицы аналитики: названия и колонки те же, что в Excel; text = как показано и копируется, val = для сортировки
   function anTables() {
@@ -195,12 +200,17 @@
     return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
   }
 
+  // Верх оси: для числа аварий кратен 4, чтобы деления (четверти) были целыми; для минут «круглое» число
+  function axisMax(v, metric) {
+    return metric === 'count' ? Math.max(4, Math.ceil(v / 4) * 4) : niceMax(v);
+  }
+
   // Парето: синие столбцы (число появлений или минуты) и зелёная линия накопленной доли; возвращает строку SVG
   function paretoSvg(rows, metric, W) {
     if (!rows || !rows.length) return '';
-    const H = 320, m = { l: 48, r: 48, t: 24, b: 110 };
+    const H = 250, m = { l: 40, r: 44, t: 22, b: 96 };
     const n = rows.length, iw = W - m.l - m.r, ih = H - m.t - m.b, gw = iw / n, bw = Math.max(10, Math.min(48, gw * 0.6));
-    const max = niceMax(Math.max(...rows.map(r => r.value)));
+    const max = axisMax(Math.max(...rows.map(r => r.value)), metric);
     const yv = v => m.t + ih * (1 - v / max), yp = v => m.t + ih * (1 - v);
     const trunc = (s, k) => (String(s).length > k ? String(s).slice(0, k - 1) + '…' : String(s));
     const e = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -258,7 +268,30 @@
     return j;
   }
 
-  const util = { anCanExclude, anRemovedNote, anExclusionBody, anRemovedItem, exclusionRequest, fmtDuration, parseUtc, toPlant, buildUrl, pageLabel, liveSeconds, nextSort, plcBrand, orderBrands,
+  // Динамика по дням: синие столбцы (число аварий или минуты) по дням; возвращает строку SVG
+  function daysSvg(days, metric, W) {
+    if (!days || !days.length) return '';
+    const H = 170, m = { l: 40, r: 10, t: 22, b: 30 };
+    const n = days.length, iw = W - m.l - m.r, ih = H - m.t - m.b, gw = iw / n, bw = Math.max(4, Math.min(40, gw * 0.7));
+    const val = d => (metric === 'count' ? d.count : Math.round(d.total_sec / 6) / 10);
+    const max = axisMax(Math.max(...days.map(val)), metric);
+    const yv = v => m.t + ih * (1 - v / max);
+    const step = Math.ceil(n / 12);
+    let g = [0, .25, .5, .75, 1].map(v => `<line class="al-ch-grid" x1="${m.l}" x2="${W - m.r}" y1="${yv(max * v)}" y2="${yv(max * v)}"/>` +
+      `<text class="al-ch-tick" x="${m.l - 6}" y="${yv(max * v) + 4}" text-anchor="end">${Math.round(max * v * 10) / 10}</text>`).join('');
+    days.forEach((d, i) => {
+      const x = m.l + gw * i + gw / 2, v = val(d), p = String(d.date).split('-');
+      const dm = p.length === 3 ? `${p[2]}.${p[1]}` : String(d.date);
+      const tip = `${fmtDate(d.date)}: ${d.count} авар., ${fmtMin(d.total_sec)} мин`;
+      g += `<rect class="al-bar" x="${x - bw / 2}" y="${yv(v)}" width="${bw}" height="${ih - (yv(v) - m.t)}"/>` +
+        (n <= 16 ? `<text class="al-ch-val" x="${x}" y="${yv(v) - 4}" text-anchor="middle">${String(v).replace('.', ',')}</text>` : '') +
+        `<rect class="al-ch-hit" x="${x - gw / 2}" y="${m.t}" width="${gw}" height="${ih}"><title>${tip}</title></rect>` +
+        (i % step === 0 ? `<text class="al-ch-tick" x="${x}" y="${H - m.b + 16}" text-anchor="middle">${dm}</text>` : '');
+    });
+    return `<svg class="al-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${metric === 'count' ? AN_DAYS_COUNT : AN_DAYS_MIN}" preserveAspectRatio="xMidYMid meet">${g}</svg>`;
+  }
+
+  const util = { anCanExclude, anRemovedNote, anExclusionBody, anRemovedItem, exclusionRequest, daysSvg, AN_DAYS_TITLE, AN_DAYS_COUNT, AN_DAYS_MIN, AN_PARETO_COUNT, AN_PARETO_TIME, fmtDuration, parseUtc, toPlant, buildUrl, pageLabel, liveSeconds, nextSort, plcBrand, orderBrands,
     plcArea, anBrands, anAreas, anQueryOf, anNote, anTables, sortRows, filterRows, nextSorts, paretoSvg, fmtMin, fmtPct, AN_TILES, AN_PARETO_TITLE, AN_METRICS };
   root.alarmsUtil = util;
   if (typeof module !== 'undefined' && module.exports) module.exports = util;
@@ -348,7 +381,14 @@
             <button type="button" class="dt-sec" data-p="prev" title="Весь прошлый календарный месяц">Прошлый месяц</button>
           </span>
         </div>
-        <span id="al-chip" class="live-badge off al-chip" title="Актуальность данных: зелёный значит сборщик читает ПЛК, красный значит связи нет и цифры скрыты, серый значит ПЛК выключен из опроса">● нет данных</span>
+        <div class="al-filters al-an-filters" id="al-an-filters" hidden>
+          <label class="al-f" title="Линия (бренд): общий свод по всем линиям или только одна из них">Линия<select id="al-an-brand" title="Выберите «Все линии» для общего свода или бренд: GWM, Chery, Changan, AE"><option value="">Все линии</option></select></label>
+          <label class="al-f" id="al-an-area-l" title="Участок (ПЛК) внутри выбранной линии" hidden>Участок<select id="al-an-area" title="Выберите «Все участки» или один участок выбранной линии, например UB, MB или BS"><option value="">Все участки</option></select></label>
+          <label class="al-check" title="По умолчанию в аналитику входят только аварии, начавшиеся в рабочее время линии: в день с выпуском и внутри включённых интервалов смены. Включите, чтобы увидеть вообще все аварии"><input type="checkbox" id="al-an-all" title="Включить в аналитику аварии вне смены, в перерывах и в дни без выпуска"> Учитывать аварии вне смены и в дни без выпуска</label>
+          <button type="button" id="al-an-reset" class="dt-sec" title="Сбросить фильтры и сортировку во всех таблицах аналитики">Сбросить фильтры</button>
+          <button type="button" id="al-an-xl" class="dt-sec" title="Выгрузить аналитику в Excel за выбранный период, линию и участок; в файле плитки, график Парето и те же таблицы">⬇ Excel</button>
+        </div>
+        <span id="al-chip"class="live-badge off al-chip" title="Актуальность данных: зелёный значит сборщик читает ПЛК, красный значит связи нет и цифры скрыты, серый значит ПЛК выключен из опроса">● нет данных</span>
       </div>
       <section class="al-card">
         <div class="al-filters">
@@ -371,13 +411,6 @@
         </div>
       </section>
       <section class="al-card" id="al-an" hidden>
-        <div class="al-filters">
-          <label class="al-f" title="Линия (бренд): общий свод по всем линиям или только одна из них">Линия<select id="al-an-brand" title="Выберите «Все линии» для общего свода или бренд: GWM, Chery, Changan, AE"><option value="">Все линии</option></select></label>
-          <label class="al-f" id="al-an-area-l" title="Участок (ПЛК) внутри выбранной линии" hidden>Участок<select id="al-an-area" title="Выберите «Все участки» или один участок выбранной линии, например UB, MB или BS"><option value="">Все участки</option></select></label>
-          <label class="al-check" title="По умолчанию в аналитику входят только аварии, начавшиеся в рабочее время линии: в день с выпуском и внутри включённых интервалов смены. Включите, чтобы увидеть вообще все аварии"><input type="checkbox" id="al-an-all" title="Включить в аналитику аварии вне смены, в перерывах и в дни без выпуска"> Учитывать аварии вне смены и в дни без выпуска</label>
-          <button type="button" id="al-an-reset" class="dt-sec" title="Сбросить фильтры и сортировку во всех таблицах аналитики">Сбросить фильтры</button>
-          <button type="button" id="al-an-xl" class="dt-sec" title="Выгрузить аналитику в Excel за выбранный период, линию и участок; в файле плитки, график Парето и те же таблицы">⬇ Excel</button>
-        </div>
         <p id="al-an-note" class="al-muted" title="Какие аварии входят в расчёт"></p>
         <div id="al-an-removed" class="al-rm" title="Аварии и станции, убранные из статистики аналитики: на журнал событий это не влияет; нажмите, чтобы раскрыть список и вернуть убранное" hidden>
           <button type="button" id="al-an-removed-btn" class="al-rm-sum" aria-expanded="false" title="Показать или скрыть список убранных из статистики аварий и станций"></button>
@@ -386,21 +419,30 @@
         <div id="al-an-empty" class="ch-empty" hidden></div>
         <div id="al-an-main">
           <div id="al-an-tiles" class="al-tiles"></div>
+          <section class="al-an-sec" id="al-s-dyn">
+            <div class="al-an-h"><h3 title="Сколько аварий и сколько минут они длились в каждый день; за один день показаны последние 14 дней, чтобы видеть динамику и снижать число и время аварий">${AN_DAYS_TITLE}</h3></div>
+            <div class="al-an-pair">
+              <div class="al-an-card"><h4 title="Сколько аварий началось в каждый день (с учётом выбранных линии, участка и правила рабочего времени)">${AN_DAYS_COUNT}</h4><div id="al-an-dcount"></div></div>
+              <div class="al-an-card"><h4 title="Сколько минут суммарно длились аварии в каждый день (обрезано по рабочему времени линии)">${AN_DAYS_MIN}</h4><div id="al-an-dmin"></div></div>
+            </div>
+          </section>
           <section class="al-an-sec">
-            <div class="al-an-h"><h3 id="al-an-ptitle" title="Парето: самые частые или самые долгие аварии и накопленная доля, чтобы увидеть, на какие аварии приходится большая часть потерь">${AN_PARETO_TITLE}</h3>
-              <span class="al-seg" role="group">
-                <button type="button" class="dt-sec" data-m="count" title="Столбцы по числу появлений аварии, по убыванию">По числу</button>
-                <button type="button" class="dt-sec" data-m="time" title="Столбцы по суммарной длительности аварии в минутах, по убыванию">По времени</button>
-              </span></div>
-            <div id="al-an-pareto"></div>
-            <div id="al-an-legend" class="al-legend"><span class="al-leg"><i class="al-sw al-sw-bar"></i><span id="al-an-legend-bar"></span></span><span class="al-leg"><i class="al-sw al-sw-line"></i>Накопленная доля, %</span></div>
+            <div class="al-an-h"><h3 title="Парето: самые частые и самые долгие аварии и накопленная доля, чтобы увидеть, на какие аварии приходится большая часть потерь">${AN_PARETO_TITLE}</h3></div>
+            <div class="al-an-pair">
+              <div class="al-an-card"><h4 title="Столбцы по числу появлений аварии, по убыванию">${AN_PARETO_COUNT}</h4><div id="al-an-pareto-count"></div>
+                <div class="al-legend al-an-leg"><span class="al-leg"><i class="al-sw al-sw-bar"></i>Число появлений</span><span class="al-leg"><i class="al-sw al-sw-line"></i>Накопленная доля, %</span></div></div>
+              <div class="al-an-card"><h4 title="Столбцы по суммарной длительности аварии в минутах, по убыванию">${AN_PARETO_TIME}</h4><div id="al-an-pareto-time"></div>
+                <div class="al-legend al-an-leg"><span class="al-leg"><i class="al-sw al-sw-bar"></i>Суммарно, мин</span><span class="al-leg"><i class="al-sw al-sw-line"></i>Накопленная доля, %</span></div></div>
+            </div>
           </section>
           ${anSectionsHtml()}
         </div>
       </section>
       <details class="al-card al-cat" id="al-cat">
         <summary title="Справочник всех аварий выбранного ПЛК: код, текст, станция, устройство и класс; загружается при раскрытии">Справочник аварий</summary>
-        <div class="al-cat-bar"><input type="search" id="al-cq" placeholder="Поиск по коду или тексту" title="Поиск по справочнику: часть кода или текста аварии"></div>
+        <div class="al-cat-bar"><input type="search" id="al-cq" placeholder="Поиск по коду или тексту" title="Поиск по справочнику: часть кода или текста аварии">
+          <button type="button" id="al-cimp" class="dt-sec" hidden title="Загрузить справочник аварий выбранного ПЛК из Excel-файла, выгруженного из TIA Portal (HMI alarms, Discrete alarms); текущий справочник этого ПЛК будет заменён">Загрузить из TIA (.xlsx)</button>
+          <input type="file" id="al-cfile" accept=".xlsx" hidden title="Выбор файла справочника аварий (.xlsx, выгрузка из TIA) для загрузки в систему"></div>
         <div id="al-cbody" class="al-body"></div>
         <div class="al-pager"><span id="al-cinfo" class="al-muted" title="Номер страницы справочника"></span><span class="al-pbtns">
           <button type="button" id="al-cback" class="dt-sec" title="Предыдущая страница справочника">← Назад</button>
@@ -446,6 +488,11 @@
     q('#al-cat').addEventListener('toggle', () => { if (q('#al-cat').open) loadCatalog(true); });
     let ct = null;
     q('#al-cq').addEventListener('input', () => { clearTimeout(ct); ct = setTimeout(() => { catPage = 0; loadCatalog(); }, 400); });
+    q('#al-cimp').addEventListener('click', () => {
+      if (catTotal > 0 && !confirm(`Справочник этого ПЛК уже содержит ${catTotal} записей. Заменить его данными из файла?`)) return;
+      q('#al-cfile').click();
+    });
+    q('#al-cfile').addEventListener('change', importCatalog);
     q('#al-cback').addEventListener('click', () => { if (catPage > 0) { catPage--; loadCatalog(); } });
     q('#al-cmore').addEventListener('click', () => { catPage++; loadCatalog(); });
     bindAn();
@@ -470,6 +517,7 @@
     q('#al-period').hidden = st.mode === 'active';
     [q('#al-body').closest('.al-card'), q('#al-cat'), q('#al-title'), q('#al-plcs'), q('#al-chip')].forEach(el => { el.hidden = isAn; });
     q('#al-an').hidden = !isAn;
+    q('#al-an-filters').hidden = !isAn;
     q('#al-hstate-l').hidden = !hist;
     q('#al-from').value = st.from; q('#al-to').value = st.to;
     q('#al-from').max = q('#al-to').max = today();
@@ -699,10 +747,27 @@
 
   // ---------- справочник аварий ----------
   const CPAGE = 50;
-  let catPage = 0;
+  let catPage = 0, catTotal = 0;
+  async function importCatalog() {
+    const inp = q('#al-cfile'), f = inp.files && inp.files[0];
+    inp.value = '';
+    if (!f || !st.plc) return;
+    const btn = q('#al-cimp');
+    btn.disabled = true;
+    try {
+      const r = await fetch(buildUrl('/api/alarms/catalog/import', { plc_id: st.plc }), { method: 'POST', body: f });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { toast(typeof d.detail === 'string' ? d.detail : 'Не удалось загрузить справочник'); return; }
+      toast(`Загружено аварий: ${d.imported} (пустых заготовок: ${d.placeholders})`);
+      loadCatalog(true);
+    } catch { toast('Не удалось загрузить справочник'); }
+    finally { btn.disabled = false; }
+  }
   async function loadCatalog(reset) {
     if (reset) catPage = 0;
     const body = q('#al-cbody');
+    const stt = window.authState && window.authState();
+    q('#al-cimp').hidden = !(stt && stt.user && stt.user.role === 'admin');
     if (!st.plc) { body.innerHTML = '<div class="ch-empty">ПЛК не выбран</div>'; return; }
     try {
       const url = buildUrl('/api/alarms/catalog', { plc_id: st.plc, q: q('#al-cq').value.trim(), limit: CPAGE, offset: catPage * CPAGE });
@@ -711,6 +776,7 @@
       if (!r.ok) throw new Error();
       const d = await r.json();
       const items = d.items || [];
+      if (!q('#al-cq').value.trim()) catTotal = d.total || 0;
       body.innerHTML = items.length ? `<table class="users-table al-table"><thead><tr>
         <th class="al-num" title="Номер бита аварии в слове ПЛК">Бит</th><th title="Код аварии">Код</th><th title="Текст аварии из справочника">Текст аварии</th>
         <th title="Класс аварии">Класс</th><th title="Станция линии">Станция</th><th title="Устройство на станции">Устройство</th></tr></thead><tbody>${items.map(i => `<tr>
@@ -751,7 +817,6 @@
     q('#al-an-brand').addEventListener('change', e => { st.anBrand = e.target.value; st.anPlc = ''; anResetFilters(); save(); refreshAn(); });
     q('#al-an-area').addEventListener('change', e => { st.anPlc = e.target.value; anResetFilters(); save(); refreshAn(); });
     q('#al-an-all').addEventListener('change', e => { st.anAll = e.target.checked; save(); refreshAn(); });
-    pane.querySelectorAll('[data-m]').forEach(b => b.addEventListener('click', () => { st.anMetric = b.dataset.m; save(); drawAn(); }));
     q('#al-an-reset').addEventListener('click', () => { AN_KEYS.forEach(k => { GS[k] = { sorts: [], filters: {}, sel: null }; }); drawAn(); });
     q('#al-an-xl').addEventListener('click', async e => {
       const b = e.currentTarget; b.disabled = true;
@@ -822,12 +887,14 @@
       [AN_TILES[1], fmtDuration(t.total_sec), 'Сколько времени суммарно длились аварии за период (обрезано по рабочему времени линии)', ' al-tile-bad'],
       [AN_TILES[2], t.distinct, 'Сколько разных аварий (разных битов словаря) появилось за период', '']]
       .map(([n, v, tip, c]) => `<div class="al-tile${c}" title="${esc(tip)}"><span>${esc(n)}</span><b>${esc(v)}</b></div>`).join('');
-    const rows = d.pareto[st.anMetric] || [];
-    q('#al-an-ptitle').textContent = `${AN_PARETO_TITLE}`;
-    pane.querySelectorAll('[data-m]').forEach(b => b.classList.toggle('active', b.dataset.m === st.anMetric));
-    q('#al-an-pareto').innerHTML = rows.length ? paretoSvg(rows, st.anMetric, 900) : '<div class="ch-empty">Нет аварий за выбранный период</div>';
-    q('#al-an-legend').hidden = !rows.length;
-    q('#al-an-legend-bar').textContent = st.anMetric === 'count' ? 'Число появлений' : 'Суммарно, мин';
+    const dyn = d.dynamics || [];
+    q('#al-an-dcount').innerHTML = daysSvg(dyn, 'count', 760);
+    q('#al-an-dmin').innerHTML = daysSvg(dyn, 'time', 760);
+    ['count', 'time'].forEach(m => {
+      const rows = d.pareto[m] || [], host = q(`#al-an-pareto-${m}`);
+      host.innerHTML = rows.length ? paretoSvg(rows, m, 760) : '<div class="ch-empty">Нет аварий за выбранный период</div>';
+      host.nextElementSibling.hidden = !rows.length;
+    });
     AN_KEYS.forEach(renderGrid);
     q('#al-s-days').hidden = d.from === d.to;
   }
