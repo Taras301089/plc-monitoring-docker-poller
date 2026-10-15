@@ -115,6 +115,11 @@
   const AN_TILES = ['Событий', 'Суммарное время аварий', 'Разных аварий'];
   const AN_PARETO_TITLE = 'Парето аварий (топ-10)';
   const AN_METRICS = { count: 'по числу появлений', time: 'по времени' };
+  const AN_DAYS_TITLE = 'Динамика по дням';
+  const AN_DAYS_COUNT = 'Число аварий по дням';
+  const AN_DAYS_MIN = 'Минуты аварий по дням';
+  const AN_PARETO_COUNT = 'По числу';
+  const AN_PARETO_TIME = 'По времени';
 
   // Таблицы аналитики: названия и колонки те же, что в Excel; text = как показано и копируется, val = для сортировки
   function anTables() {
@@ -195,12 +200,17 @@
     return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
   }
 
+  // Верх оси: для числа аварий кратен 4, чтобы деления (четверти) были целыми; для минут «круглое» число
+  function axisMax(v, metric) {
+    return metric === 'count' ? Math.max(4, Math.ceil(v / 4) * 4) : niceMax(v);
+  }
+
   // Парето: синие столбцы (число появлений или минуты) и зелёная линия накопленной доли; возвращает строку SVG
   function paretoSvg(rows, metric, W) {
     if (!rows || !rows.length) return '';
-    const H = 320, m = { l: 48, r: 48, t: 24, b: 110 };
+    const H = 250, m = { l: 40, r: 44, t: 22, b: 96 };
     const n = rows.length, iw = W - m.l - m.r, ih = H - m.t - m.b, gw = iw / n, bw = Math.max(10, Math.min(48, gw * 0.6));
-    const max = niceMax(Math.max(...rows.map(r => r.value)));
+    const max = axisMax(Math.max(...rows.map(r => r.value)), metric);
     const yv = v => m.t + ih * (1 - v / max), yp = v => m.t + ih * (1 - v);
     const trunc = (s, k) => (String(s).length > k ? String(s).slice(0, k - 1) + '…' : String(s));
     const e = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -221,7 +231,67 @@
     return `<svg class="al-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${e(AN_PARETO_TITLE)}" preserveAspectRatio="xMidYMid meet">${g}</svg>`;
   }
 
-  const util = { fmtDuration, parseUtc, toPlant, buildUrl, pageLabel, liveSeconds, nextSort, plcBrand, orderBrands,
+  // ---------- «убрано из статистики»: чистая логика ----------
+  // Кнопки «Убрать» и «Вернуть» видят вошедшие пользователи, кроме роли «Просмотр» (право проверяется и на сервере)
+  const anCanExclude = user => !!user && user.role !== 'viewer';
+
+  // Строка «Убрано из статистики: N (аварий A, станций S)»; пусто, если ничего не убрано; тот же текст в Excel
+  function anRemovedNote(removed) {
+    const a = Number(removed && removed.alarms) || 0, s = Number(removed && removed.stations) || 0;
+    return a + s ? `Убрано из статистики: ${a + s} (аварий ${a}, станций ${s})` : '';
+  }
+
+  // Тело запроса POST /api/alarms/exclusions из строки таблицы; причина необязательна
+  function anExclusionBody(kind, row, reason) {
+    const b = { plc_id: row.plc_id, kind };
+    if (kind === 'alarm') b.bit_index = row.bit_index; else b.station = row.station;
+    const r = String(reason || '').trim();
+    if (r) b.reason = r;
+    return b;
+  }
+
+  // Строка списка «Убрано из статистики»: что убрано, «Фамилия, должность · ДД.ММ ЧЧ:ММ», причина
+  function anRemovedItem(it, offsetHours) {
+    const ms = parseUtc(it.created_at);
+    const d = Number.isNaN(ms) ? null : new Date(ms + (Number(offsetHours) || 0) * 3600000);
+    const when = d ? `${pad(d.getUTCDate())}.${pad(d.getUTCMonth() + 1)} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}` : '';
+    const what = it.kind === 'station' ? `Станция ${it.station} целиком` : [it.station, it.code, it.text].filter(Boolean).join(' · ');
+    return { what, author: [it.created_name, when].filter(Boolean).join(' · '), reason: it.reason || '' };
+  }
+
+  // Запрос к /api/alarms/exclusions: при ошибке бросает Error с текстом сервера (например, «У вашей роли нет права менять настройки»)
+  async function exclusionRequest(doFetch, method, url, body) {
+    const r = await doFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin' });
+    let j = null;
+    try { j = await r.json(); } catch { /* без тела */ }
+    if (!r.ok) throw new Error(j && typeof j.detail === 'string' ? j.detail : `Ошибка ${r.status}`);
+    return j;
+  }
+
+  // Динамика по дням: синие столбцы (число аварий или минуты) по дням; возвращает строку SVG
+  function daysSvg(days, metric, W) {
+    if (!days || !days.length) return '';
+    const H = 170, m = { l: 40, r: 10, t: 22, b: 30 };
+    const n = days.length, iw = W - m.l - m.r, ih = H - m.t - m.b, gw = iw / n, bw = Math.max(4, Math.min(40, gw * 0.7));
+    const val = d => (metric === 'count' ? d.count : Math.round(d.total_sec / 6) / 10);
+    const max = axisMax(Math.max(...days.map(val)), metric);
+    const yv = v => m.t + ih * (1 - v / max);
+    const step = Math.ceil(n / 12);
+    let g = [0, .25, .5, .75, 1].map(v => `<line class="al-ch-grid" x1="${m.l}" x2="${W - m.r}" y1="${yv(max * v)}" y2="${yv(max * v)}"/>` +
+      `<text class="al-ch-tick" x="${m.l - 6}" y="${yv(max * v) + 4}" text-anchor="end">${Math.round(max * v * 10) / 10}</text>`).join('');
+    days.forEach((d, i) => {
+      const x = m.l + gw * i + gw / 2, v = val(d), p = String(d.date).split('-');
+      const dm = p.length === 3 ? `${p[2]}.${p[1]}` : String(d.date);
+      const tip = `${fmtDate(d.date)}: ${d.count} авар., ${fmtMin(d.total_sec)} мин`;
+      g += `<rect class="al-bar" x="${x - bw / 2}" y="${yv(v)}" width="${bw}" height="${ih - (yv(v) - m.t)}"/>` +
+        (n <= 16 ? `<text class="al-ch-val" x="${x}" y="${yv(v) - 4}" text-anchor="middle">${String(v).replace('.', ',')}</text>` : '') +
+        `<rect class="al-ch-hit" x="${x - gw / 2}" y="${m.t}" width="${gw}" height="${ih}"><title>${tip}</title></rect>` +
+        (i % step === 0 ? `<text class="al-ch-tick" x="${x}" y="${H - m.b + 16}" text-anchor="middle">${dm}</text>` : '');
+    });
+    return `<svg class="al-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${metric === 'count' ? AN_DAYS_COUNT : AN_DAYS_MIN}" preserveAspectRatio="xMidYMid meet">${g}</svg>`;
+  }
+
+  const util = { anCanExclude, anRemovedNote, anExclusionBody, anRemovedItem, exclusionRequest, daysSvg, AN_DAYS_TITLE, AN_DAYS_COUNT, AN_DAYS_MIN, AN_PARETO_COUNT, AN_PARETO_TIME, fmtDuration, parseUtc, toPlant, buildUrl, pageLabel, liveSeconds, nextSort, plcBrand, orderBrands,
     plcArea, anBrands, anAreas, anQueryOf, anNote, anTables, sortRows, filterRows, nextSorts, paretoSvg, fmtMin, fmtPct, AN_TILES, AN_PARETO_TITLE, AN_METRICS };
   root.alarmsUtil = util;
   if (typeof module !== 'undefined' && module.exports) module.exports = util;
@@ -311,7 +381,14 @@
             <button type="button" class="dt-sec" data-p="prev" title="Весь прошлый календарный месяц">Прошлый месяц</button>
           </span>
         </div>
-        <span id="al-chip" class="live-badge off al-chip" title="Актуальность данных: зелёный значит сборщик читает ПЛК, красный значит связи нет и цифры скрыты, серый значит ПЛК выключен из опроса">● нет данных</span>
+        <div class="al-filters al-an-filters" id="al-an-filters" hidden>
+          <label class="al-f" title="Линия (бренд): общий свод по всем линиям или только одна из них">Линия<select id="al-an-brand" title="Выберите «Все линии» для общего свода или бренд: GWM, Chery, Changan, AE"><option value="">Все линии</option></select></label>
+          <label class="al-f" id="al-an-area-l" title="Участок (ПЛК) внутри выбранной линии" hidden>Участок<select id="al-an-area" title="Выберите «Все участки» или один участок выбранной линии, например UB, MB или BS"><option value="">Все участки</option></select></label>
+          <label class="al-check" title="По умолчанию в аналитику входят только аварии, начавшиеся в рабочее время линии: в день с выпуском и внутри включённых интервалов смены. Включите, чтобы увидеть вообще все аварии"><input type="checkbox" id="al-an-all" title="Включить в аналитику аварии вне смены, в перерывах и в дни без выпуска"> Учитывать аварии вне смены и в дни без выпуска</label>
+          <button type="button" id="al-an-reset" class="dt-sec" title="Сбросить фильтры и сортировку во всех таблицах аналитики">Сбросить фильтры</button>
+          <button type="button" id="al-an-xl" class="dt-sec" title="Выгрузить аналитику в Excel за выбранный период, линию и участок; в файле плитки, график Парето и те же таблицы">⬇ Excel</button>
+        </div>
+        <span id="al-chip"class="live-badge off al-chip" title="Актуальность данных: зелёный значит сборщик читает ПЛК, красный значит связи нет и цифры скрыты, серый значит ПЛК выключен из опроса">● нет данных</span>
       </div>
       <section class="al-card">
         <div class="al-filters">
@@ -334,32 +411,38 @@
         </div>
       </section>
       <section class="al-card" id="al-an" hidden>
-        <div class="al-filters">
-          <label class="al-f" title="Линия (бренд): общий свод по всем линиям или только одна из них">Линия<select id="al-an-brand" title="Выберите «Все линии» для общего свода или бренд: GWM, Chery, Changan, AE"><option value="">Все линии</option></select></label>
-          <label class="al-f" id="al-an-area-l" title="Участок (ПЛК) внутри выбранной линии" hidden>Участок<select id="al-an-area" title="Выберите «Все участки» или один участок выбранной линии, например UB, MB или BS"><option value="">Все участки</option></select></label>
-          <label class="al-check" title="По умолчанию в аналитику входят только аварии, начавшиеся в рабочее время линии: в день с выпуском и внутри включённых интервалов смены. Включите, чтобы увидеть вообще все аварии"><input type="checkbox" id="al-an-all" title="Включить в аналитику аварии вне смены, в перерывах и в дни без выпуска"> Учитывать аварии вне смены и в дни без выпуска</label>
-          <button type="button" id="al-an-reset" class="dt-sec" title="Сбросить фильтры и сортировку во всех таблицах аналитики">Сбросить фильтры</button>
-          <button type="button" id="al-an-xl" class="dt-sec" title="Выгрузить аналитику в Excel за выбранный период, линию и участок; в файле плитки, график Парето и те же таблицы">⬇ Excel</button>
-        </div>
         <p id="al-an-note" class="al-muted" title="Какие аварии входят в расчёт"></p>
+        <div id="al-an-removed" class="al-rm" title="Аварии и станции, убранные из статистики аналитики: на журнал событий это не влияет; нажмите, чтобы раскрыть список и вернуть убранное" hidden>
+          <button type="button" id="al-an-removed-btn" class="al-rm-sum" aria-expanded="false" title="Показать или скрыть список убранных из статистики аварий и станций"></button>
+          <div id="al-an-removed-list" class="al-rm-list" hidden></div>
+        </div>
         <div id="al-an-empty" class="ch-empty" hidden></div>
         <div id="al-an-main">
           <div id="al-an-tiles" class="al-tiles"></div>
+          <section class="al-an-sec" id="al-s-dyn">
+            <div class="al-an-h"><h3 title="Сколько аварий и сколько минут они длились в каждый день; за один день показаны последние 14 дней, чтобы видеть динамику и снижать число и время аварий">${AN_DAYS_TITLE}</h3></div>
+            <div class="al-an-pair">
+              <div class="al-an-card"><h4 title="Сколько аварий началось в каждый день (с учётом выбранных линии, участка и правила рабочего времени)">${AN_DAYS_COUNT}</h4><div id="al-an-dcount"></div></div>
+              <div class="al-an-card"><h4 title="Сколько минут суммарно длились аварии в каждый день (обрезано по рабочему времени линии)">${AN_DAYS_MIN}</h4><div id="al-an-dmin"></div></div>
+            </div>
+          </section>
           <section class="al-an-sec">
-            <div class="al-an-h"><h3 id="al-an-ptitle" title="Парето: самые частые или самые долгие аварии и накопленная доля, чтобы увидеть, на какие аварии приходится большая часть потерь">${AN_PARETO_TITLE}</h3>
-              <span class="al-seg" role="group">
-                <button type="button" class="dt-sec" data-m="count" title="Столбцы по числу появлений аварии, по убыванию">По числу</button>
-                <button type="button" class="dt-sec" data-m="time" title="Столбцы по суммарной длительности аварии в минутах, по убыванию">По времени</button>
-              </span></div>
-            <div id="al-an-pareto"></div>
-            <div id="al-an-legend" class="al-legend"><span class="al-leg"><i class="al-sw al-sw-bar"></i><span id="al-an-legend-bar"></span></span><span class="al-leg"><i class="al-sw al-sw-line"></i>Накопленная доля, %</span></div>
+            <div class="al-an-h"><h3 title="Парето: самые частые и самые долгие аварии и накопленная доля, чтобы увидеть, на какие аварии приходится большая часть потерь">${AN_PARETO_TITLE}</h3></div>
+            <div class="al-an-pair">
+              <div class="al-an-card"><h4 title="Столбцы по числу появлений аварии, по убыванию">${AN_PARETO_COUNT}</h4><div id="al-an-pareto-count"></div>
+                <div class="al-legend al-an-leg"><span class="al-leg"><i class="al-sw al-sw-bar"></i>Число появлений</span><span class="al-leg"><i class="al-sw al-sw-line"></i>Накопленная доля, %</span></div></div>
+              <div class="al-an-card"><h4 title="Столбцы по суммарной длительности аварии в минутах, по убыванию">${AN_PARETO_TIME}</h4><div id="al-an-pareto-time"></div>
+                <div class="al-legend al-an-leg"><span class="al-leg"><i class="al-sw al-sw-bar"></i>Суммарно, мин</span><span class="al-leg"><i class="al-sw al-sw-line"></i>Накопленная доля, %</span></div></div>
+            </div>
           </section>
           ${anSectionsHtml()}
         </div>
       </section>
       <details class="al-card al-cat" id="al-cat">
         <summary title="Справочник всех аварий выбранного ПЛК: код, текст, станция, устройство и класс; загружается при раскрытии">Справочник аварий</summary>
-        <div class="al-cat-bar"><input type="search" id="al-cq" placeholder="Поиск по коду или тексту" title="Поиск по справочнику: часть кода или текста аварии"></div>
+        <div class="al-cat-bar"><input type="search" id="al-cq" placeholder="Поиск по коду или тексту" title="Поиск по справочнику: часть кода или текста аварии">
+          <button type="button" id="al-cimp" class="dt-sec" hidden title="Загрузить справочник аварий выбранного ПЛК из Excel-файла, выгруженного из TIA Portal (HMI alarms, Discrete alarms); текущий справочник этого ПЛК будет заменён">Загрузить из TIA (.xlsx)</button>
+          <input type="file" id="al-cfile" accept=".xlsx" hidden title="Выбор файла справочника аварий (.xlsx, выгрузка из TIA) для загрузки в систему"></div>
         <div id="al-cbody" class="al-body"></div>
         <div class="al-pager"><span id="al-cinfo" class="al-muted" title="Номер страницы справочника"></span><span class="al-pbtns">
           <button type="button" id="al-cback" class="dt-sec" title="Предыдущая страница справочника">← Назад</button>
@@ -405,6 +488,11 @@
     q('#al-cat').addEventListener('toggle', () => { if (q('#al-cat').open) loadCatalog(true); });
     let ct = null;
     q('#al-cq').addEventListener('input', () => { clearTimeout(ct); ct = setTimeout(() => { catPage = 0; loadCatalog(); }, 400); });
+    q('#al-cimp').addEventListener('click', () => {
+      if (catTotal > 0 && !confirm(`Справочник этого ПЛК уже содержит ${catTotal} записей. Заменить его данными из файла?`)) return;
+      q('#al-cfile').click();
+    });
+    q('#al-cfile').addEventListener('change', importCatalog);
     q('#al-cback').addEventListener('click', () => { if (catPage > 0) { catPage--; loadCatalog(); } });
     q('#al-cmore').addEventListener('click', () => { catPage++; loadCatalog(); });
     bindAn();
@@ -429,6 +517,7 @@
     q('#al-period').hidden = st.mode === 'active';
     [q('#al-body').closest('.al-card'), q('#al-cat'), q('#al-title'), q('#al-plcs'), q('#al-chip')].forEach(el => { el.hidden = isAn; });
     q('#al-an').hidden = !isAn;
+    q('#al-an-filters').hidden = !isAn;
     q('#al-hstate-l').hidden = !hist;
     q('#al-from').value = st.from; q('#al-to').value = st.to;
     q('#al-from').max = q('#al-to').max = today();
@@ -658,10 +747,27 @@
 
   // ---------- справочник аварий ----------
   const CPAGE = 50;
-  let catPage = 0;
+  let catPage = 0, catTotal = 0;
+  async function importCatalog() {
+    const inp = q('#al-cfile'), f = inp.files && inp.files[0];
+    inp.value = '';
+    if (!f || !st.plc) return;
+    const btn = q('#al-cimp');
+    btn.disabled = true;
+    try {
+      const r = await fetch(buildUrl('/api/alarms/catalog/import', { plc_id: st.plc }), { method: 'POST', body: f });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { toast(typeof d.detail === 'string' ? d.detail : 'Не удалось загрузить справочник'); return; }
+      toast(`Загружено аварий: ${d.imported} (пустых заготовок: ${d.placeholders})`);
+      loadCatalog(true);
+    } catch { toast('Не удалось загрузить справочник'); }
+    finally { btn.disabled = false; }
+  }
   async function loadCatalog(reset) {
     if (reset) catPage = 0;
     const body = q('#al-cbody');
+    const stt = window.authState && window.authState();
+    q('#al-cimp').hidden = !(stt && stt.user && stt.user.role === 'admin');
     if (!st.plc) { body.innerHTML = '<div class="ch-empty">ПЛК не выбран</div>'; return; }
     try {
       const url = buildUrl('/api/alarms/catalog', { plc_id: st.plc, q: q('#al-cq').value.trim(), limit: CPAGE, offset: catPage * CPAGE });
@@ -670,6 +776,7 @@
       if (!r.ok) throw new Error();
       const d = await r.json();
       const items = d.items || [];
+      if (!q('#al-cq').value.trim()) catTotal = d.total || 0;
       body.innerHTML = items.length ? `<table class="users-table al-table"><thead><tr>
         <th class="al-num" title="Номер бита аварии в слове ПЛК">Бит</th><th title="Код аварии">Код</th><th title="Текст аварии из справочника">Текст аварии</th>
         <th title="Класс аварии">Класс</th><th title="Станция линии">Станция</th><th title="Устройство на станции">Устройство</th></tr></thead><tbody>${items.map(i => `<tr>
@@ -687,7 +794,13 @@
   const AN_TABS = anTables();
   const GS = {};          // состояние таблиц: сортировка, фильтры, выделение
   const GV = {};          // строки, показанные сейчас в таблицах (после фильтров и сортировки)
-  let an = null, anFail = 0, anTok = 0, anLoaded = false, anDrag = null, pop = null;
+  let an = null, anFail = 0, anTok = 0, anLoaded = false, anDrag = null, pop = null, rmOpen = false, dlg = null;
+  const authUser = () => { const a = window.authState && window.authState(); return a && a.user ? a.user : null; };
+  const canExclude = () => anCanExclude(authUser());
+  const apiFetch = (url, o) => fetch(url, Object.assign({ signal: TIMEOUT() }, o));
+  const EX_ALARM_TIP = 'Убрать эту аварию из статистики аналитики. Журнал событий не меняется. Вернуть можно в списке «Убрано из статистики»';
+  const EX_STATION_TIP = 'Убрать станцию целиком из статистики: все её аварии перестанут учитываться в аналитике. Журнал событий не меняется';
+  const EX_KIND = { frequent: 'alarm', longest: 'alarm', cases: 'alarm', stations: 'station' };
   const gs = key => GS[key] || (GS[key] = { sorts: [], filters: {}, sel: null });
   const anLost = () => anFail >= 2;
   const anCtx = () => ({ off: an ? an.offset_hours : 5 });
@@ -704,7 +817,6 @@
     q('#al-an-brand').addEventListener('change', e => { st.anBrand = e.target.value; st.anPlc = ''; anResetFilters(); save(); refreshAn(); });
     q('#al-an-area').addEventListener('change', e => { st.anPlc = e.target.value; anResetFilters(); save(); refreshAn(); });
     q('#al-an-all').addEventListener('change', e => { st.anAll = e.target.checked; save(); refreshAn(); });
-    pane.querySelectorAll('[data-m]').forEach(b => b.addEventListener('click', () => { st.anMetric = b.dataset.m; save(); drawAn(); }));
     q('#al-an-reset').addEventListener('click', () => { AN_KEYS.forEach(k => { GS[k] = { sorts: [], filters: {}, sel: null }; }); drawAn(); });
     q('#al-an-xl').addEventListener('click', async e => {
       const b = e.currentTarget; b.disabled = true;
@@ -715,6 +827,11 @@
       const k = b.dataset.copy, n = GV[k] ? GV[k].length : 0;
       anCopy(k, { r1: 0, c1: 0, r2: n - 1, c2: AN_TABS[k].cols.length - 1 }, true);
     }));
+    q('#al-an-removed-btn').addEventListener('click', () => { rmOpen = !rmOpen; drawRemoved(an && !anLost() ? an : null); });
+    q('#al-an-removed-list').addEventListener('click', e => {
+      const b = e.target.closest('[data-restore]');
+      if (b) restoreExclusion(Number(b.dataset.restore), b);
+    });
     document.addEventListener('mouseup', () => { anDrag = null; });
     document.addEventListener('mousedown', e => { if (pop && !pop.contains(e.target) && !e.target.closest('.al-fbtn')) closePop(); });
   }
@@ -759,6 +876,7 @@
     const noData = !!d && d.scope.plcs_with_data === 0;
     q('#al-an-note').textContent = d && !noData ? anNote(d.include_all, d.excluded) : '';
     q('#al-an-xl').disabled = !d;
+    drawRemoved(d);
     empty.hidden = !!d && !noData;
     main.hidden = !d || noData;
     if (!d) empty.textContent = anLoaded ? 'Не удалось загрузить аналитику' : 'Загрузка…';
@@ -769,12 +887,14 @@
       [AN_TILES[1], fmtDuration(t.total_sec), 'Сколько времени суммарно длились аварии за период (обрезано по рабочему времени линии)', ' al-tile-bad'],
       [AN_TILES[2], t.distinct, 'Сколько разных аварий (разных битов словаря) появилось за период', '']]
       .map(([n, v, tip, c]) => `<div class="al-tile${c}" title="${esc(tip)}"><span>${esc(n)}</span><b>${esc(v)}</b></div>`).join('');
-    const rows = d.pareto[st.anMetric] || [];
-    q('#al-an-ptitle').textContent = `${AN_PARETO_TITLE}`;
-    pane.querySelectorAll('[data-m]').forEach(b => b.classList.toggle('active', b.dataset.m === st.anMetric));
-    q('#al-an-pareto').innerHTML = rows.length ? paretoSvg(rows, st.anMetric, 900) : '<div class="ch-empty">Нет аварий за выбранный период</div>';
-    q('#al-an-legend').hidden = !rows.length;
-    q('#al-an-legend-bar').textContent = st.anMetric === 'count' ? 'Число появлений' : 'Суммарно, мин';
+    const dyn = d.dynamics || [];
+    q('#al-an-dcount').innerHTML = daysSvg(dyn, 'count', 760);
+    q('#al-an-dmin').innerHTML = daysSvg(dyn, 'time', 760);
+    ['count', 'time'].forEach(m => {
+      const rows = d.pareto[m] || [], host = q(`#al-an-pareto-${m}`);
+      host.innerHTML = rows.length ? paretoSvg(rows, m, 760) : '<div class="ch-empty">Нет аварий за выбранный период</div>';
+      host.nextElementSibling.hidden = !rows.length;
+    });
     AN_KEYS.forEach(renderGrid);
     q('#al-s-days').hidden = d.from === d.to;
   }
@@ -784,16 +904,23 @@
     const src = an && !anLost() ? an[key] : [];
     const view = sortRows(filterRows(src, def.cols, s.filters, ctx), def.cols, s.sorts, ctx);
     GV[key] = view; s.sel = null;
+    const kind = canExclude() ? EX_KIND[key] : '';
+    const actHead = kind ? '<th data-act-col class="al-act-col" title="Действия со строкой: убрать из статистики аналитики"></th>' : '';
     const head = def.cols.map((c, i) => {
       const si = s.sorts.findIndex(x => x.k === c.k), on = (s.filters[c.k] || []).length > 0;
       const arrow = si >= 0 ? `<i class="al-arrow">${s.sorts[si].dir === 'asc' ? '▲' : '▼'}${s.sorts.length > 1 ? si + 1 : ''}</i>` : '';
       return `<th data-c="${i}" data-k="${c.k}" class="al-sortable${c.num ? ' al-num' : ''}${on ? ' al-fon' : ''}" title="${esc(c.tip)}. Нажмите, чтобы отсортировать по возрастанию, по убыванию и сбросить; Shift+нажатие добавляет вторую сортировку; Ctrl+нажатие выделяет весь столбец"><span class="al-sort">${esc(c.t)}${arrow}</span><button type="button" class="al-fbtn${on ? ' on' : ''}" title="Фильтр по столбцу «${esc(c.t)}»: выбор значений галочками${on ? ' (фильтр включён)' : ''}">▾</button></th>`;
-    }).join('');
+    }).join('') + actHead;
     if (!view.length) {
       host.innerHTML = `<table class="users-table al-table"><thead><tr>${head}</tr></thead></table><div class="ch-empty">${src.length ? 'Нет строк по выбранным фильтрам' : 'Нет аварий за выбранный период'}</div>`;
     } else {
-      const body = view.map((r, i) => `<tr data-i="${i}">${def.cols.map((c, ci) => `<td data-c="${ci}" class="${c.num ? 'al-num' : ''}${c.k === 'text' ? ' al-text' : ''}">${esc(c.text(r, ctx))}</td>`).join('')}</tr>`).join('');
-      const foot = def.totals ? `<tfoot><tr class="al-total">${def.totals(view).map((v, ci) => `<td class="${def.cols[ci].num ? 'al-num' : ''}">${esc(v)}</td>`).join('')}</tr></tfoot>` : '';
+      const actCell = r => !kind ? '' : (kind === 'station' && (!r.station || r.station === '—')
+        ? '<td data-act-col class="al-act-col"></td>'
+        : `<td data-act-col class="al-act-col">${kind === 'station'
+          ? `<button type="button" class="al-rm-btn" data-rm="station" title="${esc(EX_STATION_TIP)}">Убрать станцию</button>`
+          : `<button type="button" class="al-rm-btn" data-rm="alarm" title="${esc(EX_ALARM_TIP)}">Убрать</button>`}</td>`);
+      const body = view.map((r, i) => `<tr data-i="${i}">${def.cols.map((c, ci) => `<td data-c="${ci}" class="${c.num ? 'al-num' : ''}${c.k === 'text' ? ' al-text' : ''}">${esc(c.text(r, ctx))}</td>`).join('')}${actCell(r)}</tr>`).join('');
+      const foot = def.totals ? `<tfoot><tr class="al-total">${def.totals(view).map((v, ci) => `<td class="${def.cols[ci].num ? 'al-num' : ''}">${esc(v)}</td>`).join('')}${kind ? '<td data-act-col></td>' : ''}</tr></tfoot>` : '';
       host.innerHTML = `<table class="users-table al-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody>${foot}</table>`;
       if (window.attachColWidths) window.attachColWidths(host.querySelector('table'), `alarms-an-${key}`);
       host.querySelectorAll('tbody td[data-c]').forEach(td => {
@@ -802,6 +929,10 @@
         td.addEventListener('mouseover', () => { if (anDrag === key && s.sel) { const p = pos(); s.sel.r2 = p.r; s.sel.c2 = p.c; paintGrid(key); } });
       });
     }
+    host.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', e => {
+      e.stopPropagation();
+      exclusionDialog(b.dataset.rm, view[Number(b.closest('tr').dataset.i)]);
+    }));
     host.querySelectorAll('th[data-c]').forEach(th => th.addEventListener('click', e => {
       const ci = Number(th.dataset.c), c = def.cols[ci];
       if (e.target.closest('.al-fbtn')) { openFilter(key, c.k, e.target.closest('.al-fbtn')); return; }
@@ -815,6 +946,66 @@
       else if (mod && e.code === 'KeyA') { e.preventDefault(); s.sel = { r1: 0, c1: 0, r2: view.length - 1, c2: def.cols.length - 1 }; paintGrid(key); }
       else if (e.key === 'Escape') { s.sel = null; paintGrid(key); }
     };
+  }
+
+  // Строка «Убрано из статистики: N (аварий A, станций S)»; по клику раскрывается список с кнопкой «Вернуть»
+  function drawRemoved(d) {
+    const box = q('#al-an-removed'), rm = d && d.removed;
+    const note = anRemovedNote(rm);
+    box.hidden = !note;
+    if (!note) return;
+    const btn = q('#al-an-removed-btn'), list = q('#al-an-removed-list');
+    btn.textContent = `${note} ${rmOpen ? '▴' : '▾'}`;
+    btn.setAttribute('aria-expanded', rmOpen ? 'true' : 'false');
+    list.hidden = !rmOpen;
+    const can = canExclude();
+    list.innerHTML = rmOpen ? rm.items.map(it => {
+      const x = anRemovedItem(it, d.offset_hours);
+      return `<div class="al-rm-row"><span class="al-rm-plc">${esc(it.plc)}</span><span class="al-rm-what">${esc(x.what)}</span>`
+        + `<span class="al-muted">${esc(x.author)}</span>${x.reason ? `<span class="al-muted">Причина: ${esc(x.reason)}</span>` : ''}`
+        + (can ? `<button type="button" class="dt-sec al-rm-back" data-restore="${esc(it.id)}" title="Вернуть в статистику: аварии снова будут учитываться в аналитике за все периоды; запись об этом остаётся в истории">Вернуть</button>` : '') + '</div>';
+    }).join('') : '';
+  }
+
+  function closeDlg() { if (dlg) { dlg.remove(); dlg = null; } }
+
+  // Короткое окно подтверждения с необязательной причиной
+  function exclusionDialog(kind, row) {
+    if (!row) return;
+    closeDlg();
+    const what = kind === 'station' ? `станцию ${row.station} (${row.plc}) целиком` : `аварию «${row.text}» (${row.plc}${row.station && row.station !== '—' ? ', ' + row.station : ''})`;
+    dlg = document.createElement('div');
+    dlg.className = 'kpi-modal';
+    dlg.innerHTML = `<div class="kpi-modal-box auth-modal al-dlg" role="dialog">
+      <h3 class="al-dlg-h">Убрать из статистики?</h3>
+      <p class="al-dlg-p">${esc(kind === 'station' ? `Убрать ${what}: все её аварии перестанут учитываться в аналитике за все периоды.` : `Убрать ${what}: она перестанет учитываться в аналитике за все периоды.`)} Журнал событий не меняется.</p>
+      <label for="al-dlg-reason">Причина (необязательно)</label>
+      <input type="text" id="al-dlg-reason" maxlength="300" placeholder="Например, станция не используется" title="Зачем авария убирается из статистики; видно в списке «Убрано из статистики», можно не заполнять">
+      <p class="auth-err al-dlg-err" hidden></p>
+      <div class="kpi-modal-actions"><button type="button" data-a="ok" title="Убрать из статистики аналитики; вернуть можно в списке «Убрано из статистики»">Убрать</button><button type="button" class="dt-sec" data-a="cancel" title="Закрыть окно, ничего не меняя">Отмена</button></div></div>`;
+    document.body.appendChild(dlg);
+    const input = dlg.querySelector('input'), err = dlg.querySelector('.al-dlg-err'), ok = dlg.querySelector('[data-a="ok"]');
+    const submit = async () => {
+      ok.disabled = true;
+      try {
+        await exclusionRequest(apiFetch, 'POST', '/api/alarms/exclusions', anExclusionBody(kind, row, input.value));
+        closeDlg();
+        await refreshAn();
+      } catch (ex) { err.textContent = ex.message; err.hidden = false; ok.disabled = false; }
+    };
+    ok.addEventListener('click', submit);
+    dlg.querySelector('[data-a="cancel"]').addEventListener('click', closeDlg);
+    dlg.addEventListener('mousedown', e => { if (e.target === dlg) closeDlg(); });
+    dlg.addEventListener('keydown', e => { if (e.key === 'Escape') closeDlg(); else if (e.key === 'Enter' && e.target === input) submit(); });
+    input.focus();
+  }
+
+  async function restoreExclusion(id, btn) {
+    btn.disabled = true;
+    try {
+      await exclusionRequest(apiFetch, 'DELETE', `/api/alarms/exclusions/${id}`);
+      await refreshAn();
+    } catch (ex) { toast(ex.message); btn.disabled = false; }
   }
 
   function paintGrid(key) {
@@ -948,6 +1139,9 @@
   menu.addEventListener('mouseleave', () => closeMenu(250));
   document.addEventListener('click', e => { if (!menu.hidden && !menu.contains(e.target) && !tabBtn.contains(e.target)) closeMenu(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) closeMenu(); });
+
+  const prevAuth = window.onAuthChanged;
+  window.onAuthChanged = () => { if (prevAuth) prevAuth(); if (built && an && st.mode === 'analytics') drawAn(); };
 
   tabBtn.addEventListener('click', open);
   if (pane.classList.contains('active')) open();
