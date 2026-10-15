@@ -97,6 +97,8 @@ BODY_COUNTER_ROLES = {
 async def ensure_plc_order(pool: asyncpg.Pool) -> None:
     """Порядок ПЛК в списке (общий для всех): колонка sort_order; ПЛК без номера встают в конец по id."""
     await pool.execute("ALTER TABLE plcs ADD COLUMN IF NOT EXISTS sort_order INTEGER")
+    # «Аварии ПЛК (OPC UA)»: поллер собирает аварии самого ПЛК по Alarms & Conditions в alarm_ac_events
+    await pool.execute("ALTER TABLE plcs ADD COLUMN IF NOT EXISTS ac_alarms BOOLEAN NOT NULL DEFAULT FALSE")
     await pool.execute(
         """
         UPDATE plcs p SET sort_order = (SELECT COALESCE(max(sort_order), 0) FROM plcs) + s.rn
@@ -403,7 +405,7 @@ async def list_plcs() -> list[dict[str, Any]]:
     scan_ages = await plc_scan_ages(pool)
     rows = await pool.fetch(
         """
-        SELECT p.id, p.name, p.opc_endpoint, p.is_active,
+        SELECT p.id, p.name, p.opc_endpoint, p.is_active, p.ac_alarms,
                s.is_connected, COALESCE(NULLIF(s.last_error, ''), '') AS link_error,
                extract(epoch FROM (now() - s.last_successful_poll))::int AS poll_age_sec,
                extract(epoch FROM (now() - s.updated_at))::int AS status_age_sec
@@ -435,6 +437,7 @@ class CreatePlcRequest(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     opc_endpoint: str = Field(min_length=1, max_length=1024)
     is_active: bool | None = None   # «Включён в опрос»: не задан — при создании включён, при правке остаётся как был
+    ac_alarms: bool | None = None   # «Аварии ПЛК (OPC UA)»: не задан — при создании выключен, при правке остаётся как был
 
 
 @app.post("/api/plcs")
@@ -443,14 +446,16 @@ async def create_plc(request: CreatePlcRequest, _: dict[str, Any] = Depends(requ
     try:
         plc_id = await pool.fetchval(
             """
-            INSERT INTO plcs (name, opc_endpoint, is_active, sort_order)
-            VALUES ($1, $2, $3, (SELECT COALESCE(max(sort_order), 0) + 1 FROM plcs))
+            INSERT INTO plcs (name, opc_endpoint, is_active, ac_alarms, sort_order)
+            VALUES ($1, $2, $3, $4, (SELECT COALESCE(max(sort_order), 0) + 1 FROM plcs))
             RETURNING id
             """,
-            request.name, request.opc_endpoint, True if request.is_active is None else request.is_active
+            request.name, request.opc_endpoint, True if request.is_active is None else request.is_active,
+            bool(request.ac_alarms)
         )
         return {"id": plc_id, "name": request.name, "opc_endpoint": request.opc_endpoint,
-                "is_active": True if request.is_active is None else request.is_active}
+                "is_active": True if request.is_active is None else request.is_active,
+                "ac_alarms": bool(request.ac_alarms)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -461,11 +466,12 @@ async def update_plc(plc_id: int, request: CreatePlcRequest, _: dict[str, Any] =
     try:
         result = await pool.fetchrow(
             """
-            UPDATE plcs SET name = $1, opc_endpoint = $2, is_active = COALESCE($4::boolean, is_active)
+            UPDATE plcs SET name = $1, opc_endpoint = $2, is_active = COALESCE($4::boolean, is_active),
+                            ac_alarms = COALESCE($5::boolean, ac_alarms)
             WHERE id = $3
-            RETURNING id, name, opc_endpoint, is_active
+            RETURNING id, name, opc_endpoint, is_active, ac_alarms
             """,
-            request.name, request.opc_endpoint, plc_id, request.is_active
+            request.name, request.opc_endpoint, plc_id, request.is_active, request.ac_alarms
         )
         if not result:
             raise HTTPException(status_code=404, detail="ПЛК не найден")

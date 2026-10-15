@@ -373,4 +373,5 @@ def test_reference_changelog_and_text():
     ref = (STATIC / "reference.html").read_text(encoding="utf-8")
     assert "Убрано из статистики" in ref
     first = re.search(r'<ul id="changelog">\s*<li data-date="([\d-]+)">', ref)
-    assert first and first.group(1) == "2026-10-14"
+    assert first and first.group(1) >= "2026-10-14"   # сверху запись этой задачи или более поздняя
+    assert '<li data-date="2026-10-14">вкладка «Аварии», режим «Аналитика»: кнопки «Убрать»' in ref
