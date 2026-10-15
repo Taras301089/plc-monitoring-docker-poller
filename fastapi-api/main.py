@@ -14,10 +14,11 @@ from typing import Any, Literal
 import asyncpg
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from readonly import READ_ONLY, blocked
 from auth import current_user, ensure_auth_schema, require_admin, require_editor, require_user, router as auth_router
 from downtime import ensure_downtime_schema, router as downtime_router
 from dayflags import ensure_dayflags_schema, router as dayflags_router
@@ -263,6 +264,13 @@ async def ensure_kpi_schema(pool: asyncpg.Pool) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
+    if READ_ONLY:
+        # Тестовая копия: база только для чтения, поэтому ни схем, ни фоновых задач (отчёты, Telegram)
+        try:
+            yield
+        finally:
+            await app.state.pool.close()
+        return
     await ensure_kpi_schema(app.state.pool)
     await ensure_starve_binding(app.state.pool)
     await ensure_repair_binding(app.state.pool)
@@ -318,6 +326,14 @@ app.include_router(alarms_router)
 app.include_router(tia_router)
 app.include_router(tgnotify_router)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+
+@app.middleware("http")
+async def read_only_guard(request, call_next):
+    """Тестовая копия (READ_ONLY=1): любые запросы, кроме чтения, отклоняются."""
+    if blocked(request.method, READ_ONLY, request.url.path):
+        return JSONResponse({"detail": "Тестовая копия: только чтение"}, status_code=403)
+    return await call_next(request)
 
 
 @app.middleware("http")
