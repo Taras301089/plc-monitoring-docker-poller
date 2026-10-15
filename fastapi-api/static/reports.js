@@ -45,8 +45,9 @@
   const tile = (label, val, tip, cls = '') => `<div class="ch-tile ${cls}" title="${esc(tip)}"><span>${esc(label)}</span><b>${esc(val)}</b></div>`;
   // подпись «нет выпуска» в ячейке приглушена (простой дня без выпуска не считается)
   const cell = v => `<td${v === window.dayFlag.NO_OUTPUT ? ` class="dim" title="${esc(window.dayFlag.NO_OUTPUT_TITLE)}"` : ''}>${esc(v)}</td>`;
-  const table = (heads, rows, cls = '') => `<table class="users-table rep-prev-t ${cls}"><thead><tr>${heads.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map(r => `<tr>${r.map(cell).join('')}</tr>`).join('')}</tbody></table>`;
+  // rowCls(i): необязательный класс строки (дни без выпуска выделены серым и в итоги не входят)
+  const table = (heads, rows, cls = '', rowCls = null) => `<table class="users-table rep-prev-t ${cls}"><thead><tr>${heads.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map((r, i) => `<tr${rowCls && rowCls(i) ? ` class="${rowCls(i)}"` : ''}>${r.map(cell).join('')}</tr>`).join('')}</tbody></table>`;
   const card = (title, tip, body) => `<section class="ch-card rep-table-card"><header><h3 title="${esc(tip)}">${esc(title)}</h3></header><div class="rep-prev-table">${body}</div></section>`;
 
   // Отметка «Простой весь день (поломка линии)»: только для одного закрытого дня без выпуска и только тому, кто может править (иначе скрыта)
@@ -100,16 +101,15 @@
     q('chart-title').textContent = 'План, факт и % выполнения по дням';
     q('chart-title').title = 'Столбцы: план и факт кузовов за день; линия: процент выполнения плана (правая шкала)';
     if (!d.days.length) { q('tiles').innerHTML = ''; q('chart').innerHTML = ''; q('tables').innerHTML = '<div class="empty">За этот период нет данных по линии</div>'; return; }
-    const sum = k => d.days.reduce((s, x) => s + x[k], 0);
-    const plan = sum('plan'), fact = sum('fact'), down = sum('downtime'), desc = sum('described');
-    q('tiles').innerHTML = tile('Дней с данными', d.days.length, 'Сколько дней периода есть данные по линии') + tile('План', plan, 'Плановое количество кузовов за период')
-      + tile('Факт', fact, 'Фактическое количество кузовов за период', 'ch-ok') + tile('Выполнение', plan ? pct1(fact / plan) : '—', 'Факт делённый на план')
+    const T = d.totals, plan = T.plan, fact = T.fact, down = T.downtime, desc = T.described;   // итоги считает сервер: дни без выпуска в них не входят
+    q('tiles').innerHTML = tile('Дней с данными', T.days, 'Сколько дней периода с выпуском; дни без выпуска (серые строки) не считаются') + tile('План', plan, 'Плановое количество кузовов за период, без дней без выпуска')
+      + tile('Факт', fact, 'Фактическое количество кузовов за период', 'ch-ok') + tile('Выполнение', plan ? pct1(fact / plan) : '—', 'Факт делённый на план, без дней без выпуска')
       + tile('Простой, мин', fmtNum(down), 'Минуты простоя за период (отставание от плана)', 'ch-bad') + tile('Не описано, мин', fmtNum(Math.max(0, down - desc)), 'Минуты простоя, для которых ещё не указана причина');
-    q('chart').innerHTML = window.andonChart ? window.andonChart.planFact(d.days, Math.max(360, q('chart').clientWidth || 640)) : '';
+    q('chart').innerHTML = window.andonChart ? window.andonChart.planFact(d.days.filter(x => !x.no_output), Math.max(360, q('chart').clientWidth || 640)) : '';
     const totalR = d.reasons.reduce((s, x) => s + x.min, 0), totalS = d.stations.reduce((s, x) => s + x.min, 0);
     q('tables').innerHTML =
       card('По дням', 'Итоги по каждому дню периода: план, факт, выполнение и простой', table(['Дата', 'План', 'Факт', '±', '% выполнения', 'Простой, мин', 'Описано, мин', 'Не описано, мин'],
-        d.days.map(x => window.dayFlag.periodDayRow(x, { fmtD, fmtNum, pct1 }))))
+        d.days.map(x => window.dayFlag.periodDayRow(x, { fmtD, fmtNum, pct1 })), '', i => (d.days[i].no_output ? 'rep-noout' : '')))
       + card('Причины простоя', 'Минуты простоя по причинам за период, от самых долгих', table(['Причина', 'Минут', 'Доля'], d.reasons.map(x => [x.name, fmtNum(x.min), totalR ? pct1(x.min / totalR) : '—'])))
       + card('Простой по станциям', 'Минуты простоя по станциям за период, от самых долгих', table(['Участок', 'Станция', 'Минут', 'Доля'], d.stations.map(x => [x.area, x.station, fmtNum(x.min), totalS ? pct1(x.min / totalS) : '—'])));
   }

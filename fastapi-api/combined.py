@@ -33,7 +33,7 @@ def build_combined_workbook(line: str, day: date, d1: date, rows: list[list[Any]
     end = write_day_section(wb, ws, fd, f"День {day.strftime('%d.%m.%Y')} — {line}", day, rows, intervals, r0=0, chart_sheet="График", headers=headers, rest=rest, plc_str=plc_str,
                            state=state, note=note)
     write_period_section(wb, ws, fp, f"С начала месяца ({d1.strftime('%d.%m.%Y')} – {day.strftime('%d.%m.%Y')}) — {line}",
-                         month_data, cum, r0=end + GAP_ROWS, cum_sheet="График накопленного")
+                         month_data, cum, r0=end + GAP_ROWS, cum_sheet="График накопленного", days_sheet="График дней месяца")
     wb.close()
     return buf.getvalue()
 

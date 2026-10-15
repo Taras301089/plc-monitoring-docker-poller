@@ -246,6 +246,7 @@ body.andon-archive .andon-day input[type="date"] { box-shadow: inset 0 0 0 1px v
 .rep-flag[hidden] { display: none; }
 .rep-flag-note { font-size: var(--fs-small); color: var(--fg-secondary); }
 .rep-prev-t td.dim, .noout { color: var(--fg-secondary); }
+.rep-prev-t tr.rep-noout td { background: var(--hover); color: var(--fg-secondary); }
 
 /* Вкладка «Отчёты» */
 .rep-prev-file { font-size: var(--fs-small); color: var(--fg-secondary); }

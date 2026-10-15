@@ -222,12 +222,11 @@
 
   // ---------- каркас вкладки ----------
   function summaryTiles(d) {
-    const tp = d.days.reduce((s, x) => s + x.plan, 0), tf = d.days.reduce((s, x) => s + x.fact, 0);
-    const dt = d.days.reduce((s, x) => s + x.downtime, 0), ds = d.days.reduce((s, x) => s + x.described, 0);
+    const T = d.totals, tp = T.plan, tf = T.fact, dt = T.downtime, ds = T.described;   // итоги считает сервер: дни без выпуска в них не входят
     const t = (label, val, tip, cls = '') => `<div class="ch-tile ${cls}" title="${esc(tip)}"><span>${esc(label)}</span><b>${esc(val)}</b></div>`;
-    return t('Дней с данными', d.days.length, 'Сколько дней периода есть данные по линии') +
-      t('План', tp, 'Плановое количество кузовов за период') + t('Факт', tf, 'Фактическое количество кузовов за период', 'ch-ok') +
-      t('Выполнение', tp ? pct(tf / tp) : '—', 'Факт делённый на план') +
+    return t('Дней с данными', T.days, 'Сколько дней периода с выпуском; дни без выпуска (на экране «Отчёты» серые строки) не считаются') +
+      t('План', tp, 'Плановое количество кузовов за период, без дней без выпуска') + t('Факт', tf, 'Фактическое количество кузовов за период', 'ch-ok') +
+      t('Выполнение', tp ? pct(tf / tp) : '—', 'Факт делённый на план, без дней без выпуска') +
       t('Простой, мин', fmtNum(dt), 'Минуты простоя за период (отставание от плана)', 'ch-bad') +
       t('Не описано, мин', fmtNum(Math.max(0, dt - ds)), 'Минуты простоя, для которых ещё не указана причина');
   }
@@ -316,7 +315,7 @@
     const W = Math.max(320, Math.floor(pane.querySelector('[data-body="plan_fact"]').clientWidth) || 560);
     const body = k => pane.querySelector(`[data-body="${k}"]`);
     pane.querySelector('#ch-tiles').innerHTML = summaryTiles(data);
-    body('plan_fact').innerHTML = chartPlanFact(data.days, W);
+    body('plan_fact').innerHTML = chartPlanFact(data.days.filter(x => !x.no_output), W);   // дни без выпуска на графике не рисуются
     body('downtime').innerHTML = chartDowntime(data.days, W);
     body('reasons').innerHTML = chartPareto(data.reasons, W);
     body('stations').innerHTML = chartStations(data.stations, W);
