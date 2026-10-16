@@ -43,9 +43,10 @@
   // Подстановка ответственного из справочника причин ВЫКЛЮЧЕНА (решение пользователя 16.10): у всех причин пока «ПР», соответствие причина → отдел согласуют с коллегами (задача T-18). Включить: true
   const OWNER_AUTOFILL = false;
   const OWNERS = { production: ['ПР', 'Производство'], oto: ['ОТО', 'ОТО'], ito: ['ИТО', 'ИТО'], other: ['ДР', 'Другое (внешние причины)'] };
+  const NO_OWNER = ['—', 'Не назначен'];   // отдел ещё не выбран человеком: на Andon ничего не показывается
   const OWN_STATUS = { pending: ['…', 'ждёт подтверждения'], confirmed: ['✓', 'подтверждено'], disputed: ['!', 'спорно'] };
   const ownStatus = o => (o === 'oto' || o === 'ito' ? 'pending' : 'confirmed');
-  const ownLabel = (o, st) => `${(OWNERS[o] || OWNERS.production)[0]} ${OWN_STATUS[st || ownStatus(o)][0]}`;
+  const ownLabel = (o, st) => (OWNERS[o] ? `${OWNERS[o][0]} ${OWN_STATUS[st || ownStatus(o)][0]}` : NO_OWNER[0]);
   window.dtOwner = { OWNERS, ownStatus, ownLabel };
   const toast = t => (typeof showToast === 'function' ? showToast(t) : alert(t));
 
@@ -155,10 +156,10 @@
   function fillOwn(tr, d) {
     const td = tr.querySelector('[data-k="own"]');
     if (!td) return;
-    const its = d ? [...(d.items || [])].sort((a, b) => b.minutes - a.minutes) : [];
+    const its = d ? [...(d.items || [])].filter(it => OWNERS[it.owner]).sort((a, b) => b.minutes - a.minutes) : [];   // «не назначен» на Andon не показывается
     const html = its.map(it => {
       const st = it.owner_status || ownStatus(it.owner);
-      const o = OWNERS[it.owner] || OWNERS.production;
+      const o = OWNERS[it.owner];
       const reason = dict ? (dict.reasons.find(r => r.id === it.reason_id) || {}).name : '';
       const tip = `Ответственный: ${o[1]}, ${OWN_STATUS[st][1]}${reason ? `. Причина: ${reason}` : ''}`;
       return `<span class="own-i own-${st}" title="${esc(tip)}">${esc(o[0])}<b>${OWN_STATUS[st][0]}</b></span>`;

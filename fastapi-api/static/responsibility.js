@@ -7,14 +7,15 @@
   const SHORT = { production: 'ПР', oto: 'ОТО', ito: 'ИТО', other: 'ДР' };
   const NAME = { production: 'Производство', oto: 'ОТО', ito: 'ИТО', other: 'Другое (внешние причины)' };
   // те же названия столбцов, что в Excel (responsibility.HEADS на сервере)
-  const HEADS = ['', 'Всего', 'ПР', 'ОТО', 'ИТО', 'ДР', 'Не описано', 'Ждёт подтверждения', 'Спорно'];
+  const HEADS = ['', 'Всего', 'ПР', 'ОТО', 'ИТО', 'ДР', 'Не назначено', 'Не описано', 'Ждёт подтверждения', 'Спорно'];
   const TIPS = [
     'Название строки: минуты или доля от всего отставания',
-    'Всё отставание за период в минутах: то же число, что «Простой, мин»; равно сумме ПР, ОТО, ИТО, ДР и «Не описано»',
+    'Всё отставание за период в минутах: то же число, что «Простой, мин»; равно сумме ПР, ОТО, ИТО, ДР, «Не назначено» и «Не описано»',
     'Минуты отставания по причинам, за которые отвечает производство',
     'Минуты отставания по причинам, за которые отвечает отдел технического обслуживания (ОТО)',
     'Минуты отставания по причинам, за которые отвечает инженерно-технический отдел (ИТО)',
     'Минуты отставания по внешним причинам (другое): поставщик, электричество и т.п.',
+    'Минуты отставания, которые описаны, но отдел ещё не выбран: ответственного назначает человек в окне описания простоя',
     'Минуты отставания, для которых ещё не указана причина и ответственный',
     'Минуты ОТО и ИТО, которые отдел ещё не подтвердил; это часть минут отделов, а не отдельное слагаемое',
     'Минуты, с которыми отдел не согласен; это часть минут отделов, а не отдельное слагаемое',
@@ -45,6 +46,8 @@
       if (disp) extra.push(`спорно ${num(by(r, 'disputed_by', o))} мин`);
       tip.push(`${NAME[o]}: ${num(m)} мин (${pct((r.share || {})[o])})${extra.length ? ', ' + extra.join(', ') : ''}`);
     }
+    const unas = Number((r.owners || {}).none) || 0;
+    if (unas > 0) { parts.push(`не назначено ${num(unas)}`); htmls.push(`не назначено ${num(unas)}`); tip.push(`Не назначено (отдел ещё не выбран): ${num(unas)} мин (${pct((r.share || {}).none)})`); }
     const und = Number(r.undescribed) || 0;
     if (und > 0) { parts.push(`не описано ${num(und)}`); htmls.push(`не описано ${num(und)}`); }
     tip.push(`Не описано: ${num(und)} мин (${pct((r.share || {}).undescribed)})`);
@@ -58,8 +61,8 @@
   function tableRows(r) {
     const o = (r && r.owners) || {}, s = (r && r.share) || {};
     return [
-      [ROW_MINUTES, num(r.total), num(o.production), num(o.oto), num(o.ito), num(o.other), num(r.undescribed), num(r.pending), num(r.disputed)],
-      [ROW_SHARE, r.total > 0 ? '100%' : '—', pct(s.production), pct(s.oto), pct(s.ito), pct(s.other), pct(s.undescribed), pct(s.pending), pct(s.disputed)],
+      [ROW_MINUTES, num(r.total), num(o.production), num(o.oto), num(o.ito), num(o.other), num(o.none), num(r.undescribed), num(r.pending), num(r.disputed)],
+      [ROW_SHARE, r.total > 0 ? '100%' : '—', pct(s.production), pct(s.oto), pct(s.ito), pct(s.other), pct(s.none), pct(s.undescribed), pct(s.pending), pct(s.disputed)],
     ];
   }
 

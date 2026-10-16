@@ -21,8 +21,8 @@ from test_responsibility import DAY, _item, _put, _seed
 STATIC = Path(__file__).resolve().parent.parent / "fastapi-api" / "static"
 JS = STATIC / "responsibility.js"
 node = pytest.mark.skipif(shutil.which("node") is None, reason="нужен node")
-OWNERS = ("production", "oto", "ito", "other")
-HEADS = ["", "Всего", "ПР", "ОТО", "ИТО", "ДР", "Не описано", "Ждёт подтверждения", "Спорно"]
+OWNERS = ("production", "oto", "ito", "other", "none")
+HEADS = ["", "Всего", "ПР", "ОТО", "ИТО", "ДР", "Не назначено", "Не описано", "Ждёт подтверждения", "Спорно"]
 
 
 @pytest.fixture(autouse=True)
@@ -51,7 +51,7 @@ async def test_totals_by_owner_and_undescribed(app, users, anon, pool):
     scr, dt, r_def, _ = await _seed(pool)
     await _put(users["t_master"], dt, [_item(r_def, 10, owner="production"), _item(r_def, 5, owner="oto"), _item(r_def, 5, owner="ito")])
     r = await _resp(anon, scr)
-    assert r["total"] == 30 and r["owners"] == {"production": 10, "oto": 5, "ito": 5, "other": 0}
+    assert r["total"] == 30 and r["owners"] == {"production": 10, "oto": 5, "ito": 5, "other": 0, "none": 0}
     assert r["undescribed"] == 10
     assert r["pending"] == 10 and r["disputed"] == 0                 # ОТО и ИТО ждут подтверждения; «спорно» пока всегда 0
     assert r["pending_by"]["oto"] == 5 and r["pending_by"]["ito"] == 5 and r["pending_by"]["production"] == 0
@@ -187,9 +187,9 @@ async def test_downtimes_list_has_responsibility_equal_to_rows(app, users, anon,
 def _block(content):
     cells = _cells(content)
     r0 = _find_row(cells, "По ответственным", "A", startswith=False)
-    heads = [cells.get((r0 + 1, c)) or "" for c in "ABCDEFGHI"]
-    mins = [cells.get((r0 + 2, c)) for c in "ABCDEFGHI"]
-    share = [cells.get((r0 + 3, c)) for c in "ABCDEFGHI"]
+    heads = [cells.get((r0 + 1, c)) or "" for c in "ABCDEFGHIJ"]
+    mins = [cells.get((r0 + 2, c)) for c in "ABCDEFGHIJ"]
+    share = [cells.get((r0 + 3, c)) for c in "ABCDEFGHIJ"]
     return heads, mins, share
 
 
@@ -212,7 +212,7 @@ async def test_excel_block_equals_screen(app, users, anon, pool, url, params):
     heads, mins, share = _block(xl.content)
     assert heads == HEADS                                                              # заголовки те же, что в responsibility.js
     assert mins[0] == "Минут"
-    assert mins[1:] == [r["total"], r["owners"]["production"], r["owners"]["oto"], r["owners"]["ito"], r["owners"]["other"],
+    assert mins[1:] == [r["total"], r["owners"]["production"], r["owners"]["oto"], r["owners"]["ito"], r["owners"]["other"], r["owners"]["none"],
                         r["undescribed"], r["pending"], r["disputed"]]
     assert share[0] == "Доля, %"
     assert round(share[2] * 100, 1) == r["share"]["production"] and round(share[3] * 100, 1) == r["share"]["oto"]
@@ -226,7 +226,7 @@ async def test_excel_total_is_formula_of_owners(app, users, anon, pool):
     sheet = zipfile.ZipFile(io.BytesIO(xl.content)).read("xl/worksheets/sheet1.xml").decode("utf-8")
     cells = _cells(xl.content)
     row = _find_row(cells, "По ответственным", "A", startswith=False) + 2
-    assert re.search(rf'<c r="B{row}"[^>]*><f>C{row}\+D{row}\+E{row}\+F{row}\+G{row}</f>', sheet)
+    assert re.search(rf'<c r="B{row}"[^>]*><f>C{row}\+D{row}\+E{row}\+F{row}\+G{row}\+H{row}</f>', sheet)
 
 
 async def test_excel_block_empty_day_has_no_error(app, anon, pool):
@@ -234,7 +234,7 @@ async def test_excel_block_empty_day_has_no_error(app, anon, pool):
     xl = await anon.get(f"/api/kpi/screens/{scr}/day.xlsx", params={"date": DAY.isoformat()})
     assert xl.status_code == 200
     heads, mins, _ = _block(xl.content)
-    assert mins[1] == 30 and mins[6] == 30                                             # всё «не описано»
+    assert mins[1] == 30 and mins[7] == 30                                             # всё «не описано»
 
 
 # ---------- экран: исходники и чистые функции в node ----------
@@ -300,5 +300,5 @@ def test_andon_line_empty_when_no_lag_or_no_data():
 @node
 def test_table_rows_like_server():
     rows = run(f"r.tableRows({json.dumps(R)})")
-    assert rows[0] == ["Минут", "20", "15", "5", "0", "0", "0", "5", "0"]
-    assert rows[1] == ["Доля, %", "100%", "75%", "25%", "0%", "0%", "0%", "25%", "0%"]
+    assert rows[0] == ["Минут", "20", "15", "5", "0", "0", "0", "0", "5", "0"]
+    assert rows[1] == ["Доля, %", "100%", "75%", "25%", "0%", "0%", "0%", "0%", "25%", "0%"]

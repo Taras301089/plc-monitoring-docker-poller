@@ -49,18 +49,18 @@ async def _items(client, scr):
 
 # ---------- схема ----------
 
-async def test_schema_idempotent_and_default_production(app, pool):
+async def test_schema_idempotent_and_default_none(app, pool):
     for table in ("kpi_reasons", "kpi_downtime_items"):
         col = await pool.fetchrow(
             "SELECT column_default, is_nullable FROM information_schema.columns WHERE table_name = $1 AND column_name = 'owner'", table)
-        assert col is not None and col["is_nullable"] == "NO" and "production" in col["column_default"], table
-    # старые записи (до появления поля) получают «production», ничьи значения не меняются
+        assert col is not None and col["is_nullable"] == "NO" and "none" in col["column_default"], table
+    # записи без выбранного отдела получают «none» (не назначен), ничьи значения не меняются
     await pool.execute("ALTER TABLE kpi_reasons DROP COLUMN owner")
     await pool.execute("INSERT INTO kpi_reasons (name, hint, sort_order) VALUES ('t_old', '', 1)")
     for _ in range(2):          # повторный запуск безопасен
         await dictionary.ensure_dictionary_schema(pool)
         await downtime.ensure_downtime_schema(pool)
-    assert await pool.fetchval("SELECT owner FROM kpi_reasons WHERE name = 't_old'") == "production"
+    assert await pool.fetchval("SELECT owner FROM kpi_reasons WHERE name = 't_old'") == "none"
     assert await pool.fetchval("SELECT to_regclass('kpi_downtime_items_owner_log')") is not None
 
 
