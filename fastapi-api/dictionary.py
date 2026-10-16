@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, Literal
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -28,6 +28,9 @@ async def ensure_dictionary_schema(pool: asyncpg.Pool) -> None:
         )
         """
     )
+    # «Ответственный по умолчанию»: отдел, на которого по умолчанию относится причина (production / oto / ito / other);
+    # у уже существующих причин значение «production» (по умолчанию колонки), ничьи названия и порядок не меняются
+    await pool.execute("ALTER TABLE kpi_reasons ADD COLUMN IF NOT EXISTS owner TEXT NOT NULL DEFAULT 'production'")
     await pool.execute(
         """
         CREATE TABLE IF NOT EXISTS kpi_areas (
@@ -157,6 +160,7 @@ class ReasonBody(BaseModel):
     hint: str = Field(default="", max_length=300)
     is_active: bool = True
     sort_order: int | None = Field(default=None, ge=0, le=100000)
+    owner: Literal["production", "oto", "ito", "other"] | None = None   # ответственный по умолчанию; не указан: при правке не меняется
 
 
 class AreaBody(BaseModel):
@@ -176,7 +180,7 @@ class StationBody(BaseModel):
 async def get_dictionary(request: Request, include_inactive: bool = Query(default=True)) -> dict[str, Any]:
     pool: asyncpg.Pool = request.app.state.pool
     flt = "" if include_inactive else "WHERE is_active"
-    reasons = await pool.fetch(f"SELECT id, name, hint, sort_order, is_active FROM kpi_reasons {flt} ORDER BY sort_order, id")
+    reasons = await pool.fetch(f"SELECT id, name, hint, sort_order, is_active, owner FROM kpi_reasons {flt} ORDER BY sort_order, id")
     areas = await pool.fetch(f"SELECT id, scope, name, sort_order, is_active FROM kpi_areas {flt} ORDER BY scope, sort_order, id")
     stations = await pool.fetch(
         "SELECT id, area_id, name, sort_order, is_active FROM kpi_stations "
@@ -203,8 +207,8 @@ async def create_reason(body: ReasonBody, request: Request, _: dict[str, Any] = 
     order = body.sort_order if body.sort_order is not None else await _next_order(pool, "SELECT max(sort_order) FROM kpi_reasons")
     try:
         rid = await pool.fetchval(
-            "INSERT INTO kpi_reasons (name, hint, sort_order, is_active) VALUES ($1, $2, $3, $4) RETURNING id",
-            body.name.strip(), body.hint.strip(), order, body.is_active,
+            "INSERT INTO kpi_reasons (name, hint, sort_order, is_active, owner) VALUES ($1, $2, $3, $4, COALESCE($5, 'production')) RETURNING id",
+            body.name.strip(), body.hint.strip(), order, body.is_active, body.owner,
         )
     except asyncpg.UniqueViolationError as exc:
         raise HTTPException(status_code=409, detail="Такая причина уже есть") from exc
@@ -216,8 +220,8 @@ async def update_reason(reason_id: int, body: ReasonBody, request: Request, _: d
     pool: asyncpg.Pool = request.app.state.pool
     try:
         result = await pool.execute(
-            "UPDATE kpi_reasons SET name = $2, hint = $3, is_active = $4, sort_order = COALESCE($5, sort_order) WHERE id = $1",
-            reason_id, body.name.strip(), body.hint.strip(), body.is_active, body.sort_order,
+            "UPDATE kpi_reasons SET name = $2, hint = $3, is_active = $4, sort_order = COALESCE($5, sort_order), owner = COALESCE($6, owner) WHERE id = $1",
+            reason_id, body.name.strip(), body.hint.strip(), body.is_active, body.sort_order, body.owner,
         )
     except asyncpg.UniqueViolationError as exc:
         raise HTTPException(status_code=409, detail="Причина с таким названием уже есть") from exc

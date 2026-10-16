@@ -1,7 +1,8 @@
 ﻿<#
   tia-export.ps1 - выгрузка логики ПЛК из проекта TIA Portal V17 в XML (SimaticML) через TIA Openness.
   Открывает КОПИЮ проекта без окна TIA и выгружает для каждого ПЛК: программные блоки (OB, FB, FC, DB),
-  типы данных (UDT) и таблицы тегов. Проект не изменяется и не сохраняется.
+  типы данных (UDT) и таблицы тегов; контроли ProDiag в Excel (ProDiag_Supervisions.xlsx) и тексты проекта
+  на каждом языке (ProjectTexts_<язык>.xlsx). Проект не изменяется и не сохраняется.
   Блоки с защитой know-how, F-блоки и блоки, которые TIA не может выгрузить (не скомпилированы), пропускаются
   и перечисляются в отчёте manifest.csv.
   Требования: TIA Portal V17 на этом ПК, учётка Windows в группе «Siemens TIA Openness».
@@ -152,6 +153,38 @@ try {
         Export-TypeGroup $sw.TypeGroup (Join-Path $plcDir 'Types') $plc 'Types'
         Write-Log "$plc - выгрузка таблиц тегов..."
         Export-TagGroup $sw.TagTableGroup (Join-Path $plcDir 'Tags') $plc 'Tags'
+        # Контроли ProDiag (сигнал, условие, категория, задержка) и настройки блоков *_PD: сами блоки ProDiag
+        # Openness V17 в XML не выгружает, поэтому их содержимое берётся отдельной выгрузкой в Excel
+        Write-Log "$plc - выгрузка контролей ProDiag..."
+        $pdFile = Join-Path $plcDir 'ProDiag_Supervisions.xlsx'
+        try {
+            $pd = Get-Service2 $sw ([Siemens.Engineering.SW.Supervision.SupervisionProvider])
+            if (-not (Test-Path -LiteralPath $plcDir)) { New-Item -ItemType Directory -Path $plcDir -Force | Out-Null }
+            $res = $pd.ExportSupervisionsToXlsx([IO.FileInfo]$pdFile)
+            if (Test-Path -LiteralPath $pdFile) { Add-Row $plc 'prodiag' '' 'ProDiag_Supervisions.xlsx' '' '' 'ok' '' }
+            else { Add-Row $plc 'prodiag' '' 'ProDiag_Supervisions.xlsx' '' '' 'error' ('файл не создан: ' + $res.State) }
+        } catch {
+            $e = $_.Exception; while ($e.InnerException) { $e = $e.InnerException }
+            Add-Row $plc 'prodiag' '' 'ProDiag_Supervisions.xlsx' '' '' 'error' (($e.Message -replace '\s+', ' ').Trim())
+        }
+    }
+
+    # Тексты проекта (комментарии, тексты аварий и ProDiag, списки текстов): один файл на каждый язык проекта,
+    # в файле справочный язык (обычно en-US) и этот язык рядом
+    $ls = $proj.LanguageSettings
+    $src = $ls.ReferenceLanguage.Culture
+    foreach ($lang in $ls.ActiveLanguages) {
+        $t = $lang.Culture
+        if ($t.Name -eq $src.Name) { continue }
+        $name = 'ProjectTexts_' + $t.Name + '.xlsx'
+        Write-Log "Выгрузка текстов проекта $($src.Name) / $($t.Name)..."
+        try {
+            $proj.ExportProjectTexts([IO.FileInfo](Join-Path $root $name), $src, $t)
+            Add-Row '' 'texts' '' $name '' $t.Name 'ok' ''
+        } catch {
+            $e = $_.Exception; while ($e.InnerException) { $e = $e.InnerException }
+            Add-Row '' 'texts' '' $name '' $t.Name 'error' (($e.Message -replace '\s+', ' ').Trim())
+        }
     }
 
     $manifestFile = Join-Path $root 'manifest.csv'

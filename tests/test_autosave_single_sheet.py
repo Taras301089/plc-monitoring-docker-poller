@@ -143,7 +143,7 @@ async def test_sum_formulas(app, pool, monkeypatch, tmp_path):
     xml = _zip(book).read("xl/worksheets/sheet1.xml").decode("utf-8")
     sums = re.findall(r"<f>SUM\(([A-Z]+)\d+:[A-Z]+\d+\)</f>", xml)
     # день: F, G, H, K, O; месяц: B, C, F, G, H
-    assert sorted(sums) == sorted(["F", "G", "H", "K", "O", "B", "C", "F", "G", "H"])
+    assert sorted(sums) == sorted(["F", "G", "H", "K", "P", "B", "C", "F", "G", "H"])   # «Отв.» стоит после «Простой мин», «Мин. по причине» сдвинулась с O на P
 
 
 async def test_numbers_match_api(app, anon, pool, monkeypatch, tmp_path):
@@ -205,5 +205,6 @@ async def test_button_exports_unchanged(app, anon, pool):
     assert _chart_titles(day.content) == ["План и факт по часам"]
     per = await anon.get(f"/api/kpi/screens/{scr}/period.xlsx", params={"from": D0.isoformat(), "to": DAY.isoformat()})
     assert per.status_code == 200
-    assert [n for n, _ in _sheets(per.content)] == ["Отчёт", "Простои"]
+    # видимые листы: отчёт и полный список простоев; служебные данные графиков (например «График дней») только скрытые
+    assert [n for n, hidden in _sheets(per.content) if not hidden] == ["Отчёт", "Простои"]
     assert "День 05.10.2026" not in _cells(per.content).values()

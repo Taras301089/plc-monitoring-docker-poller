@@ -36,7 +36,7 @@
           <h2 class="andon-h">${window.brandLogo(screen.bindings.brand)}${esc(screen.bindings.brand)}: ${esc(screen.bindings.area)}
             <button type="button" class="man-log-btn" data-act="log" title="Журнал ввода: кто и когда менял план и факт по этому участку">📜 Журнал</button></h2>
           <div class="kpi-wrap"><table class="kpi-table">
-            <colgroup><col style="width:4%"><col style="width:13%"><col style="width:6%"><col style="width:8%"><col style="width:10%"><col style="width:7%"><col style="width:12%"><col style="width:40%"></colgroup>
+            <colgroup><col style="width:4%"><col style="width:13%"><col style="width:6%"><col style="width:8%"><col style="width:10%"><col style="width:7%"><col style="width:12%"><col style="width:6%"><col style="width:34%"></colgroup>
             <thead><tr>
               <th title="Номер часового интервала смены">№</th>
               <th title="Время интервала: такое же, как на Main Line этого бренда">Время</th>
@@ -45,10 +45,11 @@
               <th title="Фактическое количество подсборок за интервал: вводится вручную. Пока не введено, простой не считается">Факт</th>
               <th title="Отклонение факта от плана для завершённых интервалов: красный — отставание">±</th>
               <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой, мин</th>
+              <th title="Ответственный за отставание по каждой причине, в порядке причин: ПР — производство, ОТО, ИТО, ДР — другое (внешние причины). Знак: … ждёт подтверждения, ✓ подтверждено, ! спорно. Расшифровка по наведению">Отв.</th>
               <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
             </tr></thead>
-            <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td class="man" data-k="plan"></td><td class="man fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td class="dt" data-k="dt"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
-            <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td data-k="planSum"></td><td data-k="factSum"></td><td class="delta" data-k="deltaSum"></td><td></td><td></td></tr></tfoot>
+            <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td class="man" data-k="plan"></td><td class="man fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td class="dt" data-k="dt"></td><td class="own" data-k="own"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
+            <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td data-k="planSum"></td><td data-k="factSum"></td><td class="delta" data-k="deltaSum"></td><td></td><td></td><td class="resp-sum" data-k="resp"></td></tr></tfoot>
           </table></div>
         </div>
       </div>`;

@@ -39,6 +39,14 @@
     return [reason, area && area.name, st && st.name].filter(Boolean).join(' · ');
   };
   window.dtCmHelpers = { cmTitle, cmAccess, cmPlace };
+  // Ответственный за отставание: сокращение и знак статуса те же, что в «Простоях» и в Excel (на сервере downtime.owner_label)
+  // Подстановка ответственного из справочника причин ВЫКЛЮЧЕНА (решение пользователя 16.10): у всех причин пока «ПР», соответствие причина → отдел согласуют с коллегами (задача T-18). Включить: true
+  const OWNER_AUTOFILL = false;
+  const OWNERS = { production: ['ПР', 'Производство'], oto: ['ОТО', 'ОТО'], ito: ['ИТО', 'ИТО'], other: ['ДР', 'Другое (внешние причины)'] };
+  const OWN_STATUS = { pending: ['…', 'ждёт подтверждения'], confirmed: ['✓', 'подтверждено'], disputed: ['!', 'спорно'] };
+  const ownStatus = o => (o === 'oto' || o === 'ito' ? 'pending' : 'confirmed');
+  const ownLabel = (o, st) => `${(OWNERS[o] || OWNERS.production)[0]} ${OWN_STATUS[st || ownStatus(o)][0]}`;
+  window.dtOwner = { OWNERS, ownStatus, ownLabel };
   const toast = t => (typeof showToast === 'function' ? showToast(t) : alert(t));
 
   async function load(screenId, force = false) {
@@ -47,8 +55,8 @@
     if (c.loading || (!force && Date.now() - c.at < REFRESH_MS)) return;
     c.loading = true;
     try {
-      // без ответа дольше 10 секунд запрос прерываем, иначе загрузка могла бы зависнуть навсегда
-      const r = await fetch(`/api/kpi/screens/${screenId}/downtimes${window.dtDay ? '?date=' + window.dtDay : ''}`, { signal: AbortSignal.timeout(10000) });
+      // тайм-аут 6 с: зависший запрос не должен останавливать обновление
+      const r = await fetch(`/api/kpi/screens/${screenId}/downtimes${window.dtDay ? '?date=' + window.dtDay : ''}`, { signal: AbortSignal.timeout(6000) });
       if (r.ok) { c.data = await r.json(); c.at = Date.now(); }
     } catch { /* повторим позже, пока показываем последние известные данные */ } finally { c.loading = false; }
   }
@@ -76,6 +84,7 @@
     // пока данные простоев не получены (обрыв связи, перезапуск сервера), ячейки не трогаем
     if (!c || !c.data) return;
     const list = c.data.downtimes || [];
+    window.respKit?.fill(root, c.data.responsibility);
     root.querySelectorAll('tbody tr[data-i]').forEach(tr => {
       const td = tr.querySelector('[data-k="dt"]');
       if (!td) return;
@@ -99,6 +108,7 @@
         }
       } else if (td.dataset.sig) { td.textContent = ''; td.dataset.sig = ''; }
       fillWhy(tr, d && (d.minutes > 0 || d.comments > 0) ? d : null);
+      fillOwn(tr, d && (d.minutes > 0 || d.comments > 0) ? d : null);
       // клик по «не описан» открывает тот же редактор простоя, что и кнопка с минутами в этой строке
       const whyTd = tr.querySelector('[data-k="why"]');
       if (whyTd) whyTd.onclick = e => {
@@ -122,14 +132,16 @@
     box.querySelectorAll('.why-more').forEach(e => e.remove());
     const cols = [...box.querySelectorAll('.why-col')];
     cols.forEach(c => { c.hidden = false; });
-    const fits = () => cols.every(c => c.hidden || c.offsetLeft + c.offsetWidth <= box.clientWidth + 1);
+    // помещается: колонка не вылезает за ячейку и ни одна её строка не обрезана многоточием (колонки сами делят свободное место)
+    const fits = () => cols.every(c => c.hidden || (c.offsetLeft + c.offsetWidth <= box.clientWidth + 1 &&
+      [...c.children].every(sp => sp.scrollWidth <= sp.clientWidth + 1)));
     if (fits()) return;
     const items = cols.filter(c => !c.classList.contains('why-left'));
     const more = document.createElement('span');
     more.className = 'why-more';
     box.appendChild(more);
     let hiddenN = 0;
-    for (let i = cols.length - 1; i >= 0 && !fits(); i--) {
+    for (let i = cols.length - 1; i >= 1 && !fits(); i--) {   // первая колонка остаётся всегда
       cols[i].hidden = true;
       if (items.includes(cols[i])) hiddenN++;
       more.textContent = hiddenN ? `+${hiddenN}` : '';
@@ -137,6 +149,22 @@
     if (!hiddenN) more.remove();
   }
   window.addEventListener('resize', () => document.querySelectorAll('td.why').forEach(fitWhy));
+
+  // Колонка «Отв.»: по одному сокращению на каждую причину в том же порядке, что в колонке «Причина» (по убыванию минут).
+  // Статус знаком и цветом без зелёного: «…» серый (ждёт подтверждения), «✓» основной цвет (подтверждено), «!» красный (спорно)
+  function fillOwn(tr, d) {
+    const td = tr.querySelector('[data-k="own"]');
+    if (!td) return;
+    const its = d ? [...(d.items || [])].sort((a, b) => b.minutes - a.minutes) : [];
+    const html = its.map(it => {
+      const st = it.owner_status || ownStatus(it.owner);
+      const o = OWNERS[it.owner] || OWNERS.production;
+      const reason = dict ? (dict.reasons.find(r => r.id === it.reason_id) || {}).name : '';
+      const tip = `Ответственный: ${o[1]}, ${OWN_STATUS[st][1]}${reason ? `. Причина: ${reason}` : ''}`;
+      return `<span class="own-i own-${st}" title="${esc(tip)}">${esc(o[0])}<b>${OWN_STATUS[st][0]}</b></span>`;
+    }).join('');
+    if (td.dataset.sig !== html) { td.innerHTML = html; td.dataset.sig = html; }
+  }
 
   // Колонка «Причина»: до трёх строк (причина, описание, следующая причина...), остальное сворачивается в «+N»
   function fillWhy(tr, d) {
@@ -157,7 +185,7 @@
           return { place: (st && st.name) || (area && area.name) || '', reason, min: it.minutes };
         };
         // причины по убыванию минут; у каждой строка «станция · причина» (минуты, если причин несколько) и под ней описание
-        const all = its.map(it => ({ id: it.id, ...name(it), note: (it.note || '').trim(), comment: it.last_comment || null, who: it.author || '' })).sort((a, b) => b.min - a.min);
+        const all = its.map(it => ({ id: it.id, ...name(it), note: (it.note || '').trim(), comments: it.recent_comments && it.recent_comments.length ? it.recent_comments : (it.last_comment ? [it.last_comment] : []), commentsTotal: it.comments || 0, who: it.author || '' })).sort((a, b) => b.min - a.min);
         const left = Math.max(0, d.minutes - d.described);
         // при малом числе интервалов строки высокие и помещается четыре строки текста, иначе три
         const rowsN = [...tr.parentElement.children].filter(x => !x.hidden).length;   // скрытые (неактивные) интервалы не считаются
@@ -168,12 +196,17 @@
           const lines = [];
           lines.push({ c: 'why-main', h:`${esc(`${x.place ? x.place + ' · ' : ''}${x.reason}${all.length > 1 ? ' · ' + fmt(x.min) + ' мин' : ''}`)}${x.who ? ` <span class="why-by" title="Кто описал причину простоя: фамилия и должность">· ${esc(x.who)}</span>` : ''}` });
           if (x.note && lines.length < MAX_LINES) lines.push({ c: 'why-note', t: x.note });
-          if (x.comment && lines.length < MAX_LINES) lines.push({ c: 'why-comment', h: `<span class="why-re" title="Ответ или дополнение к описанию выше">↳</span> ${x.comment.is_oto ? '<span class="cm-badge oto" title="Комментарий оставил сотрудник ОТО">ОТО</span> ' : ''}${esc(x.comment.text)}${x.comment.author ? ` <span class="why-by" title="Кто написал комментарий: фамилия и должность">· ${esc(x.comment.author)}</span>` : ''}` });
-          cols.push(`<div class="why-col${x.id ? ' why-click' : ''}"${x.id ? ` data-item="${x.id}" title="Нажмите, чтобы добавить комментарий к этому простою"` : ''}>${lines.map(l => `<span class="${l.c}">${l.h || esc(l.t)}</span>`).join('')}</div>`);
+          // каждый новый комментарий на своей строке; не поместившиеся старые скрываются, их число «+N» ставится в конец последней строки
+          const room = Math.max(0, MAX_LINES - lines.length);
+          const shownComments = x.comments.slice(Math.max(0, x.comments.length - room));
+          for (const cm of shownComments) lines.push({ c: 'why-comment', h: `<span class="why-re" title="Ответ или дополнение к описанию выше">↳</span> ${cm.is_oto ? '<span class="cm-badge oto" title="Комментарий оставил сотрудник ОТО">ОТО</span> ' : ''}${esc(cm.text)}${cm.author ? ` <span class="why-by" title="Кто написал комментарий: фамилия и должность">· ${esc(cm.author)}</span>` : ''}` });
+          const hiddenN = Math.max(0, (x.commentsTotal || x.comments.length) - shownComments.length);
+          if (hiddenN > 0) lines[lines.length - 1].more = hiddenN;
+          cols.push(`<div class="why-col${x.id ? ' why-click' : ''}"${x.id ? ` data-item="${x.id}" title="Нажмите, чтобы добавить комментарий к этому простою"` : ''}>${lines.map(l => l.more ? `<span class="${l.c} why-has-more"><span class="why-txt">${l.h || esc(l.t)}</span><span class="why-hid" title="Есть ещё комментарии: нажмите, чтобы открыть все">+${l.more}</span></span>` : `<span class="${l.c}">${l.h || esc(l.t)}</span>`).join('')}</div>`);
         }
         if (left > 0.5) cols.push(`<div class="why-col why-left"><span class="why-none">не описано ${fmt(left)} мин</span></div>`);
         html = `<div class="why-cols">${cols.join('')}</div>`;
-        title = all.map(x => `${x.place ? x.place + ' · ' : ''}${x.reason}: ${fmt(x.min)} мин${x.who ? ' (' + x.who + ')' : ''}${x.note ? ' — ' + x.note : ''}${x.comment ? `\n   ${x.comment.is_oto ? 'ОТО: ' : ''}${x.comment.text}${x.comment.author ? ' (' + x.comment.author + ')' : ''}` : ''}`).join('\n')
+        title = all.map(x => `${x.place ? x.place + ' · ' : ''}${x.reason}: ${fmt(x.min)} мин${x.who ? ' (' + x.who + ')' : ''}${x.note ? ' — ' + x.note : ''}${x.comments.map(cm => `\n   ${cm.is_oto ? 'ОТО: ' : ''}${cm.text}${cm.author ? ' (' + cm.author + ')' : ''}`).join('')}`).join('\n')
           + (left > 0.5 ? `\nНе описано ${fmt(left)} мин` : '');
       }
     }
@@ -282,7 +315,7 @@
     const single = areas.length === 1;
     const editable = canEdit();
     let rows = d.items.map(i => ({ ...i }));
-    if (!rows.length && editable) rows.push({ id: null, area_id: single ? areas[0].id : null, station_id: null, reason_id: null, minutes: Math.round(d.minutes * 10) / 10, note: '' });
+    if (!rows.length && editable) rows.push({ id: null, area_id: single ? areas[0].id : null, station_id: null, reason_id: null, minutes: Math.round(d.minutes * 10) / 10, note: '', owner: '' });
 
     const m = document.createElement('div');
     m.className = 'kpi-modal';
@@ -341,7 +374,7 @@
         const area = areas.find(a => a.id === r.area_id);
         const stations = (area ? area.stations : []).filter(s => s.is_active || s.id === r.station_id);
         const reasons = dd.reasons.filter(x => x.is_active || x.id === r.reason_id);
-        const needNote = reasonName(r.reason_id) === 'Другое' || (stationOf(r.station_id) || {}).name === 'Другое';
+        const needNote = reasonName(r.reason_id) === 'Другое' || (stationOf(r.station_id) || {}).name === 'Другое' || r.owner === 'other';
         // строку описания меняет только её автор (и администратор с начальниками); остальным она доступна только для комментариев
         const meU = (window.authState && window.authState().user) || null;
         const mine = !r.id || (!!meU && (r.created_by === meU.id || ['admin', 'chief', 'area_head'].includes(meU.role)));
@@ -353,9 +386,10 @@
           ${single ? '' : `<select data-f="area"${ro} title="Участок, где произошёл простой. Если участок определить нельзя, оставьте пустым — обязательна только причина">${opt(areas.filter(a => a.is_active || a.id === r.area_id), r.area_id, 'Участок…')}</select>`}
           <select data-f="station"${ro} title="Станция (пост), на которой был простой. Список зависит от выбранного участка">${opt(single ? areas[0].stations.filter(s => s.is_active || s.id === r.station_id) : stations, r.station_id, 'Станция…')}</select>
           <select data-f="reason"${ro} title="Причина простоя — обязательное поле. Если подходящей нет, выберите «Другое» и опишите текстом">${opt(reasons, r.reason_id, 'Причина…')}</select>
+          <select data-f="owner"${ro} title="Ответственный за отставание по этой причине: ПР — производство, ОТО, ИТО — отделы (ждут подтверждения), ДР — другое: внешние причины, описание обязательно. Подставляется из причины, можно изменить"><option value="">Ответственный отдел…</option>${Object.entries(OWNERS).map(([k, v]) => `<option value="${k}"${r.owner === k ? ' selected' : ''}>${v[0]} — ${esc(v[1])}</option>`).join('')}</select>
           <input data-f="minutes" type="number" min="0.1" max="999" step="0.1" value="${r.minutes ?? ''}"${ro} title="Сколько минут из общего простоя приходится на эту причину">
           ${canDel ? `<button type="button" data-f="del" class="dt-x" title="Удалить эту строку описания простоя: удалить может только автор или администратор, запись остаётся в журнале">Удалить</button>` : '<span></span>'}
-          ${canRow || r.note ? `<input data-f="note" class="dt-note${needNote && !(r.note || '').trim() ? ' need' : ''}" maxlength="500" value="${esc(r.note)}" placeholder="${needNote ? 'Опишите, что произошло (обязательно для «Другое»)' : 'Описание: что произошло (необязательно)'}"${ro} title="Свободное описание: что именно произошло. Для причины или станции «Другое» заполнять обязательно">` : ''}
+          ${canRow || r.note ? `<input data-f="note" class="dt-note${needNote && !(r.note || '').trim() ? ' need' : ''}" maxlength="500" value="${esc(r.note)}" placeholder="${needNote ? 'Опишите, что произошло (обязательно для «Другое» и ответственного «ДР»)' : 'Описание: что произошло (необязательно)'}"${ro} title="Свободное описание: что именно произошло. Для причины или станции «Другое» и для ответственного «ДР» заполнять обязательно">` : ''}
           ${r.id
             ? `<div class="dt-meta"><div class="dt-who">${authorLine(r)}</div></div>${editable && !mine ? `<div class="dt-lock" title="Строку описания меняет только тот, кто её внёс (и администратор с начальниками)">🔒 Строку описал(а) ${esc(r.created_by_name)}: изменить её может только автор, остальные могут комментировать</div>` : ''}`
             : (editable ? '<div class="dt-meta"><span title="Комментировать можно только сохранённую строку">Сохраните строку, чтобы её можно было комментировать</span></div>' : '')}`;
@@ -366,7 +400,13 @@
           if (single && r.station_id) r.area_id = areas[0].id;
           render();
         });
-        on('reason', 'change', e => { r.reason_id = e.target.value ? Number(e.target.value) : null; render(); });
+        on('reason', 'change', e => {
+          r.reason_id = e.target.value ? Number(e.target.value) : null;
+          const rs = dd.reasons.find(x => x.id === r.reason_id);
+          if (OWNER_AUTOFILL && rs && !r._ownerManual) r.owner = rs.owner || 'production';     // ответственный подставляется из причины, пока его не изменили вручную
+          render();
+        });
+        on('owner', 'change', e => { r.owner = e.target.value; r._ownerManual = true; render(); });
         on('minutes', 'input', e => { r.minutes = e.target.value === '' ? null : Number(e.target.value); updateSum(); });
         on('note', 'input', e => { r.note = e.target.value; });
         const noteEl = row.querySelector('[data-f="note"]');   // @ в описании: подсказка коллег, отмеченные получают уведомление
@@ -397,21 +437,21 @@
     if (add) add.addEventListener('click', () => {
       const left = Math.max(0, Math.round((d.minutes - rows.reduce((t, r) => t + (Number(r.minutes) || 0), 0)) * 10) / 10);
       if (left <= 0.5) { toast('Всё время простоя уже описано'); return; }
-      rows.push({ id: null, area_id: single ? areas[0].id : null, station_id: null, reason_id: null, minutes: left || null, note: '' });
+      rows.push({ id: null, area_id: single ? areas[0].id : null, station_id: null, reason_id: null, minutes: left || null, note: '', owner: '' });
       render();
     });
     const save = m.querySelector('[data-act="save"]');
     if (save) save.addEventListener('click', async () => {
       err.hidden = true;
       for (const [n, r] of rows.entries()) {
-        const msg = !r.reason_id ? 'выберите причину' : !(r.minutes > 0) ? 'укажите минуты' : '';
+        const msg = !r.reason_id ? 'выберите причину' : !r.owner ? 'выберите ответственный отдел' : !(r.minutes > 0) ? 'укажите минуты' : (r.owner === 'other' && !(r.note || '').trim()) ? 'для ответственного «ДР» опишите причину текстом' : '';
         if (msg) { err.textContent = `Строка ${n + 1}: ${msg}`; err.hidden = false; return; }
       }
       save.disabled = true;
       try {
         const resp = await fetch(`/api/kpi/downtimes/${d.id}/items`, {
           method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items: rows.map(r => ({ id: r.id, area_id: r.area_id, station_id: r.station_id, reason_id: r.reason_id, minutes: Number(r.minutes), note: r.note || '', mentions: r._ids ? r._ids() : [] })) }),
+          body: JSON.stringify({ items: rows.map(r => ({ id: r.id, area_id: r.area_id, station_id: r.station_id, reason_id: r.reason_id, minutes: Number(r.minutes), note: r.note || '', owner: r.owner || 'production', mentions: r._ids ? r._ids() : [] })) }),
         });
         const data = await resp.json().catch(() => ({}));
         if (!resp.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Проверьте заполнение строк');

@@ -126,8 +126,8 @@
     const col = (k, t, tip, text, val, num) => ({ k, t, tip, text, val: val || text, num: !!num });
     const plc = col('plc', 'ПЛК', 'ПЛК, на котором возникла авария', r => r.plc);
     const station = col('station', 'Станция', 'Станция линии, к которой относится авария; прочерк, если станция не определена', r => r.station);
-    const code = col('code', 'Код', 'Код аварии из словаря', r => r.code);
-    const text = col('text', 'Авария', 'Текст аварии из словаря ПЛК', r => r.text);
+    const code = col('code', 'Код', 'Код аварии из словаря; у аварий самого ПЛК (диагностика) кода нет, прочерк', r => r.code);
+    const text = col('text', 'Авария', 'Текст аварии из словаря ПЛК или сообщение диагностики самого ПЛК', r => r.text);
     const num = (k, t, tip, f, g) => col(k, t, tip, r => f(r), r => g(r), true);
     const count = num('count', 'Появлений', 'Сколько раз авария появилась за период', r => String(r.count), r => r.count);
     const total = num('total', 'Суммарно, мин', 'Суммарная длительность аварий в минутах (с учётом рабочего времени линии)', r => fmtMin(r.total_sec), r => r.total_sec);
@@ -268,6 +268,19 @@
     return j;
   }
 
+  // ---------- аварии самого ПЛК (OPC UA Alarms & Conditions, origin = 'ac') ----------
+  // Подсказка у состояния: когда авария квитирована на ПЛК (время завода)
+  function ackedTitle(iso, offsetHours) { return `Квитирована на ПЛК: ${toPlant(iso, offsetHours)}`; }
+
+  // Кнопка «Убрать» у аварии: только у битов словаря; аварии ПЛК убираются из статистики только станцией целиком
+  const anCanRemoveAlarm = row => !!row && row.origin !== 'ac';
+
+  // Журнал ПЛК настроен: ответ /api/alarms/filters (словарь аварий, аварии ПЛК или флажок «Аварии ПЛК»)
+  function filtersConfigured(f) {
+    if (!f) return false;
+    return typeof f.configured === 'boolean' ? f.configured : (f.stations || []).length > 0;
+  }
+
   // Динамика по дням: синие столбцы (число аварий или минуты) по дням; возвращает строку SVG
   function daysSvg(days, metric, W) {
     if (!days || !days.length) return '';
@@ -291,7 +304,7 @@
     return `<svg class="al-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${metric === 'count' ? AN_DAYS_COUNT : AN_DAYS_MIN}" preserveAspectRatio="xMidYMid meet">${g}</svg>`;
   }
 
-  const util = { anCanExclude, anRemovedNote, anExclusionBody, anRemovedItem, exclusionRequest, daysSvg, AN_DAYS_TITLE, AN_DAYS_COUNT, AN_DAYS_MIN, AN_PARETO_COUNT, AN_PARETO_TIME, fmtDuration, parseUtc, toPlant, buildUrl, pageLabel, liveSeconds, nextSort, plcBrand, orderBrands,
+  const util = { ackedTitle, anCanRemoveAlarm, filtersConfigured, anCanExclude,anRemovedNote, anExclusionBody, anRemovedItem, exclusionRequest, daysSvg, AN_DAYS_TITLE, AN_DAYS_COUNT, AN_DAYS_MIN, AN_PARETO_COUNT, AN_PARETO_TIME, fmtDuration, parseUtc, toPlant, buildUrl, pageLabel, liveSeconds, nextSort, plcBrand, orderBrands,
     plcArea, anBrands, anAreas, anQueryOf, anNote, anTables, sortRows, filterRows, nextSorts, paretoSvg, fmtMin, fmtPct, AN_TILES, AN_PARETO_TITLE, AN_METRICS };
   root.alarmsUtil = util;
   if (typeof module !== 'undefined' && module.exports) module.exports = util;
@@ -332,9 +345,9 @@
     { k: 'ended', t: 'Снятие', sort: 'ended_at', tip: 'Когда авария снята, время завода; прочерк у ещё активных', get: r => (r.ended_at ? toPlant(r.ended_at, off()) : '—') },
     { k: 'station', t: 'Станция', sort: 'station', fil: 'station', tip: 'Станция линии, к которой относится авария', get: r => r.station || '—' },
     { k: 'device', t: 'Устройство', fil: 'device', tip: 'Устройство на станции (например, частотный преобразователь); прочерк, если не указано', get: r => r.device || '—' },
-    { k: 'code', t: 'Код', sort: 'code', tip: 'Код аварии из справочника HMI или частотника', get: r => r.code || '—' },
-    { k: 'text', t: 'Текст аварии', tip: 'Текст аварии из справочника', get: r => r.text || '—' },
-    { k: 'src', t: 'Источник / Класс', fil: 'cls', tip: 'Откуда получена авария и к какому классу относится', get: r => `${r.source || '—'} · ${r.class || '—'}` },
+    { k: 'code', t: 'Код', sort: 'code', tip: 'Код аварии из справочника HMI или частотника; у аварий самого ПЛК (диагностика) кода нет', get: r => r.code || '—' },
+    { k: 'text', t: 'Текст аварии', tip: 'Текст аварии из справочника; у аварий самого ПЛК это сообщение диагностики ПЛК', get: r => r.text || '—' },
+    { k: 'src', t: 'Источник / Класс', fil: 'cls', tip: 'Откуда получена авария и к какому классу относится: HMI и класс из справочника или «ПЛК · диагностика» (аварии самого ПЛК: модули, приводы, Profinet)', get: r => `${r.source || '—'} · ${r.class || '—'}` },
     { k: 'state', t: 'Состояние', fil: 'hstate', tip: 'Активна: авария есть сейчас; Снята: авария закончилась', get: r => (r.active ? 'Активна' : 'Снята') },
     { k: 'dur', t: 'Длительность', sort: 'duration', num: true, tip: 'Сколько длится или длилась авария; у активных растёт каждую секунду', get: r => (lostNow() ? '—' : fmtDuration(r.active ? liveSeconds(r.started_at, data.now, fetchedAt, Date.now()) : r.duration_sec)) + (r.active_at_start ? ' · наблюдение неполное' : '') },
   ];
@@ -430,9 +443,9 @@
             <div class="al-an-h"><h3 title="Парето: самые частые и самые долгие аварии и накопленная доля, чтобы увидеть, на какие аварии приходится большая часть потерь">${AN_PARETO_TITLE}</h3></div>
             <div class="al-an-pair">
               <div class="al-an-card"><h4 title="Столбцы по числу появлений аварии, по убыванию">${AN_PARETO_COUNT}</h4><div id="al-an-pareto-count"></div>
-                <div class="al-legend al-an-leg"><span class="al-leg"><i class="al-sw al-sw-bar"></i>Число появлений</span><span class="al-leg"><i class="al-sw al-sw-line"></i>Накопленная доля, %</span></div></div>
+                <div class="al-legend al-an-leg"><span class="al-leg"><i class="al-sw al-sw-bar"></i>Число появлений</span><span class="al-leg"><i class="al-sw al-sw-line"></i>Накопленный %</span></div></div>
               <div class="al-an-card"><h4 title="Столбцы по суммарной длительности аварии в минутах, по убыванию">${AN_PARETO_TIME}</h4><div id="al-an-pareto-time"></div>
-                <div class="al-legend al-an-leg"><span class="al-leg"><i class="al-sw al-sw-bar"></i>Суммарно, мин</span><span class="al-leg"><i class="al-sw al-sw-line"></i>Накопленная доля, %</span></div></div>
+                <div class="al-legend al-an-leg"><span class="al-leg"><i class="al-sw al-sw-bar"></i>Суммарно, мин</span><span class="al-leg"><i class="al-sw al-sw-line"></i>Накопленный %</span></div></div>
             </div>
           </section>
           ${anSectionsHtml()}
@@ -552,7 +565,7 @@
         const all = await getJson('/api/plcs');
         const list = Array.isArray(all) ? all : (all.plcs || []);
         const checked = await Promise.all(list.map(async p => {
-          try { const f = await getJson(buildUrl('/api/alarms/filters', { plc_id: p.id })); return [p, (f.stations || []).length > 0]; } catch { return [p, false]; }
+          try { const f = await getJson(buildUrl('/api/alarms/filters', { plc_id: p.id })); return [p, filtersConfigured(f)]; } catch { return [p, false]; }
         }));
         plcs = list;
         configured = new Set(checked.filter(c => c[1]).map(c => String(c[0].id)));
@@ -689,7 +702,7 @@
       case 'ended': inner = esc(c.get(r)); break;
       case 'code': inner = `<span class="al-code" title="Код аварии: ссылка-подсветка, перехода нет">${esc(c.get(r))}</span>`; break;
       case 'src': inner = `${esc(r.source || '—')} · ${esc(r.class || '—')}`; break;
-      case 'state': inner = `<span class="${r.active ? 'al-st-on' : 'al-st-off'}">${r.active ? 'Активна' : 'Снята'}</span>`; break;
+      case 'state': inner = `<span class="${r.active ? 'al-st-on' : 'al-st-off'}"${r.acked_at ? ` title="${esc(ackedTitle(r.acked_at, off()))}"` : ''}>${r.active ? 'Активна' : 'Снята'}</span>`; break;
       case 'dur': inner = `<span ${r.active && !lost ? `class="al-live" data-start="${esc(r.started_at)}"` : ''}>${esc(lost ? '—' : fmtDuration(r.active ? liveSeconds(r.started_at, data.now, fetchedAt, Date.now()) : r.duration_sec))}</span>${r.active_at_start ? sub('Наблюдение неполное') : ''}`; break;
       default: inner = esc(c.get(r));
     }
@@ -800,6 +813,7 @@
   const apiFetch = (url, o) => fetch(url, Object.assign({ signal: TIMEOUT() }, o));
   const EX_ALARM_TIP = 'Убрать эту аварию из статистики аналитики. Журнал событий не меняется. Вернуть можно в списке «Убрано из статистики»';
   const EX_STATION_TIP = 'Убрать станцию целиком из статистики: все её аварии перестанут учитываться в аналитике. Журнал событий не меняется';
+  const EX_AC_TIP = 'Авария самого ПЛК (диагностика): по одной из статистики не убирается; убрать можно станцию целиком в таблице «По станциям»';
   const EX_KIND = { frequent: 'alarm', longest: 'alarm', cases: 'alarm', stations: 'station' };
   const gs = key => GS[key] || (GS[key] = { sorts: [], filters: {}, sel: null });
   const anLost = () => anFail >= 2;
@@ -885,7 +899,7 @@
     const t = d.tiles;
     q('#al-an-tiles').innerHTML = [[AN_TILES[0], t.events, 'Сколько раз за период появились аварии (учитываются выбранные линия, участок и правило рабочего времени)', ''],
       [AN_TILES[1], fmtDuration(t.total_sec), 'Сколько времени суммарно длились аварии за период (обрезано по рабочему времени линии)', ' al-tile-bad'],
-      [AN_TILES[2], t.distinct, 'Сколько разных аварий (разных битов словаря) появилось за период', '']]
+      [AN_TILES[2], t.distinct, 'Сколько разных аварий (разных битов словаря и разных аварий самого ПЛК) появилось за период', '']]
       .map(([n, v, tip, c]) => `<div class="al-tile${c}" title="${esc(tip)}"><span>${esc(n)}</span><b>${esc(v)}</b></div>`).join('');
     const dyn = d.dynamics || [];
     q('#al-an-dcount').innerHTML = daysSvg(dyn, 'count', 760);
@@ -916,6 +930,8 @@
     } else {
       const actCell = r => !kind ? '' : (kind === 'station' && (!r.station || r.station === '—')
         ? '<td data-act-col class="al-act-col"></td>'
+        : kind === 'alarm' && !anCanRemoveAlarm(r)
+        ? `<td data-act-col class="al-act-col" title="${esc(EX_AC_TIP)}"></td>`
         : `<td data-act-col class="al-act-col">${kind === 'station'
           ? `<button type="button" class="al-rm-btn" data-rm="station" title="${esc(EX_STATION_TIP)}">Убрать станцию</button>`
           : `<button type="button" class="al-rm-btn" data-rm="alarm" title="${esc(EX_ALARM_TIP)}">Убрать</button>`}</td>`);

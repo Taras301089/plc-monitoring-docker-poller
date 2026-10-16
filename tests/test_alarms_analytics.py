@@ -395,7 +395,7 @@ async def test_excel_pareto_chart_colors_and_metric(anon, pool):
     charts = [n for n in z.namelist() if n.startswith("xl/charts/chart")]
     assert len(charts) == 1
     xml = z.read(charts[0]).decode("utf-8")
-    assert "Парето аварий (топ-10), по числу появлений" in xml and "Накопленная доля" in xml
+    assert "Парето аварий (топ-10), по числу появлений" in xml and "Накопленный %" in xml
     assert "2F80ED" in xml and "27AE60" in xml            # столбцы синие, линия зелёная
     z, _ = read_xlsx((await anon.get("/api/alarms/analytics.xlsx", params={**p, "metric": "time"})).content)
     assert "Парето аварий (топ-10), по времени" in z.read("xl/charts/chart1.xml").decode("utf-8")

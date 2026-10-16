@@ -12,8 +12,9 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
 
 import dayflags
-from downtime import _screen_path
+from downtime import _screen_path, owner_label
 from history import cumulative_day, download_name, safe_name
+from responsibility import owner_split, write_responsibility
 
 router = APIRouter(prefix="/api/kpi")
 
@@ -21,6 +22,7 @@ MAX_DAYS = 366
 UNDESCRIBED = "не описан"
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 GRID = {"visible": True, "line": {"color": "#D9D9D9"}}
+GRAY_BG = "#ECEEF2"
 KIND_FILE = {"plan_fact": "план-факт", "downtime": "простои", "reasons": "причины", "stations": "станции", "cumulative": "накопленный"}
 KINDS = {"plan_fact": "план-факт по дням", "downtime": "простои по дням", "reasons": "парето причин", "stations": "станции", "cumulative": "накопленное производство за день"}
 
@@ -35,7 +37,7 @@ async def _load(pool: asyncpg.Pool, screen_id: int, d1: date, d2: date) -> dict[
         "SELECT prod_date, sum(minutes) AS m FROM kpi_downtimes WHERE screen_id = $1 AND prod_date BETWEEN $2 AND $3 AND source = 'plan' "
         "GROUP BY prod_date", screen_id, d1, d2)}
     items = await pool.fetch(
-        "SELECT d.prod_date, d.idx, i.area_id, i.station_id, i.reason_id, i.minutes, i.note, i.created_by_name "
+        "SELECT d.prod_date, d.idx, i.area_id, i.station_id, i.reason_id, i.minutes, i.note, i.owner, i.created_by_name "
         "FROM kpi_downtime_items i JOIN kpi_downtimes d ON d.id = i.downtime_id "
         "WHERE d.screen_id = $1 AND d.prod_date BETWEEN $2 AND $3 ORDER BY d.prod_date, d.idx, i.id",
         screen_id, d1, d2,
@@ -88,8 +90,15 @@ def summarize(data: dict[str, Any]) -> dict[str, Any]:
         desc = round(min(described.get(day, 0.0), dtm), 1) if dtm else 0.0
         rows.append({"date": day, "plan": plan, "fact": fact, "pct": (fact / plan) if plan else None, "downtime": dtm, "described": desc,
                      "no_output": day in data.get("no_output", ())})
+    # Итоги периода: дни без выпуска (закрытый день с фактом 0, без отметки «простой весь день») в план, факт, % и число дней не входят.
+    # Простой и «описано» считаются по всем дням: описанные людьми минуты дня без выпуска остаются в статистике и в Парето причин
+    counted = [r for r in rows if not r["no_output"]]
+    dt_all = round(sum(r["downtime"] for r in rows), 1)
+    totals = {"days": len(counted), "plan": sum(r["plan"] for r in counted), "fact": sum(r["fact"] for r in counted),
+              "downtime": dt_all, "described": round(sum(r["described"] for r in rows), 1)}
     return {
         "days": rows,
+        "totals": totals,
         "reasons": sorted(((n, round(m, 1)) for n, m in by_reason.items()), key=lambda x: -x[1]),
         "stations": sorted(((a, s, round(m, 1)) for (a, s), m in by_station.items()), key=lambda x: -x[2]),
     }
@@ -231,6 +240,11 @@ def _fmts(wb) -> dict[str, Any]:
         "tile_ok": wb.add_format({**tile, "font_color": "#1E8E5A"}),
         "tile_bad": wb.add_format({**tile, "num_format": "0.0", "font_color": "#C0392B"}),
         "dim": wb.add_format({"font_color": "#6B7785", "align": "right"}),
+        # строки дней без выпуска: серая заливка, в итоги не входят (как на экране)
+        "g_date": wb.add_format({"num_format": "dd.mm.yyyy", "align": "left", "bg_color": GRAY_BG, "font_color": "#6B7785"}),
+        "g_n": wb.add_format({"bg_color": GRAY_BG, "font_color": "#6B7785"}),
+        "g_pct": wb.add_format({"num_format": "0.0%", "bg_color": GRAY_BG, "font_color": "#6B7785"}),
+        "g_dim": wb.add_format({"font_color": "#6B7785", "align": "right", "bg_color": GRAY_BG}),
     }
 
 
@@ -238,17 +252,20 @@ def _write_days(ws, f, sm_days: list[dict[str, Any]], full: bool, r0: int = 0) -
     heads = ["Дата", "План", "Факт", "±", "% выполнения"] + (["Простой, мин", "Описано, мин", "Не описано, мин"] if full else [])
     ws.write_row(r0, 0, heads, f["head"])
     for r, d in enumerate(sm_days, start=r0 + 1):
-        ws.write_datetime(r, 0, datetime.combine(d["date"], time()), f["date"])
-        ws.write(r, 1, d["plan"])
-        ws.write(r, 2, d["fact"])
-        if not d.get("no_output"):   # день без выпуска: «±» не показывается
+        out = bool(d.get("no_output"))   # день без выпуска: серая строка, в итоги не входит
+        ws.write_datetime(r, 0, datetime.combine(d["date"], time()), f["g_date" if out else "date"])
+        ws.write(r, 1, d["plan"], f["g_n"] if out else None)
+        ws.write(r, 2, d["fact"], f["g_n"] if out else None)
+        if out:   # «±» не показывается
+            ws.write_blank(r, 3, None, f["g_n"])
+        else:
             ws.write_formula(r, 3, f"=C{r + 1}-B{r + 1}", None, d["fact"] - d["plan"])
-        ws.write_formula(r, 4, f'=IF(B{r + 1}=0,"",C{r + 1}/B{r + 1})', f["pct"], d["pct"] if d["pct"] is not None else "")
-        if full and d.get("no_output") and not d["downtime"]:
+        ws.write_formula(r, 4, f'=IF(B{r + 1}=0,"",C{r + 1}/B{r + 1})', f["g_pct" if out else "pct"], d["pct"] if d["pct"] is not None else "")
+        if full and out and not d["downtime"]:
             # простой дня без выпуска не считается; текст в SUM не входит
-            ws.write(r, 5, dayflags.NO_OUTPUT_LABEL, f["dim"])
-            ws.write(r, 6, "—", f["dim"])
-            ws.write(r, 7, "—", f["dim"])
+            ws.write(r, 5, dayflags.NO_OUTPUT_LABEL, f["g_dim"])
+            ws.write(r, 6, "—", f["g_dim"])
+            ws.write(r, 7, "—", f["g_dim"])
         elif full:
             ws.write(r, 5, d["downtime"], f["n1"])
             ws.write(r, 6, d["described"], f["n1"])
@@ -260,7 +277,7 @@ def _write_days(ws, f, sm_days: list[dict[str, Any]], full: bool, r0: int = 0) -
 
 
 def _write_reasons(rs, f, rows: list[tuple[str, float]], r0: int = 0) -> None:
-    rs.write_row(r0, 0, ["Причина", "Минут", "Доля", "Накопленная доля"], f["head"])
+    rs.write_row(r0, 0, ["Причина", "Минут", "Доля", "Накопленный %"], f["head"])
     total, cum = sum(m for _, m in rows), 0.0
     for r, (name, m) in enumerate(rows, start=r0 + 1):
         cum += m
@@ -294,19 +311,20 @@ def _rows_for(px: int) -> int:
 
 
 def write_period_section(wb, ws, f: dict[str, Any], title: str, data: dict[str, Any], cum: list[dict[str, Any]] | None = None,
-                         r0: int = 0, cum_sheet: str = "График") -> int:
+                         r0: int = 0, cum_sheet: str = "График", days_sheet: str = "График дней") -> int:
     """Раздел отчёта за период на листе ws начиная со строки r0: заголовок, плитки итогов, график, таблицы по дням, причинам и станциям
     (и график накопленного производства, если передан cum). Возвращает первую свободную строку под разделом."""
     sm = summarize(data)
     days, reason_rows, station_rows = sm["days"], sm["reasons"], sm["stations"]
     n = len(days)
+    counted = [d for d in days if not d.get("no_output")]   # дни без выпуска остаются в таблице, но не в итогах и не на графике
     sheet = ws.get_name()
-    tp, tf = sum(d["plan"] for d in days), sum(d["fact"] for d in days)
-    tdt, tdesc = round(sum(d["downtime"] for d in days), 1), round(sum(d["described"] for d in days), 1)
+    tp, tf = sm["totals"]["plan"], sm["totals"]["fact"]
+    tdt, tdesc = sm["totals"]["downtime"], sm["totals"]["described"]
 
     # 1. плитки итогов (как на экране)
     ws.write(r0, 0, title, f["title"])
-    tiles = [("Дней с данными", n, "tile_v"), ("План", tp, "tile_v"), ("Факт", tf, "tile_ok"),
+    tiles = [("Дней с данными", sm["totals"]["days"], "tile_v"), ("План", tp, "tile_v"), ("Факт", tf, "tile_ok"),
              ("Выполнение", (tf / tp) if tp else "", "tile_p"), ("Простой, мин", tdt, "tile_bad"), ("Не описано, мин", round(tdt - tdesc, 1), "tile_1")]
     for c, (label, val, fmt) in enumerate(tiles):
         ws.write(r0 + 2, c, label, f["tile_l"])
@@ -316,22 +334,38 @@ def write_period_section(wb, ws, f: dict[str, Any], title: str, data: dict[str, 
 
     # 2. график план/факт/% по дням; под ним таблицы
     chart_row = r0 + 5
-    row = chart_row + (_rows_for(340) if n else 0)
+    row = chart_row + (_rows_for(340) if counted else 0)
 
     ws.write(row, 0, "По дням", f["section"])
     t_days = row + 1
     _write_days(ws, f, days, True, r0=t_days)
+    if counted:
+        # данные графика (только дни с выпуском) на скрытом листе: дни без выпуска на графике не рисуются
+        cd = wb.add_worksheet(days_sheet)
+        _write_days(cd, f, counted, False)
+        cd.hide()
+        ws.insert_chart(chart_row, 0, _chart_plan_fact(wb, days_sheet, len(counted)))
     if n:
-        ws.insert_chart(chart_row, 0, _chart_plan_fact(wb, sheet, n, r0=t_days))
         t = t_days + n + 1
         first, last = t_days + 2, t
+
+        def total_of(col: str) -> str:
+            """SUM только по строкам дней с выпуском (диапазонами подряд): дни без выпуска в итог не входят."""
+            parts, start = [], None
+            for i, d in enumerate(days + [None]):
+                ok = d is not None and not d.get("no_output")
+                if ok and start is None:
+                    start = i
+                elif not ok and start is not None:
+                    a, b = first + start, first + i - 1
+                    parts.append(f"{col}{a}:{col}{b}" if b > a else f"{col}{a}")
+                    start = None
+            return "=SUM(" + ",".join(parts) + ")" if parts else "=0"
+
         ws.write(t, 0, "Итого", f["bold"])
-        ws.write_formula(t, 1, f"=SUM(B{first}:B{last})", f["bold"], tp)
-        ws.write_formula(t, 2, f"=SUM(C{first}:C{last})", f["bold"], tf)
-        if any(d.get("no_output") for d in days):   # «±» дней без выпуска пустая, поэтому итог складывает только заполненные
-            ws.write_formula(t, 3, f"=SUM(D{first}:D{last})", f["bold"], sum(d["fact"] - d["plan"] for d in days if not d.get("no_output")))
-        else:
-            ws.write_formula(t, 3, f"=C{t + 1}-B{t + 1}", f["bold"], tf - tp)
+        ws.write_formula(t, 1, total_of("B"), f["bold"], tp)
+        ws.write_formula(t, 2, total_of("C"), f["bold"], tf)
+        ws.write_formula(t, 3, f"=C{t + 1}-B{t + 1}", f["bold"], tf - tp)
         ws.write_formula(t, 4, f'=IF(B{t + 1}=0,"",C{t + 1}/B{t + 1})', f["bpct"], (tf / tp) if tp else "")
         ws.write_formula(t, 5, f"=SUM(F{first}:F{last})", f["bn1"], tdt)
         ws.write_formula(t, 6, f"=SUM(G{first}:G{last})", f["bn1"], tdesc)
@@ -359,13 +393,16 @@ def write_period_section(wb, ws, f: dict[str, Any], title: str, data: dict[str, 
         cs.hide()
         ws.insert_chart(end + 1, 0, _chart_cumulative(wb, cum_sheet, len(cum)))
         end += 1 + _rows_for(340)
+    if n:
+        # блок «По ответственным» (как на экране «Отчёты»): минуты по отделам из той же функции, что Andon и «Простои»
+        end = write_responsibility(wb, ws, end + 1, owner_split(data))
     return end
 
 
 def write_downtime_list(ls, f: dict[str, Any], data: dict[str, Any]) -> None:
     """Полный список простоев на отдельном листе (на экране его нет)."""
     items, areas, stations, reasons, starts = data["items"], data["areas"], data["stations"], data["reasons"], data["starts"]
-    heads = ["Дата", "№", "Начало", "Окончание", "Участок", "Станция", "Причина", "Минут", "Описание", "Внёс"]
+    heads = ["Дата", "№", "Начало", "Окончание", "Участок", "Станция", "Причина", "Отв.", "Минут", "Описание", "Внёс"]
     ls.write_row(0, 0, heads, f["head"])
     for r, it in enumerate(items, start=1):
         st = starts.get((it["prod_date"], it["idx"]), (None, None))
@@ -376,10 +413,11 @@ def write_downtime_list(ls, f: dict[str, Any], data: dict[str, Any]) -> None:
         ls.write(r, 4, areas.get(it["area_id"], "—"))
         ls.write(r, 5, stations.get(it["station_id"], "—"))
         ls.write(r, 6, reasons.get(it["reason_id"], "—"))
-        ls.write(r, 7, float(it["minutes"]), f["n1"])
-        ls.write(r, 8, it["note"] or "")
-        ls.write(r, 9, it["created_by_name"] or "")
-    for c, w in enumerate([12, 5, 9, 11, 20, 20, 26, 8, 40, 24]):
+        ls.write(r, 7, owner_label(it["owner"]))
+        ls.write(r, 8, float(it["minutes"]), f["n1"])
+        ls.write(r, 9, it["note"] or "")
+        ls.write(r, 10, it["created_by_name"] or "")
+    for c, w in enumerate([12, 5, 9, 11, 20, 20, 26, 8, 8, 40, 24]):
         ls.set_column(c, c, w)
     ls.freeze_panes(1, 0)
     ls.autofilter(0, 0, max(len(items), 1), len(heads) - 1)
@@ -413,7 +451,7 @@ def build_chart_workbook(kind: str, line: str, d1: date, d2: date, data: dict[st
     note = f"{line}, период {d1.strftime('%d.%m.%Y')} — {d2.strftime('%d.%m.%Y')}"
     n = 0
     if kind in ("plan_fact", "downtime"):
-        days = sm["days"]
+        days = [d for d in sm["days"] if kind != "plan_fact" or not d.get("no_output")]   # на графике «план-факт» дней без выпуска нет
         n = len(days)
         if kind == "plan_fact":
             _write_days(ws, f, days, False)
@@ -499,10 +537,12 @@ async def charts_data(
     _check_period(date_from, date_to)
     pool: asyncpg.Pool = request.app.state.pool
     line, _ = await _screen_line(pool, screen_id)
-    sm = summarize(await _load(pool, screen_id, date_from, date_to))
+    data = await _load(pool, screen_id, date_from, date_to)
+    sm = summarize(data)
     return {
-        "line": line, "from": date_from.isoformat(), "to": date_to.isoformat(),
+        "line": line, "from": date_from.isoformat(), "to": date_to.isoformat(), "responsibility": owner_split(data),
         "days": [{**d, "date": d["date"].isoformat()} for d in sm["days"]],
+        "totals": sm["totals"],
         "no_output_label": dayflags.NO_OUTPUT_LABEL, "no_output_hint": dayflags.NO_OUTPUT_HINT,
         "reasons": [{"name": n, "min": m} for n, m in sm["reasons"]],
         "stations": [{"area": a, "station": s, "min": m} for a, s, m in sm["stations"]],

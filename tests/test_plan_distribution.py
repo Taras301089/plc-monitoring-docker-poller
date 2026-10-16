@@ -8,13 +8,18 @@ HTML = (Path(__file__).resolve().parent.parent / "fastapi-api" / "static" / "ind
 MINS = [60, 60, 50, 40, 70, 60, 60, 50, 30]          # интервалы смены GWM (по бумаге мастера)
 
 
-def _run(total, mins):
+def _run_many(cases):
+    """Все случаи одним запуском Node (раньше процесс запускался на каждый случай: 200 запусков, около 10 с)."""
     m = re.search(r"    function distributePlan\(total, mins\) \{.*?\n    \}\n", HTML, re.S)
     assert m, "функция distributePlan не найдена"
-    script = m.group(0) + f"\nconsole.log(JSON.stringify(distributePlan({total}, {json.dumps(mins)})));"
+    script = m.group(0) + f"\nconst cases = {json.dumps(cases)};\nconsole.log(JSON.stringify(cases.map(c => distributePlan(c[0], c[1]))));"
     out = subprocess.run(["node", "-e", script], capture_output=True, text=True, timeout=20)
     assert out.returncode == 0, out.stderr
     return json.loads(out.stdout)
+
+
+def _run(total, mins):
+    return _run_many([[total, mins]])[0]
 
 
 def test_plan_88_is_close_to_masters_sheet():
@@ -28,8 +33,9 @@ def test_no_extra_one_for_fifth_interval_any_more():
 
 
 def test_sum_is_always_the_total():
-    for total in range(1, 201):
-        assert sum(_run(total, MINS)) == total, total
+    totals = list(range(1, 201))
+    for total, out in zip(totals, _run_many([[t, MINS] for t in totals])):
+        assert sum(out) == total, total
     assert sum(_run(77, [60, 60, 50])) == 77
     assert sum(_run(5, [30, 30])) == 5
 

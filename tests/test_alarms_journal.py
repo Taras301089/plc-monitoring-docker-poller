@@ -242,7 +242,7 @@ async def test_filters_endpoint(anon, pool):
     await pool.execute("INSERT INTO alarm_catalog (plc_id, bit_index, word_index, bit_in_word, is_placeholder, parsed) VALUES ($1, 50, 3, 2, TRUE, TRUE)", plc)
     r = await anon.get("/api/alarms/filters", params={"plc_id": plc})
     assert r.status_code == 200
-    assert r.json() == {"stations": ["MB100", "UB10", "UB20"], "devices": ["HMI1"], "classes": ["Fault", "Warning"]}
+    assert r.json() == {"stations": ["MB100", "UB10", "UB20"], "devices": ["HMI1"], "classes": ["Fault", "Warning"], "configured": True}
 
 
 # ------------------------------------------------------------------ Excel

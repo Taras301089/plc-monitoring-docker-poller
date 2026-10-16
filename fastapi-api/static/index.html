@@ -542,7 +542,9 @@
     .kpi-table th { padding: 8px 10px; font-size: var(--fs-small); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-secondary); background: var(--bg-secondary); text-align: center; border-bottom: 1px solid var(--line); }
     .kpi-table td { padding: 0 10px; height: 36px; text-align: center; font: 600 var(--fs-large) 'Segoe UI', Roboto, Arial, sans-serif; border-bottom: 1px solid var(--line); }
     .kpi-table td.n { color: var(--fg-secondary); font-size: var(--fs-small); width: 44px; }
-    .kpi-table td.time { white-space: nowrap; }
+    /* время интервала «07:30-08:30»: узкие поля и перенос по дефису, если колонка уже текста (иначе текст налезал на соседние колонки) */
+    .kpi-table td.time { white-space: normal; padding-left: 2px; padding-right: 2px; overflow: hidden; line-height: 1.1; }
+    .kpi-table th { overflow: hidden; overflow-wrap: anywhere; }
     .kpi-table td.dim { color: var(--fg-secondary); font-weight: 400; }
     .kpi-table tbody tr:nth-child(even) { background: var(--zebra); }
     .kpi-table tr.now { background: color-mix(in srgb, var(--ok) 18%, transparent) !important; box-shadow: inset 3px 0 0 var(--ok); }
@@ -632,6 +634,21 @@
     /* до 1700px шапка делится на колонки auto / 1fr / auto: симметричная раскладка не вмещает часы вместе с кнопками «архива» и плитка линии наезжала на часы */
     @media (max-width: 1700px) {
       .andon-layout, body.tv-mode .andon-layout { grid-template-columns: auto minmax(0, 1fr) auto; }
+    }
+    /* архив: справа шире блок даты и кнопок, поэтому и на широком окне (1920) колонки auto / 1fr / auto, иначе блок закрывает часы */
+    body.andon-archive .andon-layout { grid-template-columns: auto minmax(0, 1fr) auto; }
+    /* название линии не выходит за свою ячейку шапки: обрезается многоточием, а на узком окне переносится */
+    /* название линии не рвётся по буквам и держит ширину содержимого */
+    .andon-h { box-sizing: border-box; }
+    /* живой режим на любой ширине: колонки auto / 1fr / auto (отступ часов под LIVE и кнопки больше 1fr при симметричной сетке и часы заходили на название) */
+    body:not(.tv-mode) .andon-layout { grid-template-columns: auto minmax(0, 1fr) auto; }
+    /* узкое окно (901–1100): название линии отдельной первой строкой слева под панелью кнопок справа, Takt Time и часы второй строкой, таблица третьей */
+    @media (min-width: 901px) and (max-width: 1100px) {
+      body:not(.tv-mode) .andon-layout { grid-template-rows: var(--andon-bar) auto minmax(0, 1fr); }
+      body:not(.tv-mode) .andon-h { grid-column: 1 / -1; grid-row: 1; justify-self: start; }
+      body:not(.tv-mode) .andon-side .tile { grid-row: 2; }
+      body:not(.tv-mode) .andon-side .andon-clockbox { grid-row: 2; margin-right: 0; }
+      body:not(.tv-mode) .andon-main .kpi-wrap { grid-row: 3; }
     }
     @media (max-width: 1400px) {
       /* узкое окно: шапка остаётся одной строкой, элементы справа компактнее */
@@ -772,6 +789,7 @@
   <link rel="stylesheet" href="/static/auth.css">
   <link rel="stylesheet" href="/static/downtime.css">
   <link rel="stylesheet" href="/static/alarms.css">
+  <link rel="stylesheet" href="/static/tia.css">
 </head>
 <body>
   <nav class="tabs">
@@ -831,6 +849,9 @@
         <label style="display: flex; gap: 6px; align-items: center; margin-top: 8px;" title="Если включено, сборщик данных опрашивает этот ПЛК; выключенный ПЛК остаётся в списке, но данные с него не собираются">
           <input id="new-plc-active" type="checkbox" checked title="Включён в опрос: сборщик данных опрашивает этот ПЛК; снимите флажок, чтобы временно прекратить опрос, не удаляя ПЛК"> Включён в опрос
         </label>
+        <label style="display: flex; gap: 6px; align-items: center; margin-top: 4px;" title="Собирать аварии самого ПЛК по OPC UA (Alarms &amp; Conditions): системная диагностика модулей, приводов и Profinet с временем ПЛК; аварии-биты панели сюда не входят">
+          <input id="new-plc-ac" type="checkbox" title="Собирать аварии самого ПЛК по OPC UA (Alarms &amp; Conditions): системная диагностика модулей, приводов и Profinet с временем ПЛК; аварии-биты панели сюда не входят"> Аварии ПЛК (OPC UA)
+        </label>
         <div style="display: flex; gap: 8px; margin-top: 8px;">
           <button id="add-plc" style="padding: 6px 12px; font-size: 12px; flex: 1;" title="Добавить новый ПЛК в систему">✓ Добавить</button>
           <button id="cancel-add-plc" style="padding: 6px 12px; font-size: 12px; background: var(--button-tertiary); border-color: var(--button-tertiary);" title="Отменить добавление">✕ Отмена</button>
@@ -846,6 +867,9 @@
         </div>
         <label style="display: flex; gap: 6px; align-items: center; margin-top: 8px;" title="Если включено, сборщик данных опрашивает этот ПЛК; выключенный ПЛК остаётся в списке, но данные с него не собираются">
           <input id="edit-plc-active" type="checkbox" title="Включён в опрос: сборщик данных опрашивает этот ПЛК; снимите флажок, чтобы временно прекратить опрос, не удаляя ПЛК"> Включён в опрос
+        </label>
+        <label style="display: flex; gap: 6px; align-items: center; margin-top: 4px;" title="Собирать аварии самого ПЛК по OPC UA (Alarms &amp; Conditions): системная диагностика модулей, приводов и Profinet с временем ПЛК; аварии-биты панели сюда не входят">
+          <input id="edit-plc-ac" type="checkbox" title="Собирать аварии самого ПЛК по OPC UA (Alarms &amp; Conditions): системная диагностика модулей, приводов и Profinet с временем ПЛК; аварии-биты панели сюда не входят"> Аварии ПЛК (OPC UA)
         </label>
         <div style="display: flex; gap: 8px; margin-top: 8px;">
           <button id="save-plc" style="padding: 6px 12px; font-size: 12px; flex: 1; background: var(--button-secondary); border-color: var(--button-secondary);" title="Сохранить изменения">✓ Сохранить</button>
@@ -1193,7 +1217,8 @@
           body: JSON.stringify({
             name,
             opc_endpoint: `opc.tcp://${ip}:${port}`,
-            is_active: document.getElementById('new-plc-active').checked
+            is_active: document.getElementById('new-plc-active').checked,
+            ac_alarms: document.getElementById('new-plc-ac').checked
           })
         });
         if (!response.ok) throw new Error('Ошибка добавления ПЛК');
@@ -1201,6 +1226,7 @@
         document.getElementById('new-plc-ip').value = '';
         document.getElementById('new-plc-port').value = '4840';
         document.getElementById('new-plc-active').checked = true;
+        document.getElementById('new-plc-ac').checked = false;
         document.getElementById('add-plc-form').style.display = 'none';
         loadPlcs();
         setStatus('success', 'Готово', 'Новый ПЛК добавлен');
@@ -1216,6 +1242,7 @@
       document.getElementById('new-plc-ip').value = '';
       document.getElementById('new-plc-port').value = '4840';
       document.getElementById('new-plc-active').checked = true;
+      document.getElementById('new-plc-ac').checked = false;
     });
 
     // Редактировать ПЛК
@@ -1229,6 +1256,7 @@
       document.getElementById('edit-plc-ip').value = m ? m[1] : (item.ip_address || '');
       document.getElementById('edit-plc-port').value = m && m[2] ? m[2] : '4840';
       document.getElementById('edit-plc-active').checked = item.is_active !== false;
+      document.getElementById('edit-plc-ac').checked = item.ac_alarms === true;
       document.getElementById('edit-plc-form').style.display = 'block';
     }
 
@@ -1251,7 +1279,8 @@
           body: JSON.stringify({
             name,
             opc_endpoint: `opc.tcp://${ip}:${port}`,
-            is_active: document.getElementById('edit-plc-active').checked
+            is_active: document.getElementById('edit-plc-active').checked,
+            ac_alarms: document.getElementById('edit-plc-ac').checked
           })
         });
         if (!response.ok) throw new Error('Ошибка сохранения ПЛК');
@@ -2197,7 +2226,7 @@
           <div class="andon-main">
             <h2 class="andon-h" title="Бренд (линия), по которому показаны данные">${window.brandLogo(screen.name)}${screen.name}</h2>
             <div class="kpi-wrap"><table class="kpi-table">
-              <colgroup><col style="width:3%"><col style="width:14%"><col style="width:5%"><col style="width:5%"><col style="width:8%"><col style="width:5%"><col style="width:13%"><col style="width:10%"><col style="width:37%"></colgroup>
+              <colgroup><col style="width:3%"><col style="width:14%"><col style="width:5%"><col style="width:5%"><col style="width:8%"><col style="width:5%"><col style="width:13%"><col style="width:10%"><col style="width:6%"><col style="width:31%"></colgroup>
               <thead><tr>
                 <th title="Номер часового интервала смены">№</th>
                 <th title="Время начала и окончания интервала: начало берётся из ПЛК, окончание из настроек смены">Время</th>
@@ -2207,10 +2236,11 @@
                 <th title="Отклонение факта от плана: зелёный — выполнено, красный — отставание">±</th>
                 <th title="Takt Time за интервал: сколько минут:секунд в среднем уходит на один кузов">Takt Time</th>
                 <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой, мин</th>
+                <th title="Ответственный за отставание по каждой причине, в порядке причин: ПР — производство, ОТО, ИТО, ДР — другое (внешние причины). Знак: … ждёт подтверждения, ✓ подтверждено, ! спорно. Расшифровка по наведению">Отв.</th>
                 <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
               </tr></thead>
-              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan" class="plan-cell-edit" title="Нажмите, чтобы изменить план этого интервала: Enter сохраняет, Esc отменяет (кто может менять план, определяется ролью)"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td data-k="takt"></td><td class="dt" data-k="dt"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
-              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого</td><td class="plan-cell" data-k="planSum" title="План на день"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td><td data-k="shTakt"></td><td></td><td></td></tr></tfoot>
+              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan" class="plan-cell-edit" title="Нажмите, чтобы изменить план этого интервала: Enter сохраняет, Esc отменяет (кто может менять план, определяется ролью)"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td data-k="takt"></td><td class="dt" data-k="dt"></td><td class="own" data-k="own"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
+              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого</td><td class="plan-cell" data-k="planSum" title="План на день"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td><td data-k="shTakt"></td><td></td><td></td><td class="resp-sum" data-k="resp"></td></tr></tfoot>
             </table></div>
           </div>
         </div>`;
@@ -2483,7 +2513,7 @@
           <div class="andon-main">
             <h2 class="andon-h" title="Линия Finish Line, по которой показаны данные">${screen.name}</h2>
             <div class="kpi-wrap"><table class="kpi-table">
-              <colgroup><col style="width:3%"><col style="width:10%"><col style="width:5%"><col style="width:5%"><col style="width:5%"><col style="width:5%">${FL_MODELS.map(() => '<col style="width:5%">').join('')}<col style="width:${rb ? 11 : rc ? 9 : 13}%">${rb ? '<col style="width:8%">' : ''}${rc ? '<col style="width:7%"><col style="width:8%">' : ''}<col style="width:${rc ? 9 : 11}%"><col style="width:${rb ? 17 : rc ? 14 : 23}%"></colgroup>
+              <colgroup><col style="width:3%"><col style="width:10%"><col style="width:5%"><col style="width:5%"><col style="width:5%"><col style="width:5%">${FL_MODELS.map(() => '<col style="width:5%">').join('')}<col style="width:${rb ? 11 : rc ? 9 : 13}%">${rb ? '<col style="width:8%">' : ''}${rc ? '<col style="width:7%"><col style="width:8%">' : ''}<col style="width:${rc ? 9 : 11}%"><col style="width:6%"><col style="width:${rb ? 11 : rc ? 8 : 17}%"></colgroup>
               <thead><tr>
                 <th title="Номер часового интервала смены">№</th>
                 <th title="Время начала и окончания интервала: начало берётся из ПЛК, окончание из настроек">Время</th>
@@ -2496,10 +2526,11 @@
                 ${rc ? `<th title="Счётчик кузовов. Выход в ремонт">Рем. зона</th><th title="Подсчитывается автоматически. Время простоя BDC (DownTimer_BDC)">Простой BDC</th>` : ''}
                 ${rb ? `<th title="Подсчитывается автоматически. Голодание. Счётчик запускается при отсутствии кузовов в накопителе (буфере) перед ФЛ">Простой RB262</th>` : ''}
                 <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой, мин</th>
+                <th title="Ответственный за отставание по каждой причине, в порядке причин: ПР — производство, ОТО, ИТО, ДР — другое (внешние причины). Знак: … ждёт подтверждения, ✓ подтверждено, ! спорно. Расшифровка по наведению">Отв.</th>
                 <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
               </tr></thead>
-              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td>${FL_MODELS.map(m => `<td data-k="m_${m}"></td>`).join('')}<td data-k="takt"></td>${rb ? '<td data-k="starve"></td>' : ''}${rc ? '<td data-k="repair"></td><td data-k="bdc"></td>' : ''}<td class="dt" data-k="dt"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
-              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td class="plan-cell" data-k="planSum" title="План на день (DayPlan из ПЛК)"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td>${FL_MODELS.map(m => `<td data-k="mt_${m}"></td>`).join('')}<td data-k="shTakt"></td>${rb ? '<td data-k="starveSum" title="Сумма простоя RB262 по интервалам смены"></td>' : ''}${rc ? '<td data-k="repairSum" title="Сумма кузовов, ушедших в ремонт, по интервалам смены"></td><td data-k="bdcSum" title="Сумма времени простоя BDC по интервалам смены"></td>' : ''}<td></td><td></td></tr>${rest || rc ? `<tr class="rest-row"${rest ? ' title="Текущее число кузовов на фуллайне (ФЛ) по моделям, значение читается из ПЛК"' : ''}><td></td>${rest ? '<td class="lbl" colspan="5">Остаток кузовов на ФЛ</td>' : '<td class="lbl" colspan="5"></td>'}${FL_MODELS.map(m => `<td data-k="rest_${m}"></td>`).join('')}<td></td>${rb ? '<td></td>' : ''}${rc ? '<td></td><td></td>' : ''}${rc ? '<td class="str-cell" colspan="2" title="STR: прямой сход, отношение кузовов без дефектов к общему количеству кузовов. В течение дня рассчитывается автоматически (факт минус выход в ремонт, делённое на факт), итог дня берётся из ПЛК (RepairPercent, считается в конце дня)"><span class="str-lbl">STR:</span> <span data-k="str">—</span></td>' : '<td></td><td></td>'}</tr>` : ''}</tfoot>
+              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td>${FL_MODELS.map(m => `<td data-k="m_${m}"></td>`).join('')}<td data-k="takt"></td>${rb ? '<td data-k="starve"></td>' : ''}${rc ? '<td data-k="repair"></td><td data-k="bdc"></td>' : ''}<td class="dt" data-k="dt"></td><td class="own" data-k="own"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
+              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td class="plan-cell" data-k="planSum" title="План на день (DayPlan из ПЛК)"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td>${FL_MODELS.map(m => `<td data-k="mt_${m}"></td>`).join('')}<td data-k="shTakt"></td>${rb ? '<td data-k="starveSum" title="Сумма простоя RB262 по интервалам смены"></td>' : ''}${rc ? '<td data-k="repairSum" title="Сумма кузовов, ушедших в ремонт, по интервалам смены"></td><td data-k="bdcSum" title="Сумма времени простоя BDC по интервалам смены"></td>' : ''}<td></td><td></td><td class="resp-sum" data-k="resp"></td></tr>${rest || rc ? `<tr class="rest-row"${rest ? ' title="Текущее число кузовов на фуллайне (ФЛ) по моделям, значение читается из ПЛК"' : ''}><td></td>${rest ? '<td class="lbl" colspan="5">Остаток кузовов на ФЛ</td>' : '<td class="lbl" colspan="5"></td>'}${FL_MODELS.map(m => `<td data-k="rest_${m}"></td>`).join('')}<td></td>${rb ? '<td></td>' : ''}${rc ? '<td></td><td></td>' : ''}${rc ? '<td class="str-cell" colspan="3" title="STR: прямой сход, отношение кузовов без дефектов к общему количеству кузовов. В течение дня рассчитывается автоматически (факт минус выход в ремонт, делённое на факт), итог дня берётся из ПЛК (RepairPercent, считается в конце дня)"><span class="str-lbl">STR:</span> <span data-k="str">—</span></td>' : '<td></td><td></td><td></td>'}</tr>` : ''}</tfoot>
             </table></div>
           </div>
         </div>`;
@@ -2964,6 +2995,7 @@
   <script src="/static/auth.js"></script>
   <script src="/static/dictionary.js"></script>
   <script src="/static/activity.js"></script>
+  <script src="/static/responsibility.js"></script>
   <script src="/static/downtime.js"></script>
   <script src="/static/colwidths.js"></script>
   <script src="/static/dayflag.js"></script>
@@ -2973,6 +3005,7 @@
   <script src="/static/xlgrid.js"></script>
   <script src="/static/trends.js"></script>
   <script src="/static/alarms.js"></script>
+  <script src="/static/tiaexport.js"></script>
   <script src="/static/manual.js"></script>
   <script src="/static/downtimes.js"></script>
   <script src="/static/archive.js"></script>

@@ -98,3 +98,22 @@ def test_unexpected_error_after_pull_triggers_rollback():
 def test_reference_explains_first_run_with_force():
     ref = (Path(__file__).resolve().parent.parent / "fastapi-api" / "static" / "reference.html").read_text(encoding="utf-8")
     assert "update-server.ps1" in ref and "-Force" in ref and "Первый раз" in ref
+
+
+def test_not_on_main_branch_stops_update():
+    """T-13: папка сервера не на main -> остановка с кодом 1 до бэкапа и git fetch/pull."""
+    import os
+    branch = subprocess.run(["git", "branch", "--show-current"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    if branch == "main":
+        pytest.skip("тест проверяет остановку на ветке не main")
+    t = _text()
+    assert t.index("branch --show-current") < t.index("-File $backupScript")
+    env = dict(os.environ, PMM_STRICT_BRANCH="1")
+    r = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(SCRIPT), "-DryRun", "-NoPause"],
+        cwd=ROOT, capture_output=True, timeout=120, env=env,
+    )
+    out = r.stdout.decode("cp866", "replace")
+    assert r.returncode == 1, out
+    assert "папка сервера не на ветке main: обновление остановлено, ничего не изменено" in out
+    assert "Шаг 3 из 10" not in out, "остановка должна быть до бэкапа"

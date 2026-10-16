@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <SW.Blocks.GlobalDB ID="0">
+    <AttributeList>
+      <Interface><Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+  <Section Name="Static">
+    <Member Name="x" Datatype="Array[1..8] of Bool" />
+    <Member Name="ok" Datatype="Bool"><Comment><MultiLanguageText Lang="en-US">Network OK</MultiLanguageText></Comment></Member>
+  </Section>
+</Sections></Interface>
+      <Name>Glob_DB</Name>
+    </AttributeList>
+  </SW.Blocks.GlobalDB>
+</Document>

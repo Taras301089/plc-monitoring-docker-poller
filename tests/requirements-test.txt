@@ -1,3 +1,4 @@
 -r ../fastapi-api/requirements.txt
 pytest>=8.0
 pytest-asyncio>=0.24
+pytest-xdist>=3.6
