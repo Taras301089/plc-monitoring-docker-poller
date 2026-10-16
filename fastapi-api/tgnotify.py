@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import secrets
+import ssl
 import time
 from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
@@ -65,6 +66,23 @@ ENQUEUE_SQL = (
 
 def get_token() -> str:
     return os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+
+
+def tg_verify() -> "ssl.SSLContext | bool":
+    """Проверка HTTPS для клиента Telegram. Если антивирус на ПК сервера подменяет сертификаты (SSL-фильтр), его корневой
+    сертификат кладётся файлом и указывается в TELEGRAM_CA_FILE: он добавляется к обычным корням только для этого клиента.
+    Нет файла или он не читается: обычная проверка (True)."""
+    path = os.getenv("TELEGRAM_CA_FILE", "").strip()
+    if not path or not os.path.isfile(path):
+        return True
+    try:
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
+        ctx.load_verify_locations(cafile=path)
+        return ctx
+    except Exception as e:  # битый файл не должен ломать оповещения
+        log.warning("TELEGRAM_CA_FILE не загружен (%s): обычная проверка сертификатов", type(e).__name__)
+        return True
 
 
 def is_prod() -> bool:
@@ -314,7 +332,7 @@ class TgSender:
         token = get_token()
         prod = is_prod()
         own = self.client is None
-        http = self.client or httpx.AsyncClient()
+        http = self.client or httpx.AsyncClient(verify=tg_verify())
         overflow: dict[tuple[int, int, str], int] = defaultdict(int)  # (id чата, chat_id, тип) -> свёрнуто
         try:
             for row in rows:
@@ -569,7 +587,7 @@ class TgUpdatesPoller:
             log.info("опрос Telegram не запущен (%s)", "не APP_ENV=prod" if not is_prod() else "не задан TELEGRAM_BOT_TOKEN")
             return
         own = self.client is None
-        http = self.client or httpx.AsyncClient()
+        http = self.client or httpx.AsyncClient(verify=tg_verify())
         POLLING["running"] = True
         delay = 1.0
         try:
