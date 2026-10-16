@@ -29,8 +29,8 @@ async def ensure_dictionary_schema(pool: asyncpg.Pool) -> None:
         """
     )
     # «Ответственный по умолчанию»: отдел, на которого по умолчанию относится причина (production / oto / ito / other);
-    # у уже существующих причин значение «production» (по умолчанию колонки), ничьи названия и порядок не меняются
-    await pool.execute("ALTER TABLE kpi_reasons ADD COLUMN IF NOT EXISTS owner TEXT NOT NULL DEFAULT 'production'")
+    # по умолчанию «none» (не назначен): отдел появляется у строки только после выбора человеком или явной настройки причины
+    await pool.execute("ALTER TABLE kpi_reasons ADD COLUMN IF NOT EXISTS owner TEXT NOT NULL DEFAULT 'none'")
     await pool.execute(
         """
         CREATE TABLE IF NOT EXISTS kpi_areas (
@@ -160,7 +160,7 @@ class ReasonBody(BaseModel):
     hint: str = Field(default="", max_length=300)
     is_active: bool = True
     sort_order: int | None = Field(default=None, ge=0, le=100000)
-    owner: Literal["production", "oto", "ito", "other"] | None = None   # ответственный по умолчанию; не указан: при правке не меняется
+    owner: Literal["production", "oto", "ito", "other", "none"] | None = None   # ответственный по умолчанию (none: не назначен); не указан: при правке не меняется
 
 
 class AreaBody(BaseModel):
@@ -207,7 +207,7 @@ async def create_reason(body: ReasonBody, request: Request, _: dict[str, Any] = 
     order = body.sort_order if body.sort_order is not None else await _next_order(pool, "SELECT max(sort_order) FROM kpi_reasons")
     try:
         rid = await pool.fetchval(
-            "INSERT INTO kpi_reasons (name, hint, sort_order, is_active, owner) VALUES ($1, $2, $3, $4, COALESCE($5, 'production')) RETURNING id",
+            "INSERT INTO kpi_reasons (name, hint, sort_order, is_active, owner) VALUES ($1, $2, $3, $4, COALESCE($5, 'none')) RETURNING id",
             body.name.strip(), body.hint.strip(), order, body.is_active, body.owner,
         )
     except asyncpg.UniqueViolationError as exc:

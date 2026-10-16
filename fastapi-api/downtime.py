@@ -19,6 +19,7 @@ MODERATORS = {"admin", "chief", "area_head"}
 
 # Ответственный за отставание: отдел, к которому относится причина. Сокращения и статус считает только этот модуль
 OWNERS = {"production": "ПР", "oto": "ОТО", "ito": "ИТО", "other": "ДР"}
+NO_OWNER = "none"          # ответственный не назначен: пока человек не выбрал отдел, строка не относится ни к ПР, ни к ОТО, ни к ИТО, ни к ДР
 OWNER_NAMES = {"production": "Производство", "oto": "ОТО", "ito": "ИТО", "other": "Другое (внешние причины)"}
 STATUS_MARKS = {"pending": "…", "confirmed": "✓", "disputed": "!"}
 STATUS_NAMES = {"pending": "ждёт подтверждения", "confirmed": "подтверждено", "disputed": "спорно"}
@@ -33,8 +34,9 @@ def owner_status(owner: str | None) -> str:
 
 def owner_label(owner: str | None, status: str | None = None) -> str:
     """Сокращение со знаком статуса, одинаковое на Andon, во «Простоях» и в Excel: «ПР ✓», «ОТО …», «ИТО !»."""
-    o = owner if owner in OWNERS else "production"
-    return f"{OWNERS[o]} {STATUS_MARKS[status or owner_status(o)]}"
+    if owner not in OWNERS:
+        return "—"            # не назначен: ни сокращения отдела, ни знака статуса
+    return f"{OWNERS[owner]} {STATUS_MARKS[status or owner_status(owner)]}"
 
 
 async def ensure_downtime_schema(pool: asyncpg.Pool) -> None:
@@ -78,8 +80,8 @@ async def ensure_downtime_schema(pool: asyncpg.Pool) -> None:
         )
         """
     )
-    # ответственный (production / oto / ito / other); у существующих строк «production»
-    await pool.execute("ALTER TABLE kpi_downtime_items ADD COLUMN IF NOT EXISTS owner TEXT NOT NULL DEFAULT 'production'")
+    # ответственный (production / oto / ito / other / none = не назначен); по умолчанию «none»: отдел выбирает человек
+    await pool.execute("ALTER TABLE kpi_downtime_items ADD COLUMN IF NOT EXISTS owner TEXT NOT NULL DEFAULT 'none'")
     await pool.execute("CREATE INDEX IF NOT EXISTS ix_kpi_downtime_items_dt ON kpi_downtime_items (downtime_id)")
     # журнал смены ответственного: кто, когда, было, стало (при создании строки «было» пусто)
     await pool.execute(
@@ -111,7 +113,7 @@ class ItemBody(BaseModel):
     minutes: float = Field(gt=0, le=999)
     note: str = Field(default="", max_length=500)
     mentions: list[int] = Field(default_factory=list, max_length=10)   # кого отметили через @ в описании
-    owner: Literal["production", "oto", "ito", "other"] | None = None  # ответственный; не указан: из причины (новая строка) или прежний
+    owner: Literal["production", "oto", "ito", "other", "none"] | None = None  # ответственный; не указан: из причины (новая строка) или прежний
 
 
 class ItemsBody(BaseModel):
