@@ -329,19 +329,20 @@
     card.querySelector('.ch-xl').hidden = !one;
     card.querySelector('.ch-legend').hidden = !one;
     if (!one) { b.innerHTML = empty('График показывается за один день: выберите «День» или одну и ту же дату в полях «С» и «По»'); return; }
-    b.innerHTML = cum && cum.date === state.from ? chartCumulative(cum.intervals, W) : empty('Загрузка…');
+    b.innerHTML = cum && cum.date === state.from && cum.screen === state.screen ? chartCumulative(cum.intervals, W) : empty('Загрузка…');
   }
 
+  // прежний график не сбрасывается: при обрыве или тайм-ауте он остаётся, следующее обновление пробует снова
   async function loadCumulative(token) {
-    cum = null;
     if (state.from !== state.to) return;
+    const screen = state.screen;
     try {
-      const r = await fetch(`/api/kpi/charts/cumulative?screen_id=${state.screen}&date=${state.from}`);
+      const r = await fetch(`/api/kpi/charts/cumulative?screen_id=${screen}&date=${state.from}`, { signal: AbortSignal.timeout(6000) });
       if (!r.ok) throw new Error(`Ошибка ${r.status}`);
       const d = await r.json();
       if (token !== loadToken) return;
-      cum = d; draw();
-    } catch (ex) { if (token === loadToken) toast(ex.message); }
+      cum = Object.assign(d, { screen }); draw();
+    } catch (ex) { if (token === loadToken) toast(ex.name === 'TimeoutError' ? 'Сервер не ответил за 6 секунд' : ex.message); }
   }
 
   function markPreset() {
@@ -354,7 +355,6 @@
     markPreset();
     if (!built || state.screen === null) return;
     const token = ++loadToken;
-    cum = null;
     try {
       const r = await fetch(`/api/kpi/charts?screen_id=${state.screen}&from=${state.from}&to=${state.to}`);
       if (!r.ok) {

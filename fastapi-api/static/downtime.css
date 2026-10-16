@@ -107,7 +107,7 @@
 .kpi-table td.why { text-align: left; font-size: var(--fs-small); line-height: 1.2; overflow: hidden; }
 .kpi-table td.why > span, .kpi-table td.why .why-col > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kpi-table td.why .why-cols { display: flex; align-items: center; gap: 22px; overflow: hidden; }
-.kpi-table td.why .why-col { flex: 0 1 auto; min-width: 0; max-width: 48%; }
+.kpi-table td.why .why-col { flex: 0 1 auto; min-width: 0; max-width: 100%; }
 .kpi-table td.why .why-col[hidden] { display: none; }
 .kpi-table td.why .why-cols > .why-more { flex: none; }
 .kpi-table td.why .why-main { font-weight: 600; color: var(--fg-primary); }

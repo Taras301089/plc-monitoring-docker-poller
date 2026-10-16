@@ -542,7 +542,9 @@
     .kpi-table th { padding: 8px 10px; font-size: var(--fs-small); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-secondary); background: var(--bg-secondary); text-align: center; border-bottom: 1px solid var(--line); }
     .kpi-table td { padding: 0 10px; height: 36px; text-align: center; font: 600 var(--fs-large) 'Segoe UI', Roboto, Arial, sans-serif; border-bottom: 1px solid var(--line); }
     .kpi-table td.n { color: var(--fg-secondary); font-size: var(--fs-small); width: 44px; }
-    .kpi-table td.time { white-space: nowrap; }
+    /* время интервала «07:30-08:30»: узкие поля и перенос по дефису, если колонка уже текста (иначе текст налезал на соседние колонки) */
+    .kpi-table td.time { white-space: normal; padding-left: 2px; padding-right: 2px; overflow: hidden; line-height: 1.1; }
+    .kpi-table th { overflow: hidden; overflow-wrap: anywhere; }
     .kpi-table td.dim { color: var(--fg-secondary); font-weight: 400; }
     .kpi-table tbody tr:nth-child(even) { background: var(--zebra); }
     .kpi-table tr.now { background: color-mix(in srgb, var(--ok) 18%, transparent) !important; box-shadow: inset 3px 0 0 var(--ok); }
@@ -632,6 +634,21 @@
     /* до 1700px шапка делится на колонки auto / 1fr / auto: симметричная раскладка не вмещает часы вместе с кнопками «архива» и плитка линии наезжала на часы */
     @media (max-width: 1700px) {
       .andon-layout, body.tv-mode .andon-layout { grid-template-columns: auto minmax(0, 1fr) auto; }
+    }
+    /* архив: справа шире блок даты и кнопок, поэтому и на широком окне (1920) колонки auto / 1fr / auto, иначе блок закрывает часы */
+    body.andon-archive .andon-layout { grid-template-columns: auto minmax(0, 1fr) auto; }
+    /* название линии не выходит за свою ячейку шапки: обрезается многоточием, а на узком окне переносится */
+    /* название линии не рвётся по буквам и держит ширину содержимого */
+    .andon-h { box-sizing: border-box; }
+    /* живой режим на любой ширине: колонки auto / 1fr / auto (отступ часов под LIVE и кнопки больше 1fr при симметричной сетке и часы заходили на название) */
+    body:not(.tv-mode) .andon-layout { grid-template-columns: auto minmax(0, 1fr) auto; }
+    /* узкое окно (901–1100): название линии отдельной первой строкой слева под панелью кнопок справа, Takt Time и часы второй строкой, таблица третьей */
+    @media (min-width: 901px) and (max-width: 1100px) {
+      body:not(.tv-mode) .andon-layout { grid-template-rows: var(--andon-bar) auto minmax(0, 1fr); }
+      body:not(.tv-mode) .andon-h { grid-column: 1 / -1; grid-row: 1; justify-self: start; }
+      body:not(.tv-mode) .andon-side .tile { grid-row: 2; }
+      body:not(.tv-mode) .andon-side .andon-clockbox { grid-row: 2; margin-right: 0; }
+      body:not(.tv-mode) .andon-main .kpi-wrap { grid-row: 3; }
     }
     @media (max-width: 1400px) {
       /* узкое окно: шапка остаётся одной строкой, элементы справа компактнее */

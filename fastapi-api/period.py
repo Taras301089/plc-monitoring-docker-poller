@@ -276,7 +276,7 @@ def _write_days(ws, f, sm_days: list[dict[str, Any]], full: bool, r0: int = 0) -
 
 
 def _write_reasons(rs, f, rows: list[tuple[str, float]], r0: int = 0) -> None:
-    rs.write_row(r0, 0, ["Причина", "Минут", "Доля", "Накопленная доля"], f["head"])
+    rs.write_row(r0, 0, ["Причина", "Минут", "Доля", "Накопленный %"], f["head"])
     total, cum = sum(m for _, m in rows), 0.0
     for r, (name, m) in enumerate(rows, start=r0 + 1):
         cum += m

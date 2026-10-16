@@ -443,9 +443,9 @@
             <div class="al-an-h"><h3 title="Парето: самые частые и самые долгие аварии и накопленная доля, чтобы увидеть, на какие аварии приходится большая часть потерь">${AN_PARETO_TITLE}</h3></div>
             <div class="al-an-pair">
               <div class="al-an-card"><h4 title="Столбцы по числу появлений аварии, по убыванию">${AN_PARETO_COUNT}</h4><div id="al-an-pareto-count"></div>
-                <div class="al-legend al-an-leg"><span class="al-leg"><i class="al-sw al-sw-bar"></i>Число появлений</span><span class="al-leg"><i class="al-sw al-sw-line"></i>Накопленная доля, %</span></div></div>
+                <div class="al-legend al-an-leg"><span class="al-leg"><i class="al-sw al-sw-bar"></i>Число появлений</span><span class="al-leg"><i class="al-sw al-sw-line"></i>Накопленный %</span></div></div>
               <div class="al-an-card"><h4 title="Столбцы по суммарной длительности аварии в минутах, по убыванию">${AN_PARETO_TIME}</h4><div id="al-an-pareto-time"></div>
-                <div class="al-legend al-an-leg"><span class="al-leg"><i class="al-sw al-sw-bar"></i>Суммарно, мин</span><span class="al-leg"><i class="al-sw al-sw-line"></i>Накопленная доля, %</span></div></div>
+                <div class="al-legend al-an-leg"><span class="al-leg"><i class="al-sw al-sw-bar"></i>Суммарно, мин</span><span class="al-leg"><i class="al-sw al-sw-line"></i>Накопленный %</span></div></div>
             </div>
           </section>
           ${anSectionsHtml()}

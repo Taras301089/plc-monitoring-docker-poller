@@ -122,14 +122,16 @@
     box.querySelectorAll('.why-more').forEach(e => e.remove());
     const cols = [...box.querySelectorAll('.why-col')];
     cols.forEach(c => { c.hidden = false; });
-    const fits = () => cols.every(c => c.hidden || c.offsetLeft + c.offsetWidth <= box.clientWidth + 1);
+    // помещается: колонка не вылезает за ячейку и ни одна её строка не обрезана многоточием (колонки сами делят свободное место)
+    const fits = () => cols.every(c => c.hidden || (c.offsetLeft + c.offsetWidth <= box.clientWidth + 1 &&
+      [...c.children].every(sp => sp.scrollWidth <= sp.clientWidth + 1)));
     if (fits()) return;
     const items = cols.filter(c => !c.classList.contains('why-left'));
     const more = document.createElement('span');
     more.className = 'why-more';
     box.appendChild(more);
     let hiddenN = 0;
-    for (let i = cols.length - 1; i >= 0 && !fits(); i--) {
+    for (let i = cols.length - 1; i >= 1 && !fits(); i--) {   // первая колонка остаётся всегда
       cols[i].hidden = true;
       if (items.includes(cols[i])) hiddenN++;
       more.textContent = hiddenN ? `+${hiddenN}` : '';

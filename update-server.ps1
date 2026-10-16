@@ -102,6 +102,13 @@ function Update-Server {
     Write-Step 1 'проверка окружения (папка проекта, git, docker)'
     if (-not (Test-Path (Join-Path $root 'docker-compose.yml'))) { Write-Fail "в $root нет docker-compose.yml: скрипт нужно запускать из папки проекта"; return 1 }
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Write-Fail 'не найден git'; return 1 }
+    # Ветка: сервер обновляется только из main; на другой ветке останавливаемся до бэкапа и git fetch/pull
+    $branch = ("" + (& git -C $root branch --show-current)).Trim()
+    if ($branch -ne 'main') {
+        $branchMsg = "папка сервера не на ветке main: обновление остановлено, ничего не изменено (текущая ветка: " + $(if ($branch) { $branch } else { 'не определена' }) + ")"
+        if ($DryRun -and $env:PMM_STRICT_BRANCH -ne '1') { Write-Dry ("при реальном запуске " + $branchMsg) }
+        else { Write-Fail $branchMsg; return 1 }
+    }
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Fail 'не найден docker'; return 1 }
     if (-not (Test-Path $backupScript)) { Write-Fail "не найден $backupScript"; return 1 }
     & docker info | Out-Null
