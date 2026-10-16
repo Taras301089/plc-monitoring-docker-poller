@@ -16,6 +16,8 @@ services:
       POLLER_URL: http://plc-monitoring-docker-poller:8080
       REPORTS_DIR: /tmp/reports
       BACKUP_DIR: /tmp/backups
+    volumes:
+      - ${TIA_BRIDGE_HOST_DIR:-C:/tia-bridge}:/tia-bridge:ro   # только чтение: список проектов и состояние службы для проверки вкладки «Выгрузка TIA»
     ports:
       - "127.0.0.1:8001:8000"
     networks:

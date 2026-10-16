@@ -583,7 +583,7 @@
     return plcsLoading;
   }
 
-  // кнопки ПЛК идут в личном порядке списка ПЛК (перетаскивание в «Переменные ПЛК», reorder.js)
+  // кнопки ПЛК идут в личном порядке списка ПЛК (перетаскивание во вкладке «ПЛК», reorder.js)
   const brandPlcs = brand => {
     const list = plcs.filter(p => plcBrand(p.name) === brand);
     return root.reorder ? root.reorder.applyOrder(list, root.reorder.get('order-plc'), p => String(p.id)) : list;

@@ -773,6 +773,7 @@
   <link rel="stylesheet" href="/static/downtime.css">
   <link rel="stylesheet" href="/static/alarms.css">
   <link rel="stylesheet" href="/static/tia.css">
+  <link rel="stylesheet" href="/static/tg.css">
 </head>
 <body>
   <nav class="tabs">
@@ -783,7 +784,7 @@
     <button class="tab" data-tab="downtimes" id="tab-downtimes" title="Все простои за период одним списком: по одной строке на каждую причину, с описаниями и комментариями">⏱ Простои</button>
     <button class="tab" data-tab="notifications" title="Параметры подключения к ПЛК и настройки оповещений">🔔 Оповещения</button>
     <button class="tab" data-tab="alarms" id="tab-alarms" title="Журнал аварий ПЛК: активные сейчас и история за период, фильтры по станции и устройству, выгрузка в Excel и справочник аварий. Нажмите, чтобы выбрать бренд: GWM, Chery, Changan, AE">🚨 Аварии <span class="tab-caret">▾</span></button>
-    <button class="tab" data-tab="browser" id="tab-browser" hidden title="Просмотр всех переменных ПЛК в реальном времени с возможностью поиска и фильтрации">📊 Переменные ПЛК</button>
+    <button class="tab" data-tab="browser" id="tab-browser" hidden title="ПЛК: выбор и настройка ПЛК, блоки данных и переменные в реальном времени с поиском и фильтрацией (только администратор)">📊 ПЛК</button>
     <button class="tab" data-tab="saved" id="tab-saved" hidden title="Переменные сохранённые в базе данных для дальнейшего анализа и мониторинга">💾 Переменные БД</button>
     <button class="tab" data-tab="dictionary" id="tab-dictionary" hidden title="Справочники простоев: причины, участки и станции для описания простоев (редактируют администратор и начальники)">📚 Справочники</button>
     <button class="tab" data-tab="users" id="tab-users" hidden title="Пользователи системы: создание учётных записей, роли, сброс паролей (только для администратора)">👥 Пользователи</button>
@@ -814,6 +815,7 @@
         <ul class="plc-dd-list" id="plc-dd-list" role="listbox" hidden></ul>
       </div>
           <button id="refresh" title="Обновить с ПЛК: заново просканировать OPC UA и обновить список блоков данных и переменных (может занять время). Доступно только администратору" hidden>⟳ Обновить с ПЛК</button>
+          <button type="button" id="tia-open" hidden disabled title="Выгрузить проект TIA Portal в XML и Excel: откроется окно с выбором ПЛК-источника, путём сохранения, состоянием службы и ZIP">🧩 Выгрузить проект TIA</button>
           <div id="scan-meta" class="scan-meta" title="Когда список переменных последний раз считывался с ПЛК">Список ещё не загружен</div>
           <div class="status" id="status" role="status" hidden>
             <span class="status-title"></span>
@@ -933,12 +935,12 @@
         <span id="andon-badge" class="live-badge off" title="Данные читаются из ПЛК раз в секунду, пока открыта эта вкладка">● пауза</span>
         <button type="button" id="andon-edit" class="andon-edit" title="Настроить время окончания часовых интервалов смены и плановое количество кузовов по интервалам для выбранной линии">⚙ Смена и план</button>
         <button type="button" id="andon-tv" class="andon-edit" title="Режим табло для телевизора на производстве: скрывает вкладки и кнопки, показывает только таблицу на весь экран. Выход: клавиша Esc или кнопка в правом нижнем углу, которая появляется при движении мыши">🖥 Режим табло</button>
-      </div>      <div id="andon-body" class="andon-body"><div class="empty">Выберите ПЛК на вкладке «Переменные ПЛК»</div></div>
+      </div>      <div id="andon-body" class="andon-body"><div class="empty">Выберите ПЛК на вкладке «ПЛК»</div></div>
     </div>
 
-    <!-- TAB 4: Alerts & Notifications -->
+    <!-- TAB 4: Оповещения в Telegram (tgnotify.js) -->
     <div id="notifications" class="tab-content">
-      <p style="color: var(--fg-secondary); font-size: 13px;">Алерты и оповещения будут настроены здесь в будущих версиях</p>
+      <p class="tg-msg">Загрузка…</p>
     </div>
   </main>
 
@@ -2990,6 +2992,7 @@
   <script src="/static/downtimes.js"></script>
   <script src="/static/archive.js"></script>
   <script src="/static/comments.js"></script>
+  <script src="/static/tgnotify.js"></script>
   <script src="/static/authtabs.js"></script>
 </body>
 </html>
