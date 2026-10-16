@@ -832,6 +832,9 @@
         <label style="display: flex; gap: 6px; align-items: center; margin-top: 8px;" title="Если включено, сборщик данных опрашивает этот ПЛК; выключенный ПЛК остаётся в списке, но данные с него не собираются">
           <input id="new-plc-active" type="checkbox" checked title="Включён в опрос: сборщик данных опрашивает этот ПЛК; снимите флажок, чтобы временно прекратить опрос, не удаляя ПЛК"> Включён в опрос
         </label>
+        <label style="display: flex; gap: 6px; align-items: center; margin-top: 4px;" title="Собирать аварии самого ПЛК по OPC UA (Alarms &amp; Conditions): системная диагностика модулей, приводов и Profinet с временем ПЛК; аварии-биты панели сюда не входят">
+          <input id="new-plc-ac" type="checkbox" title="Собирать аварии самого ПЛК по OPC UA (Alarms &amp; Conditions): системная диагностика модулей, приводов и Profinet с временем ПЛК; аварии-биты панели сюда не входят"> Аварии ПЛК (OPC UA)
+        </label>
         <div style="display: flex; gap: 8px; margin-top: 8px;">
           <button id="add-plc" style="padding: 6px 12px; font-size: 12px; flex: 1;" title="Добавить новый ПЛК в систему">✓ Добавить</button>
           <button id="cancel-add-plc" style="padding: 6px 12px; font-size: 12px; background: var(--button-tertiary); border-color: var(--button-tertiary);" title="Отменить добавление">✕ Отмена</button>
@@ -847,6 +850,9 @@
         </div>
         <label style="display: flex; gap: 6px; align-items: center; margin-top: 8px;" title="Если включено, сборщик данных опрашивает этот ПЛК; выключенный ПЛК остаётся в списке, но данные с него не собираются">
           <input id="edit-plc-active" type="checkbox" title="Включён в опрос: сборщик данных опрашивает этот ПЛК; снимите флажок, чтобы временно прекратить опрос, не удаляя ПЛК"> Включён в опрос
+        </label>
+        <label style="display: flex; gap: 6px; align-items: center; margin-top: 4px;" title="Собирать аварии самого ПЛК по OPC UA (Alarms &amp; Conditions): системная диагностика модулей, приводов и Profinet с временем ПЛК; аварии-биты панели сюда не входят">
+          <input id="edit-plc-ac" type="checkbox" title="Собирать аварии самого ПЛК по OPC UA (Alarms &amp; Conditions): системная диагностика модулей, приводов и Profinet с временем ПЛК; аварии-биты панели сюда не входят"> Аварии ПЛК (OPC UA)
         </label>
         <div style="display: flex; gap: 8px; margin-top: 8px;">
           <button id="save-plc" style="padding: 6px 12px; font-size: 12px; flex: 1; background: var(--button-secondary); border-color: var(--button-secondary);" title="Сохранить изменения">✓ Сохранить</button>
@@ -1194,7 +1200,8 @@
           body: JSON.stringify({
             name,
             opc_endpoint: `opc.tcp://${ip}:${port}`,
-            is_active: document.getElementById('new-plc-active').checked
+            is_active: document.getElementById('new-plc-active').checked,
+            ac_alarms: document.getElementById('new-plc-ac').checked
           })
         });
         if (!response.ok) throw new Error('Ошибка добавления ПЛК');
@@ -1202,6 +1209,7 @@
         document.getElementById('new-plc-ip').value = '';
         document.getElementById('new-plc-port').value = '4840';
         document.getElementById('new-plc-active').checked = true;
+        document.getElementById('new-plc-ac').checked = false;
         document.getElementById('add-plc-form').style.display = 'none';
         loadPlcs();
         setStatus('success', 'Готово', 'Новый ПЛК добавлен');
@@ -1217,6 +1225,7 @@
       document.getElementById('new-plc-ip').value = '';
       document.getElementById('new-plc-port').value = '4840';
       document.getElementById('new-plc-active').checked = true;
+      document.getElementById('new-plc-ac').checked = false;
     });
 
     // Редактировать ПЛК
@@ -1230,6 +1239,7 @@
       document.getElementById('edit-plc-ip').value = m ? m[1] : (item.ip_address || '');
       document.getElementById('edit-plc-port').value = m && m[2] ? m[2] : '4840';
       document.getElementById('edit-plc-active').checked = item.is_active !== false;
+      document.getElementById('edit-plc-ac').checked = item.ac_alarms === true;
       document.getElementById('edit-plc-form').style.display = 'block';
     }
 
@@ -1252,7 +1262,8 @@
           body: JSON.stringify({
             name,
             opc_endpoint: `opc.tcp://${ip}:${port}`,
-            is_active: document.getElementById('edit-plc-active').checked
+            is_active: document.getElementById('edit-plc-active').checked,
+            ac_alarms: document.getElementById('edit-plc-ac').checked
           })
         });
         if (!response.ok) throw new Error('Ошибка сохранения ПЛК');

@@ -205,5 +205,6 @@ async def test_button_exports_unchanged(app, anon, pool):
     assert _chart_titles(day.content) == ["План и факт по часам"]
     per = await anon.get(f"/api/kpi/screens/{scr}/period.xlsx", params={"from": D0.isoformat(), "to": DAY.isoformat()})
     assert per.status_code == 200
-    assert [n for n, _ in _sheets(per.content)] == ["Отчёт", "Простои"]
+    # видимые листы: отчёт и полный список простоев; служебные данные графиков (например «График дней») только скрытые
+    assert [n for n, hidden in _sheets(per.content) if not hidden] == ["Отчёт", "Простои"]
     assert "День 05.10.2026" not in _cells(per.content).values()
