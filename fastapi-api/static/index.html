@@ -2226,7 +2226,7 @@
           <div class="andon-main">
             <h2 class="andon-h" title="Бренд (линия), по которому показаны данные">${window.brandLogo(screen.name)}${screen.name}</h2>
             <div class="kpi-wrap"><table class="kpi-table">
-              <colgroup><col style="width:3%"><col style="width:14%"><col style="width:5%"><col style="width:5%"><col style="width:8%"><col style="width:5%"><col style="width:13%"><col style="width:10%"><col style="width:37%"></colgroup>
+              <colgroup><col style="width:3%"><col style="width:14%"><col style="width:5%"><col style="width:5%"><col style="width:8%"><col style="width:5%"><col style="width:13%"><col style="width:10%"><col style="width:6%"><col style="width:31%"></colgroup>
               <thead><tr>
                 <th title="Номер часового интервала смены">№</th>
                 <th title="Время начала и окончания интервала: начало берётся из ПЛК, окончание из настроек смены">Время</th>
@@ -2236,10 +2236,11 @@
                 <th title="Отклонение факта от плана: зелёный — выполнено, красный — отставание">±</th>
                 <th title="Takt Time за интервал: сколько минут:секунд в среднем уходит на один кузов">Takt Time</th>
                 <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой, мин</th>
+                <th title="Ответственный за отставание по каждой причине, в порядке причин: ПР — производство, ОТО, ИТО, ДР — другое (внешние причины). Знак: … ждёт подтверждения, ✓ подтверждено, ! спорно. Расшифровка по наведению">Отв.</th>
                 <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
               </tr></thead>
-              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan" class="plan-cell-edit" title="Нажмите, чтобы изменить план этого интервала: Enter сохраняет, Esc отменяет (кто может менять план, определяется ролью)"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td data-k="takt"></td><td class="dt" data-k="dt"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
-              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого</td><td class="plan-cell" data-k="planSum" title="План на день"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td><td data-k="shTakt"></td><td></td><td></td></tr></tfoot>
+              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan" class="plan-cell-edit" title="Нажмите, чтобы изменить план этого интервала: Enter сохраняет, Esc отменяет (кто может менять план, определяется ролью)"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td data-k="takt"></td><td class="dt" data-k="dt"></td><td class="own" data-k="own"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
+              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого</td><td class="plan-cell" data-k="planSum" title="План на день"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td><td data-k="shTakt"></td><td></td><td></td><td class="resp-sum" data-k="resp"></td></tr></tfoot>
             </table></div>
           </div>
         </div>`;
@@ -2512,7 +2513,7 @@
           <div class="andon-main">
             <h2 class="andon-h" title="Линия Finish Line, по которой показаны данные">${screen.name}</h2>
             <div class="kpi-wrap"><table class="kpi-table">
-              <colgroup><col style="width:3%"><col style="width:10%"><col style="width:5%"><col style="width:5%"><col style="width:5%"><col style="width:5%">${FL_MODELS.map(() => '<col style="width:5%">').join('')}<col style="width:${rb ? 11 : rc ? 9 : 13}%">${rb ? '<col style="width:8%">' : ''}${rc ? '<col style="width:7%"><col style="width:8%">' : ''}<col style="width:${rc ? 9 : 11}%"><col style="width:${rb ? 17 : rc ? 14 : 23}%"></colgroup>
+              <colgroup><col style="width:3%"><col style="width:10%"><col style="width:5%"><col style="width:5%"><col style="width:5%"><col style="width:5%">${FL_MODELS.map(() => '<col style="width:5%">').join('')}<col style="width:${rb ? 11 : rc ? 9 : 13}%">${rb ? '<col style="width:8%">' : ''}${rc ? '<col style="width:7%"><col style="width:8%">' : ''}<col style="width:${rc ? 9 : 11}%"><col style="width:6%"><col style="width:${rb ? 11 : rc ? 8 : 17}%"></colgroup>
               <thead><tr>
                 <th title="Номер часового интервала смены">№</th>
                 <th title="Время начала и окончания интервала: начало берётся из ПЛК, окончание из настроек">Время</th>
@@ -2525,10 +2526,11 @@
                 ${rc ? `<th title="Счётчик кузовов. Выход в ремонт">Рем. зона</th><th title="Подсчитывается автоматически. Время простоя BDC (DownTimer_BDC)">Простой BDC</th>` : ''}
                 ${rb ? `<th title="Подсчитывается автоматически. Голодание. Счётчик запускается при отсутствии кузовов в накопителе (буфере) перед ФЛ">Простой RB262</th>` : ''}
                 <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой, мин</th>
+                <th title="Ответственный за отставание по каждой причине, в порядке причин: ПР — производство, ОТО, ИТО, ДР — другое (внешние причины). Знак: … ждёт подтверждения, ✓ подтверждено, ! спорно. Расшифровка по наведению">Отв.</th>
                 <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
               </tr></thead>
-              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td>${FL_MODELS.map(m => `<td data-k="m_${m}"></td>`).join('')}<td data-k="takt"></td>${rb ? '<td data-k="starve"></td>' : ''}${rc ? '<td data-k="repair"></td><td data-k="bdc"></td>' : ''}<td class="dt" data-k="dt"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
-              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td class="plan-cell" data-k="planSum" title="План на день (DayPlan из ПЛК)"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td>${FL_MODELS.map(m => `<td data-k="mt_${m}"></td>`).join('')}<td data-k="shTakt"></td>${rb ? '<td data-k="starveSum" title="Сумма простоя RB262 по интервалам смены"></td>' : ''}${rc ? '<td data-k="repairSum" title="Сумма кузовов, ушедших в ремонт, по интервалам смены"></td><td data-k="bdcSum" title="Сумма времени простоя BDC по интервалам смены"></td>' : ''}<td></td><td></td></tr>${rest || rc ? `<tr class="rest-row"${rest ? ' title="Текущее число кузовов на фуллайне (ФЛ) по моделям, значение читается из ПЛК"' : ''}><td></td>${rest ? '<td class="lbl" colspan="5">Остаток кузовов на ФЛ</td>' : '<td class="lbl" colspan="5"></td>'}${FL_MODELS.map(m => `<td data-k="rest_${m}"></td>`).join('')}<td></td>${rb ? '<td></td>' : ''}${rc ? '<td></td><td></td>' : ''}${rc ? '<td class="str-cell" colspan="2" title="STR: прямой сход, отношение кузовов без дефектов к общему количеству кузовов. В течение дня рассчитывается автоматически (факт минус выход в ремонт, делённое на факт), итог дня берётся из ПЛК (RepairPercent, считается в конце дня)"><span class="str-lbl">STR:</span> <span data-k="str">—</span></td>' : '<td></td><td></td>'}</tr>` : ''}</tfoot>
+              <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td data-k="plan"></td><td class="fact" data-k="fact"></td><td class="delta" data-k="delta"></td>${FL_MODELS.map(m => `<td data-k="m_${m}"></td>`).join('')}<td data-k="takt"></td>${rb ? '<td data-k="starve"></td>' : ''}${rc ? '<td data-k="repair"></td><td data-k="bdc"></td>' : ''}<td class="dt" data-k="dt"></td><td class="own" data-k="own"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
+              <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td class="plan-cell" data-k="planSum" title="План на день (DayPlan из ПЛК)"></td><td data-k="tot"></td><td class="delta" data-k="deltaSum"></td>${FL_MODELS.map(m => `<td data-k="mt_${m}"></td>`).join('')}<td data-k="shTakt"></td>${rb ? '<td data-k="starveSum" title="Сумма простоя RB262 по интервалам смены"></td>' : ''}${rc ? '<td data-k="repairSum" title="Сумма кузовов, ушедших в ремонт, по интервалам смены"></td><td data-k="bdcSum" title="Сумма времени простоя BDC по интервалам смены"></td>' : ''}<td></td><td></td><td class="resp-sum" data-k="resp"></td></tr>${rest || rc ? `<tr class="rest-row"${rest ? ' title="Текущее число кузовов на фуллайне (ФЛ) по моделям, значение читается из ПЛК"' : ''}><td></td>${rest ? '<td class="lbl" colspan="5">Остаток кузовов на ФЛ</td>' : '<td class="lbl" colspan="5"></td>'}${FL_MODELS.map(m => `<td data-k="rest_${m}"></td>`).join('')}<td></td>${rb ? '<td></td>' : ''}${rc ? '<td></td><td></td>' : ''}${rc ? '<td class="str-cell" colspan="3" title="STR: прямой сход, отношение кузовов без дефектов к общему количеству кузовов. В течение дня рассчитывается автоматически (факт минус выход в ремонт, делённое на факт), итог дня берётся из ПЛК (RepairPercent, считается в конце дня)"><span class="str-lbl">STR:</span> <span data-k="str">—</span></td>' : '<td></td><td></td><td></td>'}</tr>` : ''}</tfoot>
             </table></div>
           </div>
         </div>`;
@@ -2993,6 +2995,7 @@
   <script src="/static/auth.js"></script>
   <script src="/static/dictionary.js"></script>
   <script src="/static/activity.js"></script>
+  <script src="/static/responsibility.js"></script>
   <script src="/static/downtime.js"></script>
   <script src="/static/colwidths.js"></script>
   <script src="/static/dayflag.js"></script>

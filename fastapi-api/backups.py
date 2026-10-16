@@ -57,6 +57,26 @@ def _read_backups() -> dict[str, Any]:
     return info
 
 
+# Размер базы и крупнейшие таблицы: pg_database_size в Docker на Windows считается ~3 с, а за минуты размер почти не меняется,
+# поэтому значение запоминается на DB_SIZE_TTL секунд (страница «Бэкапы» открывается сразу)
+DB_SIZE_TTL = 300
+_db_cache: dict[str, Any] = {}
+
+
+async def _db_sizes(pool: asyncpg.Pool) -> tuple[int, list[dict[str, Any]]]:
+    now = time.time()
+    if _db_cache and now - _db_cache["at"] < DB_SIZE_TTL:
+        return _db_cache["size"], _db_cache["tables"]
+    size = await pool.fetchval("SELECT pg_database_size(current_database())")
+    rows = await pool.fetch(
+        "SELECT relname AS name, pg_total_relation_size(c.oid) AS size "
+        "FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+        "WHERE c.relkind = 'r' AND n.nspname = 'public' ORDER BY size DESC LIMIT 10"
+    )
+    _db_cache.update(at=now, size=size, tables=[{"name": r["name"], "size": r["size"]} for r in rows])
+    return _db_cache["size"], _db_cache["tables"]
+
+
 @router.get("/backups")
 async def backups_info(request: Request, _: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
     pool: asyncpg.Pool = request.app.state.pool
@@ -64,12 +84,7 @@ async def backups_info(request: Request, _: dict[str, Any] = Depends(require_adm
     files = info["files"]
     status = info["status"] or {}
 
-    db_size = await pool.fetchval("SELECT pg_database_size(current_database())")
-    tables = await pool.fetch(
-        "SELECT relname AS name, pg_total_relation_size(c.oid) AS size "
-        "FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
-        "WHERE c.relkind = 'r' AND n.nspname = 'public' ORDER BY size DESC LIMIT 10"
-    )
+    db_size, tables = await _db_sizes(pool)
 
     hub_points: list[tuple[date, int]] = []
     for f in files:
@@ -91,6 +106,6 @@ async def backups_info(request: Request, _: dict[str, Any] = Depends(require_adm
         "disk_total": status.get("disk_total"),
         "disk_free": status.get("disk_free"),
         "db_size": db_size,
-        "tables": [{"name": r["name"], "size": r["size"]} for r in tables],
+        "tables": tables,
         "forecast": forecast(hub_points, db_size, status.get("disk_free")),
     }

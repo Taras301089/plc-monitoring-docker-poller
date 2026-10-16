@@ -143,7 +143,7 @@ async def test_sum_formulas(app, pool, monkeypatch, tmp_path):
     xml = _zip(book).read("xl/worksheets/sheet1.xml").decode("utf-8")
     sums = re.findall(r"<f>SUM\(([A-Z]+)\d+:[A-Z]+\d+\)</f>", xml)
     # день: F, G, H, K, O; месяц: B, C, F, G, H
-    assert sorted(sums) == sorted(["F", "G", "H", "K", "O", "B", "C", "F", "G", "H"])
+    assert sorted(sums) == sorted(["F", "G", "H", "K", "P", "B", "C", "F", "G", "H"])   # «Отв.» стоит после «Простой мин», «Мин. по причине» сдвинулась с O на P
 
 
 async def test_numbers_match_api(app, anon, pool, monkeypatch, tmp_path):
