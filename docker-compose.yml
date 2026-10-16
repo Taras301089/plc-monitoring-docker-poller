@@ -48,6 +48,7 @@ services:
       POLLER_URL: http://plc-monitoring-docker-poller:8080
       KPI_UTC_OFFSET_HOURS: "5"
       APP_ENV: ${APP_ENV:-dev}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}   # ключ бота из корневого .env сервера (в Git не хранится); пусто: оповещения в Telegram не отправляются
       REPORTS_DIR: /reports
       REPORTS_HOST_DIR: ${REPORTS_HOST_DIR:-C:/Andon-Reports}
       BACKUP_DIR: /backups

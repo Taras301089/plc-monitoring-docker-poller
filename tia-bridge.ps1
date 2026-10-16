@@ -4,7 +4,7 @@
   в контейнере она видна как /tia-bridge). Открытых портов нет:
     requests\<id>.json   заявка, которую кладёт сайт (кнопка «Выгрузить проект TIA» у администратора)
     jobs\<id>\status.json состояние выгрузки (queued, running, done, error), журнал export.log
-    out\TIA_<проект>_<дата>.zip готовый ZIP с XML проекта (блоки, типы, таблицы тегов, manifest.csv)
+    out\TIA_<проект>_<дата>.zip готовый ZIP с XML проекта (блоки, типы, таблицы тегов, manifest.csv), контролями ProDiag и текстами проекта в Excel
     tia-projects.json     список разрешённых проектов (только отсюда берутся пути; сайт путь не передаёт)
     bridge.json           отметка «служба жива» (обновляется каждые несколько секунд)
   Выгрузку выполняет tia-export.ps1 (открывает проект без окна TIA, ничего не меняет и не сохраняет). Проект в списке должен быть КОПИЕЙ,
@@ -110,7 +110,8 @@ function Invoke-Job([IO.FileInfo]$ReqFile) {
         if ($man) {
             $delim = if ((Get-Content -LiteralPath $man.FullName -TotalCount 1 -Encoding UTF8) -match ';') { ';' } else { ',' }   # tia-export.ps1 пишет manifest.csv с разделителем региона
             foreach ($r in (Import-Csv -LiteralPath $man.FullName -Delimiter $delim -Encoding UTF8)) {
-                if ($r.status -eq 'skipped') { $skipped++ } elseif ($r.status -eq 'error') { $failed++ } else { $exported++ }
+                # строки texts/prodiag (файлы Excel) в число блоков не входят, их ошибки считаются
+                if ($r.status -eq 'skipped') { $skipped++ } elseif ($r.status -eq 'error') { $failed++ } elseif ($r.kind -notin 'texts', 'prodiag') { $exported++ }
             }
         }
         $zipName = 'TIA_{0}_{1}.zip' -f $proj.id, (Get-Date -Format 'yyyy-MM-dd_HH-mm')

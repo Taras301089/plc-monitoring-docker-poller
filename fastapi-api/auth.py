@@ -14,6 +14,8 @@ import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
+from readonly import READ_ONLY, READONLY_USER
+
 ROLES: dict[str, str] = {
     "admin": "Администратор",
     "chief": "Начальник цеха",
@@ -144,6 +146,8 @@ def _request_token(request: Request) -> str | None:
     return request.cookies.get(COOKIE_NAME) or request.headers.get("x-auth-token") or None
 
 async def current_user(request: Request, response: Response) -> dict[str, Any] | None:
+    if READ_ONLY:
+        return dict(READONLY_USER)  # тестовая копия: без чтения и записи сессий
     token = _request_token(request)
     if not token:
         return None
@@ -263,7 +267,7 @@ async def auth_me(request: Request, user: dict[str, Any] | None = Depends(curren
     count = await pool.fetchval("SELECT count(*) FROM app_users")
     pending = 0
     last_view = None
-    if user is not None:
+    if user is not None and not READ_ONLY:
         raw = await pool.fetchval("SELECT last_view FROM app_users WHERE id = $1", user["id"])
         last_view = json.loads(raw) if isinstance(raw, str) else raw
         if user["role"] == "admin":
