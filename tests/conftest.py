@@ -18,6 +18,11 @@ TEST_DATABASE_URL = os.getenv(
     "TEST_DATABASE_URL",
     "postgresql://n8n_user:my_strong_password@localhost:5432/general_data_hub_test",
 )
+# Параллельный запуск (pytest -n 4, pytest-xdist): у каждого процесса своя база general_data_hub_gwN_test,
+# иначе процессы очищают таблицы друг у друга. Имя по-прежнему оканчивается на _test (защита ниже)
+_XDIST = os.getenv("PYTEST_XDIST_WORKER")
+if _XDIST and TEST_DATABASE_URL.endswith("_test"):
+    TEST_DATABASE_URL = TEST_DATABASE_URL[: -len("_test")] + f"_{_XDIST}_test"
 TEST_PASSWORD = "Test-Pass-12345"
 # Тестовые пользователи: логин -> (роль, подразделение)
 TEST_USERS = {
@@ -36,10 +41,29 @@ def _db_name(url: str) -> str:
     return urlparse(url).path.lstrip("/")
 
 
+def _ensure_database(name: str) -> None:
+    """Создаёт пустую тестовую базу процесса, если её ещё нет (только имена на _test)."""
+    import asyncio
+
+    assert name.endswith("_test")
+    u = urlparse(TEST_DATABASE_URL)
+
+    async def run():
+        con = await asyncpg.connect(u._replace(path="/postgres").geturl())
+        try:
+            if not await con.fetchval("SELECT 1 FROM pg_database WHERE datname = $1", name):
+                await con.execute(f'CREATE DATABASE "{name}"')
+        finally:
+            await con.close()
+
+    asyncio.run(run())
+
+
 def pytest_configure(config):
     name = _db_name(TEST_DATABASE_URL)
     if not name.endswith("_test"):
         pytest.exit(f"ОТКАЗ: база '{name}' не оканчивается на _test. Тесты не запускаются.", returncode=2)
+    _ensure_database(name)   # своя база у процесса или воркера создаётся сама (TEST_DATABASE_URL с другим именем на _test)
     # Приложение читает адрес базы и папку отчётов при импорте, поэтому задаём до импорта
     os.environ["DATABASE_URL"] = TEST_DATABASE_URL
     os.environ["REPORTS_DIR"] = tempfile.mkdtemp(prefix="plc_test_reports_")

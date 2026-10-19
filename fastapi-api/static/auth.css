@@ -142,3 +142,5 @@
 
 /* Вкладка «Простои»: кнопки и поля фильтров одного размера */
 #downtimes button, #downtimes select, #downtimes input { font-size: var(--fs-small); }
+.dict-table td.dict-owner { white-space: nowrap; font-size: var(--fs-small); color: var(--fg-secondary); }
+.dict-table td.dict-owner select { font-size: var(--fs-small); min-height: 26px; margin-left: 4px; }

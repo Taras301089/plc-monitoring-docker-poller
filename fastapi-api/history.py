@@ -15,9 +15,10 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
 
 import dayflags
-from downtime import _screen_path, list_downtimes
+from downtime import _screen_path, list_downtimes, owner_label
 from flmodels import MODELS, fetch_counts, has_models, interval_value, model_hint
 from rest_bodies import REST_FIELDS, REST_HINT, REST_TITLE, fetch_rest
+from responsibility import write_responsibility
 from repair import (BDC_HINT, BDC_TITLE, REPAIR_HINT, REPAIR_TITLE, STR_HINT, STR_TITLE, bdc_minutes, has_repair, plc_str_of,
                     repair_value, str_percent, str_summary)
 from starve import STARVE_HINT, STARVE_TITLE, has_starve, starve_minutes
@@ -25,7 +26,7 @@ from starve import STARVE_HINT, STARVE_TITLE, has_starve, starve_minutes
 router = APIRouter(prefix="/api/kpi")
 
 DAY_HEADERS = ["Дата", "Линия", "№", "Начало", "Окончание", "Мин.", "План", "Факт", "±", "Takt Time",
-               "Простой мин", "Участок", "Станция", "Причина", "Мин. по причине", "Описание", "Внёс", "Последний комментарий"]
+               "Простой мин", "Отв.", "Участок", "Станция", "Причина", "Мин. по причине", "Описание", "Внёс", "Последний комментарий"]
 # имя файла начинается с названия экрана, откуда его скачали (правило в CLAUDE.md)
 SRC_NAMES = {"andon": "Andon", "charts": "Графики", "reports": "Отчёты", "downtimes": "Простои", "trends": "Тренды", "alarms": "Аварии"}
 
@@ -34,7 +35,7 @@ def download_name(src: str, fname: str) -> str:
     return f"{SRC_NAMES.get(src, SRC_NAMES['reports'])}_{fname}"
 
 
-DAY_WIDTHS = [11, 22, 5, 9, 10, 6, 7, 7, 6, 14, 11, 16, 16, 20, 14, 36, 24, 44]
+DAY_WIDTHS = [11, 22, 5, 9, 10, 6, 7, 7, 6, 14, 11, 8, 16, 16, 20, 14, 36, 24, 44]
 STARVE_WIDTH = 13
 REPAIR_WIDTH = 10
 BDC_WIDTH = 13
@@ -155,10 +156,10 @@ def day_formats(wb) -> dict[str, Any]:
 def write_day_section(wb, ws, f: dict[str, Any], title: str, day: date, rows: list[list[Any]], intervals: list[tuple[str, int, int]],
                       r0: int = 0, chart_sheet: str = "График", headers: list[str] | None = None,
                       rest: dict[str, int | None] | None = None, plc_str: float | None = None,
-                      state: str | None = None, note: str | None = None) -> int:
+                      state: str | None = None, note: str | None = None, resp: dict[str, Any] | None = None) -> int:
     """Раздел отчёта дня на листе ws начиная со строки r0: заголовок, подпись дня («нет выпуска» или «Простой весь день»), плитки итогов, график план/факт, таблица с итогами.
     Данные графика лежат на скрытом листе chart_sheet. rest: остаток кузовов на ФЛ по моделям (None = строки нет), строка идёт сразу под «Итого»
-    и в суммы не входит. Возвращает первую свободную строку под разделом."""
+    и в суммы не входит. resp: итоги отставания по отделам (блок «По ответственным» под таблицей). Возвращает первую свободную строку под разделом."""
     bold, bold_n1, bold_n2, bold_pct, head = f["bold"], f["bold_n1"], f["bold_n2"], f["bold_pct"], f["head"]
     n_rows, n = len(rows), len(intervals)
     headers = headers or DAY_HEADERS
@@ -309,6 +310,9 @@ def write_day_section(wb, ws, f: dict[str, Any], title: str, day: date, rows: li
                 ws.write(end, 0, hint if title == STR_TITLE else f"{title}: {hint}", f["note"])
                 end += 1
 
+    if resp is not None and n:
+        end = write_responsibility(wb, ws, end + 1, resp)
+
     if n:
         cs = wb.add_worksheet(chart_sheet)
         cs.write_row(0, 0, ["Интервал", "План", "Факт", "% выполнения"], head)
@@ -345,7 +349,7 @@ def write_day_section(wb, ws, f: dict[str, Any], title: str, day: date, rows: li
 
 def build_day_workbook(line: str, day: date, rows: list[list[Any]], intervals: list[tuple[str, int, int]],
                        headers: list[str] | None = None, rest: dict[str, int | None] | None = None, plc_str: float | None = None,
-                       state: str | None = None, note: str | None = None) -> bytes:
+                       state: str | None = None, note: str | None = None, resp: dict[str, Any] | None = None) -> bytes:
     """Книга Excel по виду как вкладка «Отчёты»: на листе «День» сверху плитки итогов, под ними график план/факт по часам,
     ниже таблица отчёта (с фильтром и итогами). Данные для графика лежат на скрытом листе «График»."""
     buf = io.BytesIO()
@@ -355,7 +359,7 @@ def build_day_workbook(line: str, day: date, rows: list[list[Any]], intervals: l
     for c, w in enumerate(day_widths(headers or DAY_HEADERS)):
         ws.set_column(c, c, w)
     write_day_section(wb, ws, f, f"{line}, {day.strftime('%d.%m.%Y')}", day, rows, intervals, headers=headers, rest=rest, plc_str=plc_str,
-                      state=state, note=note)
+                      state=state, note=note, resp=resp)
     wb.close()
     return buf.getvalue()
 
@@ -385,7 +389,8 @@ async def build_day_data(pool: asyncpg.Pool, screen_id: int, day: date) -> dict[
     hours_all = await _day_rows(pool, screen_id, day)
     hours = [h for h in hours_all if h["plan"] > 0 or h["fact"] > 0]
     req = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(pool=pool)))
-    dts = {d["idx"]: d for d in (await list_downtimes(screen_id, req, day))["downtimes"]}
+    listed = await list_downtimes(screen_id, req, day)
+    dts = {d["idx"]: d for d in listed["downtimes"]}
     areas = {r["id"]: r["name"] for r in await pool.fetch("SELECT id, name FROM kpi_areas")}
     stations = {r["id"]: r["name"] for r in await pool.fetch("SELECT id, name FROM kpi_stations")}
     reasons = {r["id"]: r["name"] for r in await pool.fetch("SELECT id, name FROM kpi_reasons")}
@@ -425,16 +430,16 @@ async def build_day_data(pool: asyncpg.Pool, screen_id: int, day: date) -> dict[
         items = (d or {}).get("items") or []
         part: list[list[Any]] = []
         if not d or (d["minutes"] <= 0 and not items):
-            out.append(base + ["—" if no_output else 0, "—", "—", "—", 0, "", "", ""])
+            out.append(base + ["—" if no_output else 0, "", "—", "—", "—", 0, "", "", ""])
             continue
         for it in items:
             lc = it.get("last_comment")
-            part.append(base + [d["minutes"], areas.get(it["area_id"], "—"), stations.get(it["station_id"], "—"),
+            part.append(base + [d["minutes"], owner_label(it.get("owner"), it.get("owner_status")), areas.get(it["area_id"], "—"), stations.get(it["station_id"], "—"),
                                reasons.get(it["reason_id"], "—"), it["minutes"], it.get("note") or "", it.get("created_by_name") or "",
                                f"{lc['text']} · {lc.get('author') or lc['user_name']}" if lc else ""])
         rest = round(d["minutes"] - d["described"], 1)
         if rest > 0.5:
-            part.append(base + [d["minutes"], "—", "—", "не описан", rest, "", "", ""])
+            part.append(base + [d["minutes"], "", "—", "—", "не описан", rest, "", "", ""])
         # значения интервала (минуты, план, факт, ±, Takt Time, простой) пишутся один раз, на первой строке: так столбец суммируется верно
         for i, row in enumerate(part):
             if i:
@@ -445,7 +450,8 @@ async def build_day_data(pool: asyncpg.Pool, screen_id: int, day: date) -> dict[
     folder = safe_name(group if label in ("", "Main Line") else f"{group}_{label}")
     return {"line": line, "folder": folder, "fname": f"{folder}_{day.isoformat()}.xlsx", "rows": out, "intervals": intervals, "n": len(hours),
             "headers": headers, "rest": rest_now, "str": str_summary(hours_all, (screen_id, day.isoformat())) if rep_on else None,
-            "state": st["state"] if st else None, "flag": st["flag"] if st else None, "note": dayflags.day_note(st), "no_output": no_output}
+            "state": st["state"] if st else None, "flag": st["flag"] if st else None, "note": dayflags.day_note(st), "no_output": no_output,
+            "responsibility": listed["responsibility"]}
 
 
 async def build_day_report(pool: asyncpg.Pool, screen_id: int, day: date) -> tuple[bytes, str, str, int] | None:
@@ -454,7 +460,7 @@ async def build_day_report(pool: asyncpg.Pool, screen_id: int, day: date) -> tup
     if d is None:
         return None
     return build_day_workbook(d["line"], day, d["rows"], d["intervals"], d["headers"], d["rest"], plc_str_of(d["str"]),
-                              d["state"], d["note"]), d["folder"], d["fname"], d["n"]
+                              d["state"], d["note"], d["responsibility"]), d["folder"], d["fname"], d["n"]
 
 
 @router.get("/screens/{screen_id}/day.xlsx")
@@ -486,6 +492,6 @@ async def day_preview(screen_id: int, request: Request, day: date = Query(alias=
         "intervals": [{"label": lbl, "plan": p, "fact": f} for lbl, p, f in d["intervals"]],
         "rest": None if d["rest"] is None else {"title": REST_TITLE, "values": d["rest"]},
         "str": d["str"],
-        "state": d["state"], "flag": d["flag"], "note": d["note"], "no_output": d["no_output"],
+        "state": d["state"], "flag": d["flag"], "note": d["note"], "no_output": d["no_output"], "responsibility": d["responsibility"],
         "no_output_label": dayflags.NO_OUTPUT_LABEL, "no_output_hint": dayflags.NO_OUTPUT_HINT,
     }

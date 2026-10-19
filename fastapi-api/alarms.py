@@ -1175,7 +1175,7 @@ def build_analytics_workbook(data: dict[str, Any], metric: str) -> bytes:
 
     # график Парето: данные на скрытом листе «График»
     par = data["pareto"][metric]
-    gs.write_row(0, 0, ["Авария", "Число появлений" if metric == "count" else "Суммарно, мин", "Накопленная доля"])
+    gs.write_row(0, 0, ["Авария", "Число появлений" if metric == "count" else "Суммарно, мин", "Накопленный %"])
     for i, p in enumerate(par, start=1):
         gs.write(i, 0, p["label"])
         gs.write_number(i, 1, p["value"])
@@ -1188,7 +1188,7 @@ def build_analytics_workbook(data: dict[str, Any], metric: str) -> bytes:
         ch.add_series({"name": "Число появлений" if metric == "count" else "Суммарно, мин", "categories": cats,
                        "values": ["График", 1, 1, n, 1], "fill": {"color": "#2F80ED"}, "gap": 50})
         ln = wb.add_chart({"type": "line"})
-        ln.add_series({"name": "Накопленная доля", "categories": cats, "values": ["График", 1, 2, n, 2], "y2_axis": True,
+        ln.add_series({"name": "Накопленный %", "categories": cats, "values": ["График", 1, 2, n, 2], "y2_axis": True,
                        "line": {"color": "#27AE60", "width": 2}, "marker": {"type": "circle", "size": 5}})
         ch.combine(ln)
         ch.set_title({"name": f"{PARETO_TITLE}, {PARETO_METRICS[metric]}"})

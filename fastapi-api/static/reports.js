@@ -69,6 +69,16 @@
     });
   }
 
+  // Блок «По ответственным»: минуты отставания по отделам (ПР, ОТО, ИТО, ДР), «не описано», «ждёт подтверждения», «спорно». Числа с сервера, как в Excel
+  const respCard = r => {
+    const K = window.respKit;
+    if (!r || !K) return '';
+    const rows = K.tableRows(r);
+    return card(K.TITLE, 'Сколько минут отставания приходится на каждый отдел за выбранный день или период. Сумма ПР, ОТО, ИТО, ДР и «Не описано» равна «Всего» (плитка «Простой, мин»); «Ждёт подтверждения» и «Спорно» это часть минут отделов',
+      `<table class="users-table rep-prev-t resp-t"><thead><tr>${K.HEADS.map((h, i) => `<th title="${esc(K.TIPS[i])}">${esc(h)}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map((x, ri) => `<tr>${x.map(v => `<td${ri ? ' class="resp-sub"' : ''}>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`);
+  };
+
   // один день: строки отчёта дня и график по часам (как в файле Excel)
   async function drawDay(my, q) {
     const d = await api(`/api/kpi/screens/${state.screen}/day-preview?date=${state.from}`);
@@ -89,7 +99,8 @@
     q('chart').innerHTML = window.andonChart ? window.andonChart.planFact(days, Math.max(360, q('chart').clientWidth || 640)) : '';
     const rows = d.rows.slice(0, 500);
     q('tables').innerHTML = card('Таблица отчёта', 'Строки отчёта: по строке на причину простоя, интервалы без простоя одной строкой', table(d.headers, rows, 'rep-day')
-      + (d.rows.length > rows.length ? `<div class="hint">Показаны первые ${rows.length} из ${d.rows.length} строк, остальные в файле Excel</div>` : ''));
+      + (d.rows.length > rows.length ? `<div class="hint">Показаны первые ${rows.length} из ${d.rows.length} строк, остальные в файле Excel</div>` : ''))
+      + respCard(d.responsibility);
   }
 
   // несколько дней: итоги по дням, причины и станции (как листы сводного отчёта)
@@ -111,7 +122,8 @@
       card('По дням', 'Итоги по каждому дню периода: план, факт, выполнение и простой', table(['Дата', 'План', 'Факт', '±', '% выполнения', 'Простой, мин', 'Описано, мин', 'Не описано, мин'],
         d.days.map(x => window.dayFlag.periodDayRow(x, { fmtD, fmtNum, pct1 })), '', i => (d.days[i].no_output ? 'rep-noout' : '')))
       + card('Причины простоя', 'Минуты простоя по причинам за период, от самых долгих', table(['Причина', 'Минут', 'Доля'], d.reasons.map(x => [x.name, fmtNum(x.min), totalR ? pct1(x.min / totalR) : '—'])))
-      + card('Простой по станциям', 'Минуты простоя по станциям за период, от самых долгих', table(['Участок', 'Станция', 'Минут', 'Доля'], d.stations.map(x => [x.area, x.station, fmtNum(x.min), totalS ? pct1(x.min / totalS) : '—'])));
+      + card('Простой по станциям', 'Минуты простоя по станциям за период, от самых долгих', table(['Участок', 'Станция', 'Минут', 'Доля'], d.stations.map(x => [x.area, x.station, fmtNum(x.min), totalS ? pct1(x.min / totalS) : '—'])))
+      + respCard(d.responsibility);
   }
 
   // silent: фоновое перечитывание (правка с другого устройства видна не позднее REFRESH_MS): без «Загрузка…», позиция прокрутки таблиц сохраняется
@@ -124,7 +136,7 @@
     markPreset();
     try {
       if (state.from === state.to) await drawDay(my, q); else await drawPeriod(my, q);
-      if (my === token && window.attachColWidths) q('tables').querySelectorAll('table').forEach((t, i) => window.attachColWidths(t, `report-${state.from === state.to ? 'day' : 'p' + i}`));
+      if (my === token && window.attachColWidths) q('tables').querySelectorAll('table').forEach((t, i) => window.attachColWidths(t, `report-${state.from === state.to ? (i ? 'day' + i : 'day') : 'p' + i}`));
       if (my === token) pane.querySelectorAll('.rep-prev-table').forEach((e, i) => { if (scroll[i]) { e.scrollTop = scroll[i][0]; e.scrollLeft = scroll[i][1]; } });
     } catch (ex) { if (my === token && !silent) q('tables').innerHTML = `<div class="empty">${esc(ex.message)}</div>`; }
   }

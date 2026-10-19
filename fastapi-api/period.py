@@ -12,8 +12,9 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
 
 import dayflags
-from downtime import _screen_path
+from downtime import _screen_path, owner_label
 from history import cumulative_day, download_name, safe_name
+from responsibility import owner_split, write_responsibility
 
 router = APIRouter(prefix="/api/kpi")
 
@@ -36,7 +37,7 @@ async def _load(pool: asyncpg.Pool, screen_id: int, d1: date, d2: date) -> dict[
         "SELECT prod_date, sum(minutes) AS m FROM kpi_downtimes WHERE screen_id = $1 AND prod_date BETWEEN $2 AND $3 AND source = 'plan' "
         "GROUP BY prod_date", screen_id, d1, d2)}
     items = await pool.fetch(
-        "SELECT d.prod_date, d.idx, i.area_id, i.station_id, i.reason_id, i.minutes, i.note, i.created_by_name "
+        "SELECT d.prod_date, d.idx, i.area_id, i.station_id, i.reason_id, i.minutes, i.note, i.owner, i.created_by_name "
         "FROM kpi_downtime_items i JOIN kpi_downtimes d ON d.id = i.downtime_id "
         "WHERE d.screen_id = $1 AND d.prod_date BETWEEN $2 AND $3 ORDER BY d.prod_date, d.idx, i.id",
         screen_id, d1, d2,
@@ -276,7 +277,7 @@ def _write_days(ws, f, sm_days: list[dict[str, Any]], full: bool, r0: int = 0) -
 
 
 def _write_reasons(rs, f, rows: list[tuple[str, float]], r0: int = 0) -> None:
-    rs.write_row(r0, 0, ["Причина", "Минут", "Доля", "Накопленная доля"], f["head"])
+    rs.write_row(r0, 0, ["Причина", "Минут", "Доля", "Накопленный %"], f["head"])
     total, cum = sum(m for _, m in rows), 0.0
     for r, (name, m) in enumerate(rows, start=r0 + 1):
         cum += m
@@ -392,13 +393,16 @@ def write_period_section(wb, ws, f: dict[str, Any], title: str, data: dict[str, 
         cs.hide()
         ws.insert_chart(end + 1, 0, _chart_cumulative(wb, cum_sheet, len(cum)))
         end += 1 + _rows_for(340)
+    if n:
+        # блок «По ответственным» (как на экране «Отчёты»): минуты по отделам из той же функции, что Andon и «Простои»
+        end = write_responsibility(wb, ws, end + 1, owner_split(data))
     return end
 
 
 def write_downtime_list(ls, f: dict[str, Any], data: dict[str, Any]) -> None:
     """Полный список простоев на отдельном листе (на экране его нет)."""
     items, areas, stations, reasons, starts = data["items"], data["areas"], data["stations"], data["reasons"], data["starts"]
-    heads = ["Дата", "№", "Начало", "Окончание", "Участок", "Станция", "Причина", "Минут", "Описание", "Внёс"]
+    heads = ["Дата", "№", "Начало", "Окончание", "Участок", "Станция", "Причина", "Отв.", "Минут", "Описание", "Внёс"]
     ls.write_row(0, 0, heads, f["head"])
     for r, it in enumerate(items, start=1):
         st = starts.get((it["prod_date"], it["idx"]), (None, None))
@@ -409,10 +413,11 @@ def write_downtime_list(ls, f: dict[str, Any], data: dict[str, Any]) -> None:
         ls.write(r, 4, areas.get(it["area_id"], "—"))
         ls.write(r, 5, stations.get(it["station_id"], "—"))
         ls.write(r, 6, reasons.get(it["reason_id"], "—"))
-        ls.write(r, 7, float(it["minutes"]), f["n1"])
-        ls.write(r, 8, it["note"] or "")
-        ls.write(r, 9, it["created_by_name"] or "")
-    for c, w in enumerate([12, 5, 9, 11, 20, 20, 26, 8, 40, 24]):
+        ls.write(r, 7, owner_label(it["owner"]))
+        ls.write(r, 8, float(it["minutes"]), f["n1"])
+        ls.write(r, 9, it["note"] or "")
+        ls.write(r, 10, it["created_by_name"] or "")
+    for c, w in enumerate([12, 5, 9, 11, 20, 20, 26, 8, 8, 40, 24]):
         ls.set_column(c, c, w)
     ls.freeze_panes(1, 0)
     ls.autofilter(0, 0, max(len(items), 1), len(heads) - 1)
@@ -532,9 +537,10 @@ async def charts_data(
     _check_period(date_from, date_to)
     pool: asyncpg.Pool = request.app.state.pool
     line, _ = await _screen_line(pool, screen_id)
-    sm = summarize(await _load(pool, screen_id, date_from, date_to))
+    data = await _load(pool, screen_id, date_from, date_to)
+    sm = summarize(data)
     return {
-        "line": line, "from": date_from.isoformat(), "to": date_to.isoformat(),
+        "line": line, "from": date_from.isoformat(), "to": date_to.isoformat(), "responsibility": owner_split(data),
         "days": [{**d, "date": d["date"].isoformat()} for d in sm["days"]],
         "totals": sm["totals"],
         "no_output_label": dayflags.NO_OUTPUT_LABEL, "no_output_hint": dayflags.NO_OUTPUT_HINT,

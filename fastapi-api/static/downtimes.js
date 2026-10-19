@@ -8,6 +8,7 @@
   const f = { preset: 'today', from: '', to: '', rest: false, comments: false, mine: false };
   let today = null;
   let data = [];
+  let resp = null;                // итоги отставания по отделам за период (считает сервер, responsibility.py)
   let built = false;
   let sorts = [];                 // [{ k, dir }] — dir: 1 по возрастанию, -1 по убыванию
   const colFilters = {};          // ключ столбца -> Set разрешённых значений
@@ -38,6 +39,7 @@
     { k: 'fact', t: 'Факт', tip: 'Фактическое количество кузовов за интервал', get: r => String(r.fact), val: r => r.fact, num: true, dup: true },
     { k: 'total', t: 'Простой, мин', tip: 'Всего минут простоя в интервале (повторяется у каждой причины интервала)', get: r => fmt(r.minutes), val: r => r.minutes, num: true, dup: true },
     { k: 'reason', t: 'Причина', tip: 'Причина простоя; «Не описано» — минуты, для которых причина ещё не указана', get: r => (rest(r) ? 'Не описано' : (r.reason || '')), filter: true },
+    { k: 'owner', t: 'Отв.', tip: 'Ответственный за отставание по этой причине: ПР производство, ОТО, ИТО, ДР другое (внешние причины). … ждёт подтверждения, ✓ подтверждено, ! спорно', get: r => (rest(r) ? '' : window.dtOwner.ownLabel(r.owner, r.owner_status)), filter: true },
     { k: 'mins', t: 'Мин.', tip: 'Сколько минут из простоя приходится на эту причину', get: r => fmt(r.item_minutes), val: r => r.item_minutes, num: true },
     { k: 'note', t: 'Описание', tip: 'Что произошло (текст строки описания)', get: r => (rest(r) ? '' : (r.note || '')) },
     { k: 'who', t: 'Внёс', tip: 'Кто внёс строку описания', get: r => (rest(r) ? '' : (r.created_by_name || '')), filter: true },
@@ -70,6 +72,7 @@
     if (!res) { pane.querySelector('#dl-body').innerHTML = '<div class="empty">Не удалось загрузить простои</div>'; return; }
     today = res.today;
     data = res.rows;
+    resp = res.responsibility || null;
     pane.querySelector('#dl-from').value = res.from || '';
     pane.querySelector('#dl-to').value = res.to || '';
     draw();
@@ -91,7 +94,7 @@
         <button type="button" id="dl-reset" class="dt-sec dl-btn" title="Снять все фильтры по столбцам и сортировку">Сбросить фильтры</button>
         <button type="button" id="dl-copyall" class="dt-sec dl-btn" title="Скопировать всю показанную таблицу с заголовками: её можно вставить в Excel">Копировать таблицу</button>
       </div>
-      <div id="dl-sum" class="dl-sum"></div><div id="dl-body" class="dl-body" tabindex="0" title="Выделите ячейки мышью и нажмите Ctrl+C, чтобы скопировать"></div>`;
+      <div id="dl-resp" class="resp-block"></div><div id="dl-sum" class="dl-sum"></div><div id="dl-body" class="dl-body" tabindex="0" title="Выделите ячейки мышью и нажмите Ctrl+C, чтобы скопировать"></div>`;
     pane.querySelectorAll('#dl-presets button').forEach(b => b.addEventListener('click', () => { f.preset = b.dataset.p; load(); }));
     const dates = () => { f.preset = 'custom'; f.from = pane.querySelector('#dl-from').value; f.to = pane.querySelector('#dl-to').value; load(); };
     pane.querySelector('#dl-from').addEventListener('change', dates);
@@ -230,8 +233,28 @@
     else if (e.key === 'Escape') { sel = null; paintSel(); }
   }
 
+  // Блок «Минуты по ответственным» за выбранный период (все линии; фильтры столбцов и галочки на него не влияют). Числа с сервера
+  function drawResp() {
+    const box = pane.querySelector('#dl-resp');
+    if (!box) return;
+    const K = window.respKit;
+    if (!resp || !K) { box.innerHTML = ''; return; }
+    const rows = K.tableRows(resp);
+    box.innerHTML = `<h3 title="Сколько минут отставания приходится на каждый отдел за выбранный период, по всем линиям. Сумма ПР, ОТО, ИТО, ДР и «Не описано» равна «Всего»; «Ждёт подтверждения» и «Спорно» это часть минут отделов. Фильтры таблицы ниже на блок не действуют">${esc(K.TAB_TITLE)}
+      <button type="button" class="dt-sec dl-btn" id="dl-resp-copy" title="Скопировать блок вместе с заголовками: его можно вставить в Excel">Копировать</button></h3>
+      <table class="users-table resp-t"><thead><tr>${K.HEADS.map((h, i) => `<th title="${esc(K.TIPS[i])}">${esc(h)}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map((r, ri) => `<tr>${r.map((v, i) => `<td${ri ? ' class="resp-sub"' : ''}>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    box.querySelector('#dl-resp-copy').addEventListener('click', () => {
+      const text = [K.HEADS, ...rows].map(r => r.join('\t')).join('\n');
+      const done = () => toast('Скопировано: блок «Минуты по ответственным»');
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, () => toast('Не удалось скопировать')); else toast('Не удалось скопировать');
+    });
+    if (window.attachColWidths) window.attachColWidths(box.querySelector('table'), 'downtimes-resp');
+  }
+
   // ---------- отрисовка ----------
   function draw() {
+    drawResp();
     pane.querySelectorAll('#dl-presets button').forEach(b => b.classList.toggle('active', b.dataset.p === f.preset));
     const u = me();
     const mineBox = pane.querySelector('#dl-mine');
