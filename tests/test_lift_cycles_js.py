@@ -52,7 +52,8 @@ def test_plant_offset_from_iso_and_seconds_text():
     assert run("['2026-10-15T00:00:00+05:00','2026-10-15T00:00:00-03:30','2026-10-15T00:00:00Z','2026-10-15T00:00:00'].map(c.isoOffsetMs)") == [
         18000000, -12600000, 0, None]
     assert run("[4.25, 12, 0, null, undefined].map(c.fmtSec)") == ["4,3", "12", "0", "—", "—"]
-    assert run("c.LIFT_STATUS") == {"ok": "Норма", "problem": "Проблема", "aborted": "Прерван", "open": "Не закончен"}
+    assert run("c.LIFT_STATUS") == {"ok": "Норма", "problem": "Проблема", "stuck": "Остановка в пути",
+                                     "aborted": "Прерван", "open": "Не закончен"}
 
 
 def test_section_title_columns_and_widths():
@@ -75,3 +76,22 @@ def test_lift_css_uses_only_variables():
     css = CSS.split("«Циклы лифтов»")[1].split("\n/*")[0]
     assert not re.search(r"#[0-9a-fA-F]{3,6}\b", css)
     assert "var(--ok)" in css and "var(--danger)" in css and "var(--accent)" in css and "--warn" not in css
+
+
+@needs_node
+def test_duration_text_minutes_and_seconds():
+    # длительность остановки: до минуты секунды как fmtSec, дальше «N мин N с»
+    assert run("[247.777, 245, 60, 59.44, 3, 0, null].map(c.fmtDur)") == [
+        "4 мин 8 с", "4 мин 5 с", "1 мин 0 с", "59,4 с", "3 с", "0 с", "—"]
+
+
+def test_stuck_row_tile_and_diagram():
+    s = lift_section()
+    assert "'stuck'" in s and "lc-s-problem" in s
+    assert "Лифт стоял между уровнями после пропажи разрешения" in s       # «Ожидание, с» у остановки = stop_s
+    assert "Этот сигнал пропал в момент остановки" in s                   # «Последний сигнал» = lost_signal
+    assert ">Остановок <b>" in s and "s.stuck" in s                     # плитка рядом с «Проблема»
+    assert s.index(">Проблема <b>") < s.index(">Остановок <b>")
+    assert "остановка в пути " in s and "Лифт встал, когда пропал " in s and "lc-stop" in s
+    css = CSS.split("«Циклы лифтов»")[1].split("\n/*")[0]
+    assert re.search(r"\.lc-stop \{ fill: color-mix\(in srgb, var\(--danger\)", css)

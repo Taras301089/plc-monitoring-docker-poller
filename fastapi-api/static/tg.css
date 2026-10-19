@@ -1,0 +1,40 @@
+/* Вкладка «Оповещения»: Telegram (стиль Flat Dark, цвета только из переменных) */
+#notifications { padding: 0 0 20px; }
+#notifications [hidden] { display: none !important; }
+.tg-msg { margin: 0 0 8px; font-size: var(--fs-small); color: var(--fg-secondary); }
+.tg-grid { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(420px, 2fr); gap: 12px; align-items: start; }
+.tg-card { min-width: 0; padding: 10px 12px; background: var(--bg-primary); border-radius: 6px; box-shadow: var(--shadow-out); }
+.tg-wide { grid-column: 1 / -1; }
+.tg-h { margin: 0 0 8px; font-size: var(--fs-small); font-weight: 700; color: var(--fg-primary); }
+.tg-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; font-size: var(--fs-small); color: var(--fg-primary); }
+.tg-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--fg-secondary); }
+.tg-dot-on { background: var(--ok); }
+.tg-muted, .tg-note { font-size: var(--fs-small); color: var(--fg-secondary); }
+.tg-bad { color: var(--danger); font-weight: 600; }
+.tg-btns { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+#notifications .tg-btns button, #notifications .tg-act button { min-height: 32px; padding: 0 12px; border: 0; border-radius: 4px; font-size: var(--fs-small); white-space: nowrap; }
+#notifications button:disabled { opacity: .4; cursor: not-allowed; }
+.tg-link { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 8px; padding: 8px 10px; font-size: var(--fs-small); background: var(--bg-secondary); border-radius: 4px; box-shadow: inset 3px 0 0 var(--accent); overflow-wrap: anywhere; }
+.tg-link a { color: var(--accent); }
+.tg-code { font-variant-numeric: tabular-nums; letter-spacing: .04em; color: var(--fg-primary); user-select: all; }
+.tg-tablewrap { overflow-x: auto; max-width: 100%; }
+.tg-table { width: 100%; border-collapse: collapse; font-size: var(--fs-small); }
+.tg-table th { text-align: left; font-weight: 600; color: var(--fg-secondary); padding: 4px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tg-table td { padding: 3px 8px; border-bottom: 1px solid var(--line); color: var(--fg-primary); vertical-align: middle; }
+.tg-table tbody tr:nth-child(even) { background: var(--zebra); }
+.tg-table tbody tr:hover { background: var(--hover); }
+.tg-table .tg-c { text-align: center; width: 1%; }
+.tg-table .tg-n { text-align: right; font-variant-numeric: tabular-nums; }
+.tg-table .tg-act { white-space: nowrap; }
+.tg-table .tg-act button + button { margin-left: 6px; }
+.tg-table tr.tg-dim td { color: var(--fg-secondary); }
+.tg-table input[type="checkbox"] { width: 16px; height: 16px; min-height: 0; margin: 0; accent-color: var(--accent); cursor: pointer; }
+#notifications .tg-table input[type="text"], #notifications .tg-table input[type="number"] {
+  min-height: 28px; padding: 0 6px; border: 0; border-radius: 4px; font-size: var(--fs-small); color: var(--fg-primary);
+  background: var(--field-bg); box-shadow: var(--shadow-in); box-sizing: border-box;
+}
+#notifications .tg-table input:focus { outline: none; box-shadow: var(--shadow-in), inset 0 0 0 1px var(--accent); }
+#notifications .tg-table input.tg-lines { width: 100%; min-width: 120px; }
+#notifications .tg-table input.tg-hour { width: 4.5em; text-align: center; font-variant-numeric: tabular-nums; }
+.tg-off .tg-tablewrap { opacity: .5; }
+@media (max-width: 955px) { .tg-grid { grid-template-columns: 1fr; } }

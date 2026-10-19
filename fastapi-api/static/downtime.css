@@ -399,6 +399,7 @@ body.andon-archive .andon-day input[type="date"] { box-shadow: inset 0 0 0 1px v
 .lc-svg .lc-go { fill: var(--accent); }
 .lc-svg .lc-wait { fill: color-mix(in srgb, var(--fg-secondary) 8%, transparent); }
 .lc-svg .lc-wait-bad { fill: color-mix(in srgb, var(--danger) 16%, transparent); }
+.lc-svg .lc-stop { fill: color-mix(in srgb, var(--danger) 22%, transparent); }
 
 /* Клик по тексту описания в колонке «Причина» открывает окно комментария (на табло без входа клик не активен) */
 .kpi-table td.why .why-click { cursor: default; }

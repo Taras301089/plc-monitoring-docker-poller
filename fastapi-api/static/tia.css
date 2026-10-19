@@ -1,13 +1,30 @@
-/* Панель «Проекты TIA» во вкладке «Переменные ПЛК» (только администратор) */
-.area-tia .tia-body { padding: 8px 12px 12px; }
-.area-tia .panel-header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.tia-svc { margin-left: auto; font-size: var(--fs-small); font-weight: 400; }
+/* Выгрузка проекта TIA (только администратор): кнопка в строке выбора ПЛК на вкладке «ПЛК» и окно выгрузки (tiaexport.js) */
+.area-plc-body #tia-open { flex: none; min-height: 34px; padding: 0 14px; font-size: var(--fs-small); white-space: nowrap;
+  background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); }
+.area-plc-body #tia-open:disabled { color: var(--fg-secondary); opacity: .6; cursor: not-allowed; }
+/* узкое окно: кнопки строки ПЛК переносятся на новую строку, а не наезжают на список */
+@media (max-width: 1100px) { .area-plc-body { flex-wrap: wrap; } }
+
+.tia-box { width: min(860px, 94vw); }
+.tia-box h3 { overflow-wrap: anywhere; }
+.tia-box .tia-close { background: var(--bg-tertiary) !important; color: var(--fg-primary); }
+/* строка окна: Источник · Путь сохранения · Выгрузить · служба; на узком окне переносится */
+.tia-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 8px; }
+.tia-box .tia-f { display: flex; align-items: center; gap: 6px; margin: 0; font-size: var(--fs-small); font-weight: 400; letter-spacing: 0;
+  text-transform: none; color: var(--fg-secondary); white-space: nowrap; }
+.tia-box .tia-f select, .tia-box .tia-f input { min-height: 32px; font-size: var(--fs-small); text-align: left; }
+.tia-box .tia-f select { width: auto; min-width: 200px; max-width: 320px; }
+.tia-path { flex: 1 1 260px; }
+.tia-box .tia-path input[type="text"] { flex: 1; min-width: 160px; width: auto; }
+.tia-bar button { min-height: 32px; padding: 0 14px; white-space: nowrap; }
+.tia-none { color: var(--fg-secondary); }
+.tia-svc { margin-left: auto; font-size: var(--fs-small); white-space: nowrap; }
 .tia-svc.on { color: var(--ok); }
 .tia-svc.off { color: var(--danger); }
-.tia-table { width: 100%; }
-.tia-table th, .tia-table td { font-size: var(--fs-small); text-align: left; padding: 5px 10px; }
-.tia-table .tia-chk { width: 34px; text-align: center; }
+.tia-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 10px; font-size: var(--fs-small); color: var(--fg-primary); }
+.tia-line .dt-sec { min-height: 28px; padding: 0 10px; white-space: nowrap; }
+.tia-line .dim, .tia-saved { color: var(--fg-secondary); }
+.tia-saved { overflow-wrap: anywhere; }
 .tia-ok { color: var(--ok); }
-.tia-err { color: var(--danger); }
+.tia-err { color: var(--danger); overflow-wrap: anywhere; }
 .tia-run { color: var(--accent); }
-.tia-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 10px; }
