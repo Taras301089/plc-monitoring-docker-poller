@@ -152,15 +152,15 @@ async def test_manual_screen_counts_its_own_downtimes(app, users, anon, pool):
     assert r["total"] == 24 and r["owners"]["production"] == 9 and r["undescribed"] == 15
 
 
-def test_disputed_is_a_separate_slice(monkeypatch):
-    """«Спорно» берётся из статуса строки (шаг 2 задачи T-15 даст его реально): отдел остаётся в сумме, срез отдельно."""
+def test_disputed_is_a_separate_slice():
+    """«Спорно» берётся из ответа отдела «Не согласен» (шаг 2 задачи T-15): отдел остаётся в сумме, срез отдельно."""
     import responsibility
     from datetime import date as d
     data = {"days": [{"prod_date": d(2026, 10, 5), "plan": 10, "fact": 5}], "dt_minutes": {d(2026, 10, 5): 30.0}, "no_output": set(),
-            "items": [{"prod_date": d(2026, 10, 5), "idx": 1, "area_id": None, "station_id": None, "reason_id": 1, "minutes": 10, "owner": "oto"},
+            "items": [{"prod_date": d(2026, 10, 5), "idx": 1, "area_id": None, "station_id": None, "reason_id": 1, "minutes": 10, "owner": "oto",
+                       "answer": "disagree", "resp_minutes": None},
                       {"prod_date": d(2026, 10, 5), "idx": 1, "area_id": None, "station_id": None, "reason_id": 1, "minutes": 6, "owner": "production"}],
             "areas": {}, "stations": {}, "reasons": {1: "r"}}
-    monkeypatch.setattr(downtime, "owner_status", lambda o: "disputed" if o == "oto" else "confirmed")
     r = responsibility.owner_split(data)
     assert r["total"] == 30 and r["owners"]["oto"] == 10 and r["owners"]["production"] == 6 and r["undescribed"] == 14
     assert r["disputed"] == 10 and r["pending"] == 0 and r["disputed_by"]["oto"] == 10

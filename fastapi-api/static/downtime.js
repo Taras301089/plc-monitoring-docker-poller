@@ -109,7 +109,7 @@
         }
       } else if (td.dataset.sig) { td.textContent = ''; td.dataset.sig = ''; }
       fillWhy(tr, d && (d.minutes > 0 || d.comments > 0) ? d : null);
-      fillOwn(tr, d && (d.minutes > 0 || d.comments > 0) ? d : null);
+      fillOwn(tr, d && (d.minutes > 0 || d.comments > 0) ? d : null, screen);
       // клик по «не описан» открывает тот же редактор простоя, что и кнопка с минутами в этой строке
       const whyTd = tr.querySelector('[data-k="why"]');
       if (whyTd) whyTd.onclick = e => {
@@ -153,18 +153,36 @@
 
   // Колонка «Отв.»: по одному сокращению на каждую причину в том же порядке, что в колонке «Причина» (по убыванию минут).
   // Статус знаком и цветом без зелёного: «…» серый (ждёт подтверждения), «✓» основной цвет (подтверждено), «!» красный (спорно)
-  function fillOwn(tr, d) {
+  function fillOwn(tr, d, screen) {
     const td = tr.querySelector('[data-k="own"]');
     if (!td) return;
     const its = d ? [...(d.items || [])].filter(it => OWNERS[it.owner]).sort((a, b) => b.minutes - a.minutes) : [];   // «не назначен» на Andon не показывается
+    // знак ОТО / ИТО кликабелен для вошедшего, кто может ответить за отдел (окно «Ответ отдела», dtresponse.js); на табло без входа не кликается
+    const R = window.dtResponse;
+    const u = (window.authState && window.authState().user) || null;
     const html = its.map(it => {
       const st = it.owner_status || ownStatus(it.owner);
       const o = OWNERS[it.owner];
       const reason = dict ? (dict.reasons.find(r => r.id === it.reason_id) || {}).name : '';
-      const tip = `Ответственный: ${o[1]}, ${OWN_STATUS[st][1]}${reason ? `. Причина: ${reason}` : ''}`;
-      return `<span class="own-i own-${st}" title="${esc(tip)}">${esc(o[0])}<b>${OWN_STATUS[st][0]}</b></span>`;
+      const can = !!(R && R.canRespond(u, it.owner));
+      const tip = (R ? R.ownTip(it.owner, st, it.response, reason, it.minutes) : `Ответственный: ${o[1]}, ${OWN_STATUS[st][1]}${reason ? `. Причина: ${reason}` : ''}`)
+        + (can ? '. Нажмите, чтобы ответить за отдел: согласен, частично или не согласен' : '');
+      return `<span class="own-i own-${st}${can ? ' own-click' : ''}" data-item="${it.id}" title="${esc(tip)}">${esc(o[0])}<b>${OWN_STATUS[st][0]}</b></span>`;
     }).join('');
     if (td.dataset.sig !== html) { td.innerHTML = html; td.dataset.sig = html; }
+    td.onclick = e => {
+      const sp = e.target.closest('.own-click');
+      const it = sp && d && (d.items || []).find(x => x.id === Number(sp.dataset.item));
+      if (!it || !R) return;
+      e.stopPropagation();
+      const time = tr.querySelector('[data-k="time"]');
+      R.open({ item: it, time: time ? time.textContent : '', dtMinutes: d.minutes, reason: dict ? (dict.reasons.find(r => r.id === it.reason_id) || {}).name : '',
+        note: it.note || '', onDone: async () => {
+          await load(screen.id, true);
+          if (window.dtApply && andonScreenId === screen.id) window.dtApply(screen, document.querySelector('#andon'));
+          if (window.dtListRefresh) window.dtListRefresh();
+        } });
+    };
   }
 
   // Колонка «Причина»: до трёх строк (причина, описание, следующая причина...), остальное сворачивается в «+N»

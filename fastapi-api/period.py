@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
 
 import dayflags
-from downtime import _screen_path, owner_label
+from downtime import _screen_path, owner_label, owner_status
 from history import cumulative_day, download_name, safe_name
 from responsibility import owner_split, write_responsibility
 
@@ -37,8 +37,11 @@ async def _load(pool: asyncpg.Pool, screen_id: int, d1: date, d2: date) -> dict[
         "SELECT prod_date, sum(minutes) AS m FROM kpi_downtimes WHERE screen_id = $1 AND prod_date BETWEEN $2 AND $3 AND source = 'plan' "
         "GROUP BY prod_date", screen_id, d1, d2)}
     items = await pool.fetch(
-        "SELECT d.prod_date, d.idx, i.area_id, i.station_id, i.reason_id, i.minutes, i.note, i.owner, i.created_by_name "
+        # ответ отдела (только того, кто сейчас ответственный): по нему статус и деление минут «Частично» (responsibility.owner_split)
+        "SELECT d.prod_date, d.idx, i.area_id, i.station_id, i.reason_id, i.minutes, i.note, i.owner, i.created_by_name, "
+        "rp.answer, rp.minutes AS resp_minutes "
         "FROM kpi_downtime_items i JOIN kpi_downtimes d ON d.id = i.downtime_id "
+        "LEFT JOIN kpi_downtime_responses rp ON rp.item_id = i.id AND rp.department = i.owner "
         "WHERE d.screen_id = $1 AND d.prod_date BETWEEN $2 AND $3 ORDER BY d.prod_date, d.idx, i.id",
         screen_id, d1, d2,
     )
@@ -413,7 +416,7 @@ def write_downtime_list(ls, f: dict[str, Any], data: dict[str, Any]) -> None:
         ls.write(r, 4, areas.get(it["area_id"], "—"))
         ls.write(r, 5, stations.get(it["station_id"], "—"))
         ls.write(r, 6, reasons.get(it["reason_id"], "—"))
-        ls.write(r, 7, owner_label(it["owner"]))
+        ls.write(r, 7, owner_label(it["owner"], owner_status(it["owner"], it.get("answer"))))
         ls.write(r, 8, float(it["minutes"]), f["n1"])
         ls.write(r, 9, it["note"] or "")
         ls.write(r, 10, it["created_by_name"] or "")

@@ -26,6 +26,7 @@ from history import router as history_router
 from colwidths import ensure_colwidths_schema, router as colwidths_router
 from period import router as period_router
 from responsibility import router as responsibility_router
+from dtresponse import router as dtresponse_router
 from reports import ensure_reports_schema, reports_loop, router as reports_router
 from activity import ensure_activity_schema, router as activity_router
 from comments import ensure_comments_schema, router as comments_router
@@ -321,6 +322,7 @@ app.include_router(history_router)
 app.include_router(colwidths_router)
 app.include_router(period_router)
 app.include_router(responsibility_router)
+app.include_router(dtresponse_router)
 app.include_router(reports_router)
 app.include_router(manual_router)
 app.include_router(comments_router)

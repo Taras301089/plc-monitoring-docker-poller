@@ -436,3 +436,22 @@ body.tv-mode.logged-in .kpi-table td.why .why-click:hover .why-main { text-decor
 .resp-t th, .resp-t td { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .resp-t th:first-child, .resp-t td:first-child { text-align: left; }
 .resp-t td.resp-sub { color: var(--fg-secondary); }
+
+/* Ответ отдела ОТО / ИТО (окно «Ответ отдела», dtresponse.js): знак в «Отв.» кликабелен только у того, кто может ответить; поля в столбик, окно по центру */
+.kpi-table td.own .own-click, .dl-table .own-click { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; }
+.kpi-table td.own .own-click:hover, .dl-table .own-click:hover { background: var(--hover); border-radius: 4px; }
+.dl-table .own-i { font-weight: 600; white-space: nowrap; }
+.dl-table .own-pending { color: var(--fg-secondary); }
+.dl-table .own-confirmed { color: var(--fg-primary); }
+.dl-table .own-disputed { color: var(--danger); }
+.dr-box { width: min(520px, 96vw); }
+.dr-head { overflow-wrap: anywhere; }
+.dr-opts { display: flex; flex-direction: column; gap: 8px; font-size: var(--fs-small); }
+.dr-opt { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; cursor: pointer; }
+.dr-opt input[type="radio"] { margin: 0; min-height: 0; width: auto; accent-color: var(--accent); }
+.dr-min { width: 90px; min-height: 28px; text-align: center; font-size: var(--fs-small); }
+.dr-rest { margin: -4px 0 0 24px; color: var(--fg-secondary); font-size: var(--fs-small); }
+.dr-rest[hidden] { display: none; }
+.dr-cm { width: 100%; box-sizing: border-box; min-height: 52px; resize: vertical; font: inherit; font-size: var(--fs-small); }
+.dr-cm.need { box-shadow: inset 0 0 0 1px var(--danger); }
+.dr-who { margin: 8px 0 0 !important; color: var(--fg-secondary); font-size: var(--fs-small) !important; }
