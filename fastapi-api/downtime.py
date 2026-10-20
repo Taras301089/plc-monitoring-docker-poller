@@ -27,9 +27,32 @@ STATUS_NAMES = {"pending": "ждёт подтверждения", "confirmed": "
 router = APIRouter(prefix="/api/kpi")
 
 
-def owner_status(owner: str | None) -> str:
-    """Статус ответственного: ОТО и ИТО ждут подтверждения отдела, у ПР и ДР сразу «подтверждено» («спорно» появится вместе с ответами отделов)."""
-    return "pending" if owner in ("oto", "ito") else "confirmed"
+ANSWERING = ("oto", "ito")   # отделы, которые отвечают на ответственность (у ПР и ДР ответа нет, всегда «подтверждено»)
+ANSWERS = {"agree": "Согласен", "partial": "Частично", "disagree": "Не согласен"}
+
+
+def owner_status(owner: str | None, answer: str | None = None) -> str:
+    """Статус ответственного по ответу отдела: у ПР и ДР всегда «подтверждено»; у ОТО и ИТО без ответа «ждёт подтверждения»,
+    «Согласен» и «Частично» дают «подтверждено», «Не согласен» даёт «спорно». answer: ответ ТОГО ЖЕ отдела, что сейчас ответственный."""
+    if owner not in ANSWERING:
+        return "confirmed"
+    return {"agree": "confirmed", "partial": "confirmed", "disagree": "disputed"}.get(answer or "", "pending")
+
+
+# ответ отдела к строке описания: только ответ того отдела, который сейчас ответственный (после смены ОТО → ИТО прежний ответ не действует)
+RESP_JOIN = ("LEFT JOIN kpi_downtime_responses rp ON rp.item_id = i.id AND rp.department = i.owner "
+             "LEFT JOIN app_users ru ON ru.id = rp.user_id")
+RESP_COLS = ("rp.answer AS resp_answer, rp.minutes AS resp_minutes, rp.comment AS resp_comment, rp.user_id AS resp_user_id, "
+             "rp.user_name AS resp_user_name, rp.updated_at AS resp_updated_at, ru.last_name AS resp_last, ru.role AS resp_role")
+
+
+def response_view(r: Any) -> dict[str, Any] | None:
+    """Ответ отдела для экрана: что ответили, сколько минут принял отдел (только «Частично»), комментарий, кто и когда."""
+    if r["resp_answer"] is None:
+        return None
+    return {"answer": r["resp_answer"], "minutes": None if r["resp_minutes"] is None else float(r["resp_minutes"]),
+            "comment": r["resp_comment"] or "", "user_id": r["resp_user_id"], "user_name": r["resp_user_name"] or "",
+            "author": _author(r["resp_last"], r["resp_role"], r["resp_user_name"] or ""), "updated_at": r["resp_updated_at"]}
 
 
 def owner_label(owner: str | None, status: str | None = None) -> str:
@@ -103,6 +126,35 @@ async def ensure_downtime_schema(pool: asyncpg.Pool) -> None:
         """
     )
     await pool.execute("ALTER TABLE kpi_downtime_items_log ADD COLUMN IF NOT EXISTS owner TEXT")
+    # ответ отдела ОТО / ИТО на ответственность (шаг 2 T-15): один ответ на строку описания, его можно изменить в любой день
+    await pool.execute(
+        """
+        CREATE TABLE IF NOT EXISTS kpi_downtime_responses (
+            id         SERIAL PRIMARY KEY,
+            item_id    INTEGER NOT NULL UNIQUE REFERENCES kpi_downtime_items(id) ON DELETE CASCADE,
+            department TEXT NOT NULL CHECK (department IN ('oto', 'ito')),
+            answer     TEXT NOT NULL CHECK (answer IN ('agree', 'partial', 'disagree')),
+            minutes    NUMERIC(6, 1) CHECK (minutes IS NULL OR minutes > 0),
+            comment    TEXT NOT NULL DEFAULT '',
+            user_id    INTEGER,
+            user_name  TEXT NOT NULL DEFAULT '',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+            CHECK (answer <> 'partial' OR minutes IS NOT NULL)
+        )
+        """
+    )
+    # журнал ответов: кто, когда, было, стало (create / update / delete); без внешнего ключа, чтобы история оставалась
+    await pool.execute(
+        """
+        CREATE TABLE IF NOT EXISTS kpi_downtime_responses_log (
+            id BIGSERIAL PRIMARY KEY, item_id INTEGER NOT NULL, department TEXT NOT NULL, action TEXT NOT NULL,
+            old_answer TEXT, old_minutes NUMERIC(6,1), old_comment TEXT,
+            new_answer TEXT, new_minutes NUMERIC(6,1), new_comment TEXT,
+            changed_by INTEGER, changed_by_name TEXT NOT NULL DEFAULT '', changed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+        """
+    )
 
 
 class ItemBody(BaseModel):
@@ -163,9 +215,9 @@ async def list_downtimes(screen_id: int, request: Request, day: date | None = Qu
     )
     items = await pool.fetch(
         "SELECT i.id, i.downtime_id, i.area_id, i.station_id, i.reason_id, i.minutes, i.note, i.owner, "
-        "i.created_by, i.created_by_name, i.updated_by_name, i.created_at, i.updated_at, u.last_name AS author_last, u.role AS author_role "
-        "FROM kpi_downtime_items i JOIN kpi_downtimes d ON d.id = i.downtime_id LEFT JOIN app_users u ON u.id = i.created_by "
-        "WHERE d.screen_id = $1 AND d.prod_date = $2 ORDER BY i.id",
+        "i.created_by, i.created_by_name, i.updated_by_name, i.created_at, i.updated_at, u.last_name AS author_last, u.role AS author_role, "
+        + RESP_COLS + " FROM kpi_downtime_items i JOIN kpi_downtimes d ON d.id = i.downtime_id LEFT JOIN app_users u ON u.id = i.created_by "
+        + RESP_JOIN + " WHERE d.screen_id = $1 AND d.prod_date = $2 ORDER BY i.id",
         screen_id, day,
     )
     # комментарии привязаны к строкам описания: считаем по строкам, а по простою берём сумму
@@ -197,7 +249,7 @@ async def list_downtimes(screen_id: int, request: Request, day: date | None = Qu
         by_dt.setdefault(it["downtime_id"], []).append(
             {**{k: it[k] for k in ("id", "area_id", "station_id", "reason_id", "note", "created_by", "created_by_name", "updated_by_name")},
              "minutes": _num(it["minutes"]), "created_at": it["created_at"], "updated_at": it["updated_at"],
-             "owner": it["owner"], "owner_status": owner_status(it["owner"]),
+             "owner": it["owner"], "owner_status": owner_status(it["owner"], it["resp_answer"]), "response": response_view(it),
              "comments": item_comments.get(it["id"], 0), "last_comment": last_comment.get(it["id"]),
              "recent_comments": recent_comments.get(it["id"], []),
              "author": _author(it["author_last"], it["author_role"], it["created_by_name"])}
@@ -260,12 +312,13 @@ async def downtimes_list(
                d.plan, d.fact, d.minutes, h.start_min, h.end_min,
                i.id AS item_id, i.minutes AS item_minutes, i.note, i.owner, i.created_by, i.created_by_name, i.updated_by_name,
                i.created_at, i.updated_at, ar.name AS area_name, st.name AS station_name, r.id AS reason_id, r.name AS reason_name,
-               (SELECT count(*) FROM kpi_downtime_comments c WHERE c.item_id = i.id AND c.deleted_at IS NULL) AS comments
+               (SELECT count(*) FROM kpi_downtime_comments c WHERE c.item_id = i.id AND c.deleted_at IS NULL) AS comments, """ + RESP_COLS + """
         FROM kpi_downtimes d
         JOIN kpi_screens s ON s.id = d.screen_id
         LEFT JOIN kpi_hourly h ON h.prod_date = d.prod_date AND h.idx = d.idx AND h.screen_id = COALESCE(
             CASE WHEN s.template = 'manual_counter' THEN (s.bindings->>'main')::int END, d.screen_id)
         LEFT JOIN kpi_downtime_items i ON i.downtime_id = d.id
+        """ + RESP_JOIN + """
         LEFT JOIN kpi_areas ar ON ar.id = i.area_id
         LEFT JOIN kpi_stations st ON st.id = i.station_id
         LEFT JOIN kpi_reasons r ON r.id = i.reason_id
@@ -300,7 +353,8 @@ async def downtimes_list(
             described += _num(r["item_minutes"])
             out.append({**base, "kind": "item", "first": first, "item_id": r["item_id"], "item_minutes": _num(r["item_minutes"]),
                         "area": r["area_name"], "station": r["station_name"], "reason_id": r["reason_id"], "reason": r["reason_name"],
-                        "note": r["note"], "owner": r["owner"], "owner_status": owner_status(r["owner"]),
+                        "note": r["note"], "owner": r["owner"], "owner_status": owner_status(r["owner"], r["resp_answer"]),
+                        "response": response_view(r),
                         "created_by": r["created_by"], "created_by_name": r["created_by_name"],
                         "updated_by_name": r["updated_by_name"], "created_at": r["created_at"], "updated_at": r["updated_at"],
                         "comments": r["comments"]})

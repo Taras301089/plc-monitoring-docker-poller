@@ -9,6 +9,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import threading
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -19,6 +21,8 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from auth import require_admin
+from readonly import READ_ONLY
+import tia_logic
 
 router = APIRouter(prefix="/api/tia", tags=["tia"])
 
@@ -161,9 +165,120 @@ async def get_projects(_: dict[str, Any] = Depends(require_admin)) -> dict[str, 
     rows = []
     for p in load_projects():
         jobs = _jobs_of(p["id"])
+        last = _last_done(jobs)
         rows.append({"id": p["id"], "name": p["name"], "plc": p["plc"], "target": _last_target(jobs),
-                     "job": _public_job(jobs[0] if jobs else None), "last": _last_done(jobs)})
+                     "job": _public_job(jobs[0] if jobs else None), "last": last, "logic": _logic_state(p["id"], last)})
     return {"alive": bridge_alive(), "default_target": DEFAULT_TARGET, "projects": rows}
+
+
+# --- Файл для ИИ: логика ПЛК из последнего ZIP (tia_logic.py), собирает сайт, не служба tia-bridge ---
+# Файл лежит в <BRIDGE_DIR>/logic/<id проекта>.json (на ПК C:\tia-bridge\logic\), состояние рядом в <id>.status.json (не в БД).
+LOGIC_STALE_SEC = 900           # состояние «создаётся» старше этого считается брошенным (контейнер перезапускали)
+_logic_lock = threading.Lock()
+_logic_busy: set[str] = set()
+
+
+def _spawn(fn: Any, *args: Any) -> None:
+    """Запуск сборки в фоне, чтобы запрос не ждал (тайм-аут запроса 6 с); в тестах подменяется на синхронный вызов."""
+    threading.Thread(target=fn, args=args, daemon=True).start()
+
+
+def _logic_paths(project_id: str) -> tuple[Path, Path]:
+    d = BRIDGE_DIR / "logic"
+    return d / f"{project_id}.json", d / f"{project_id}.status.json"
+
+
+def build_logic(project_id: str, zip_name: str) -> None:
+    """Собирает файл логики из ZIP выгрузки; старый файл заменяется атомарно (временный файл + replace)."""
+    if not ID_RE.match(project_id):
+        return                                  # имя файла только из безопасного набора знаков, иначе ничего не пишем
+    out, st_path = _logic_paths(project_id)
+    started = datetime.now(timezone.utc).isoformat()
+    try:
+        if not ZIP_RE.match(zip_name):
+            raise ValueError("недопустимое имя архива")
+        _write_json(st_path, {"state": "building", "started_at": started, "zip": zip_name})
+        zpath = BRIDGE_DIR / "out" / zip_name
+        if not zpath.is_file():
+            raise FileNotFoundError("архив выгрузки не найден (заменён более новой выгрузкой?)")
+        try:
+            logic = tia_logic.TiaLogic.load(zpath)
+        except zipfile.BadZipFile:
+            raise ValueError("архив повреждён: это не ZIP") from None
+        if not logic.blocks:
+            raise ValueError("в архиве не найдено ни одного блока FC/FB/OB")
+        data = logic.to_json().encode("utf-8")
+        tmp = out.with_name(out.name + ".tmp")
+        out.parent.mkdir(parents=True, exist_ok=True)
+        tmp.write_bytes(data)
+        os.replace(tmp, out)
+        _write_json(st_path, {"state": "ready", "started_at": started, "finished_at": datetime.now(timezone.utc).isoformat(), "zip": zip_name,
+                              "size": len(data), "blocks": len(logic.blocks), "writes": logic.stats()["writes"]})
+    except Exception as ex:      # noqa: BLE001 - любая причина показывается в окне, старый файл остаётся нетронутым
+        try:
+            _write_json(st_path, {"state": "error", "started_at": started, "finished_at": datetime.now(timezone.utc).isoformat(),
+                                  "zip": zip_name, "error": (str(ex) or ex.__class__.__name__)[:300]})
+        except OSError:
+            pass                    # записать состояние нельзя совсем: «создаётся» без живой сборки через LOGIC_STALE_SEC станет ошибкой
+    finally:
+        with _logic_lock:
+            _logic_busy.discard(project_id)
+
+
+def logic_writable() -> bool:
+    """Можно ли писать в <BRIDGE_DIR>/logic: тестовая копия (READ_ONLY=1) и каталог только для чтения (:ro) сборку не запускают."""
+    if READ_ONLY:
+        return False
+    d = BRIDGE_DIR / "logic"
+    return os.access(d if d.is_dir() else BRIDGE_DIR, os.W_OK)
+
+
+def _file_state(out: Path, st: dict[str, Any]) -> dict[str, Any]:
+    """Готовый файл в режиме только чтения: дата и размер по самому файлу, число блоков из состояния рядом (если оно есть)."""
+    stat = out.stat()
+    res: dict[str, Any] = {"state": "ready", "readonly": True, "size": stat.st_size,
+                           "finished_at": datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat()}
+    for k in ("blocks", "writes", "zip"):
+        if st.get(k) is not None:
+            res[k] = st[k]
+    return res
+
+
+def _start_logic(project_id: str, zip_name: str) -> bool:
+    with _logic_lock:
+        if project_id in _logic_busy:
+            return False
+        _logic_busy.add(project_id)
+    _spawn(build_logic, project_id, zip_name)
+    return True
+
+
+def _logic_state(project_id: str, last: dict[str, Any] | None, now: datetime | None = None) -> dict[str, Any]:
+    """Состояние файла для ИИ; новую сборку запускает сам: появился ZIP новее, чем тот, из которого собран файл."""
+    out, st_path = _logic_paths(project_id)
+    st = _read_json(st_path)
+    st = st if isinstance(st, dict) else {}
+    if not logic_writable():
+        if out.is_file():
+            return _file_state(out, st)
+        return {"state": "readonly"}
+    if st.get("state") == "building":
+        try:
+            age = ((now or datetime.now(timezone.utc)) - datetime.fromisoformat(str(st["started_at"]))).total_seconds()
+        except (KeyError, ValueError, TypeError):
+            age = LOGIC_STALE_SEC + 1
+        with _logic_lock:
+            alive = project_id in _logic_busy
+        if not alive and age > LOGIC_STALE_SEC:
+            st = {"state": "error", "zip": st.get("zip"), "error": "сборка прервана (сайт перезапускали), нажмите «Пересобрать»"}
+    elif st.get("state") == "ready" and not out.is_file():
+        st = {}
+    if last and last.get("file") and st.get("zip") != last["file"] and st.get("state") != "building":
+        if _start_logic(project_id, str(last["file"])):
+            st = {"state": "building", "zip": last["file"], "started_at": datetime.now(timezone.utc).isoformat()}
+    if not st:
+        return {"state": "none"}
+    return {k: st.get(k) for k in ("state", "finished_at", "size", "blocks", "writes", "error", "zip")}
 
 
 class ExportBody(BaseModel):
@@ -212,3 +327,35 @@ async def download(name: str, _: dict[str, Any] = Depends(require_admin)) -> Fil
     if not path.is_file():
         raise HTTPException(status_code=404, detail="Файл не найден (возможно, заменён более новой выгрузкой)")
     return FileResponse(path, media_type="application/zip", headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(name)}"})
+
+
+def _known_project(project_id: str) -> dict[str, str]:
+    """Имя файла берётся только из списка проектов tia-projects.json, а не от клиента: из папки logic не выйти."""
+    if not ID_RE.match(project_id):
+        raise HTTPException(status_code=400, detail="Недопустимое имя проекта")
+    for p in load_projects():
+        if p["id"] == project_id:
+            return p
+    raise HTTPException(status_code=404, detail="Проект не найден в списке разрешённых")
+
+
+@router.post("/logic/{project_id}/rebuild", summary="Пересобрать файл для ИИ из последнего ZIP без новой выгрузки из TIA (только администратор)")
+async def rebuild_logic(project_id: str, _: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
+    _known_project(project_id)
+    if not logic_writable():
+        raise HTTPException(status_code=409, detail="Недоступно в тестовой копии (только чтение): файл для ИИ собирается на рабочем сервере")
+    last = _last_done(_jobs_of(project_id))
+    if not last:
+        raise HTTPException(status_code=409, detail="Нет готовой выгрузки проекта: сначала выгрузите его из TIA")
+    if not _start_logic(project_id, str(last["file"])):
+        raise HTTPException(status_code=409, detail="Файл для ИИ уже создаётся")
+    return {"started": True, "zip": last["file"]}
+
+
+@router.get("/logic/{project_id}", summary="Скачать JSON с логикой ПЛК для ИИ (только администратор)")
+async def download_logic(project_id: str, _: dict[str, Any] = Depends(require_admin)) -> FileResponse:
+    _known_project(project_id)
+    path, _st = _logic_paths(project_id)
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Файл для ИИ ещё не создан")
+    return FileResponse(path, media_type="application/json", headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote('logic_' + project_id + '.json')}"})
