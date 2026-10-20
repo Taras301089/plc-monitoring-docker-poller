@@ -26,6 +26,8 @@
       --ok: #34d399;
       --warn: #f5b74a;
       --danger: #ef5b5b;
+      /* полупрозрачные оттенки готовыми цветами: функции color-mix() нет в старом браузере телевизора, без неё пропадала заливка текущего часа */
+      --ok-a9: rgba(52, 211, 153, .09); --ok-a14: rgba(52, 211, 153, .14); --ok-a18: rgba(52, 211, 153, .18); --danger-a14: rgba(239, 91, 91, .14); --accent-a22: rgba(76, 154, 255, .22);
       --field-bg: #14161b;
       --shadow-out: 0 0 0 1px rgba(255,255,255,.05), 0 6px 16px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
       --shadow-in: inset 1px 1px 3px rgba(0,0,0,.5), inset -1px -1px 1px rgba(255,255,255,.04);
@@ -54,6 +56,7 @@
       --ok: #177245;
       --warn: #b7791f;
       --danger: #c53030;
+      --ok-a9: rgba(23, 114, 69, .09); --ok-a14: rgba(23, 114, 69, .14); --ok-a18: rgba(23, 114, 69, .18); --danger-a14: rgba(197, 48, 48, .14); --accent-a22: rgba(43, 108, 176, .22);
       --field-bg: #ffffff;
       --shadow-out: 0 0 0 1px rgba(0,0,0,.07), 0 4px 12px rgba(0,0,0,.08);
       --shadow-in: inset 1px 1px 2px rgba(0,0,0,.10), inset -1px -1px 1px rgba(255,255,255,.8);
@@ -504,7 +507,7 @@
     .andon-top { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; flex-wrap: wrap; }
     .andon-lines { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
     .andon-chip { min-height: 32px; padding: 0 14px; font-size: var(--fs-small); font-weight: 600; background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line), 0 1px 2px rgba(0,0,0,.3); }
-    .andon-chip.active { background: var(--accent) !important; color: #fff; box-shadow: 0 0 0 1px var(--accent), 0 2px 8px color-mix(in srgb, var(--accent) 45%, transparent); }
+    .andon-chip.active { background: var(--accent) !important; color: #fff; box-shadow: 0 0 0 1px var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 2px 8px color-mix(in srgb, var(--accent) 45%, transparent); }
     .andon-chip small { margin-left: 8px; font-size: var(--fs-small); font-weight: 700; opacity: .85; }
     .tab-caret { font-size: var(--fs-small); opacity: .7; margin-left: 2px; }
     .andon-menu { position: fixed; z-index: 70; min-width: 180px; padding: 6px; background: var(--bg-primary); border-radius: 0 0 8px 8px; box-shadow: 0 0 0 1px var(--line), 0 12px 32px rgba(0,0,0,.5); }
@@ -517,7 +520,7 @@
     .am-group.current > .am-head { color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
     .am-sub { display: none; position: absolute; left: 100%; top: -6px; min-width: 200px; padding: 6px; background: var(--bg-primary); border-radius: 8px; box-shadow: 0 0 0 1px var(--line), 0 12px 32px rgba(0,0,0,.5); }
     .am-group.open > .am-sub { display: block; }
-    .am-leaf.active { background: color-mix(in srgb, var(--accent) 22%, transparent) !important; color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+    .am-leaf.active { background: var(--accent-a22) !important; color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
     .am-leaf small { font-size: var(--fs-small); font-weight: 700; opacity: .85; }
     .andon-edit.locked { opacity: .55; }
     .andon-edit { min-height: 32px; padding: 0 14px; font-size: var(--fs-small); background: var(--bg-tertiary) !important; color: var(--fg-primary); box-shadow: inset 0 0 0 1px var(--line); }
@@ -547,18 +550,18 @@
     .kpi-table th { overflow: hidden; overflow-wrap: anywhere; }
     .kpi-table td.dim { color: var(--fg-secondary); font-weight: 400; }
     .kpi-table tbody tr:nth-child(even) { background: var(--zebra); }
-    .kpi-table tr.now { background: color-mix(in srgb, var(--ok) 18%, transparent) !important; box-shadow: inset 3px 0 0 var(--ok); }
+    .kpi-table tr.now { background: var(--ok-a18) !important; box-shadow: inset 3px 0 0 var(--ok); }
     .kpi-table tr.future td { color: var(--fg-secondary); }
     .kpi-table td.fact { position: relative; }
     /* лёгкий акцент на колонке «Факт»: бледно-зелёная подсветка заголовка, ячеек и итога */
-    .kpi-table td.fact, .kpi-table thead th:nth-child(5), .kpi-table tfoot td:nth-child(4) { background-image: linear-gradient(color-mix(in srgb, var(--ok) 9%, transparent), color-mix(in srgb, var(--ok) 9%, transparent)); }
-    .kpi-table thead th:nth-child(5) { color: color-mix(in srgb, var(--ok) 70%, var(--fg-secondary)); }
+    .kpi-table td.fact, .kpi-table thead th:nth-child(5), .kpi-table tfoot td:nth-child(4) { background-image: linear-gradient(var(--ok-a9), var(--ok-a9)); }
+    .kpi-table thead th:nth-child(5) { color: var(--ok); color: color-mix(in srgb, var(--ok) 70%, var(--fg-secondary)); }
     .kpi-table td.delta { width: 64px; }
     .kpi-table .pos { color: var(--ok); }
     .kpi-table .neg { color: var(--danger); }
     .kpi-table tfoot td { background: var(--bg-secondary); font-weight: 700; height: 40px; border-bottom: 0; }
     .kpi-table tfoot td.lbl { font: 700 var(--fs-small) 'Segoe UI', sans-serif; text-transform: uppercase; letter-spacing: .05em; }
-    .kpi-table tfoot tr.rest-row td { background: color-mix(in srgb, var(--fg-secondary) 14%, var(--bg-secondary)); background-image: none; }
+    .kpi-table tfoot tr.rest-row td { background: var(--bg-secondary); background: color-mix(in srgb, var(--fg-secondary) 14%, var(--bg-secondary)); background-image: none; }
     .kpi-table .str-lbl { font-size: var(--fs-small); letter-spacing: .05em; color: var(--fg-secondary); margin-right: 4px; }
     .kpi-modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); }
     .kpi-modal-box { width: min(560px, 94vw); max-height: 90vh; overflow: auto; background: var(--bg-primary); border-radius: 10px; box-shadow: 0 0 0 1px var(--line), 0 20px 50px rgba(0,0,0,.6); padding: 16px; }
@@ -695,10 +698,10 @@
     @keyframes valueFlash { from { background: color-mix(in srgb, var(--warn) 45%, transparent); } to { background: transparent; } }
     .variables-panel .var-value.flash:not(.bool) { animation: valueFlash .9s ease-out; border-radius: 3px; }
     .live-badge { font-size: var(--fs-small); font-weight: 600; letter-spacing: .04em; padding: 1px 8px; border-radius: 9px; }
-    .live-badge.on { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+    .live-badge.on { color: var(--ok); background: var(--ok-a14); }
     .live-badge.on::first-letter { animation: livePulse 1.6s infinite; }
     .live-badge.off { color: var(--fg-secondary); background: var(--zebra); }
-    .live-badge.err { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
+    .live-badge.err { color: var(--danger); background: var(--danger-a14); }
     @keyframes livePulse { 50% { opacity: .25; } }
 
     /* Выпадающий список ПЛК с кнопками в каждой строке */
@@ -790,6 +793,7 @@
   <link rel="stylesheet" href="/static/downtime.css">
   <link rel="stylesheet" href="/static/alarms.css">
   <link rel="stylesheet" href="/static/tia.css">
+  <link rel="stylesheet" href="/static/tg.css">
 </head>
 <body>
   <nav class="tabs">
@@ -800,7 +804,7 @@
     <button class="tab" data-tab="downtimes" id="tab-downtimes" title="Все простои за период одним списком: по одной строке на каждую причину, с описаниями и комментариями" data-ui-label="tab_downtimes" data-ui-title="tab_downtimes" data-ui-prefix="⏱ ">⏱ Простои</button>
     <button class="tab" data-tab="notifications" title="Параметры подключения к ПЛК и настройки оповещений" data-ui-label="tab_notifications" data-ui-title="tab_notifications" data-ui-prefix="🔔 ">🔔 Оповещения</button>
     <button class="tab" data-tab="alarms" id="tab-alarms" title="Журнал аварий ПЛК: активные сейчас и история за период, фильтры по станции и устройству, выгрузка в Excel и справочник аварий. Нажмите, чтобы выбрать бренд: GWM, Chery, Changan, AE">🚨 Аварии <span class="tab-caret">▾</span></button>
-    <button class="tab" data-tab="browser" id="tab-browser" hidden title="Просмотр всех переменных ПЛК в реальном времени с возможностью поиска и фильтрации">📊 Переменные ПЛК</button>
+    <button class="tab" data-tab="browser" id="tab-browser" hidden title="ПЛК: выбор и настройка ПЛК, блоки данных и переменные в реальном времени с поиском и фильтрацией (только администратор)">📊 ПЛК</button>
     <button class="tab" data-tab="saved" id="tab-saved" hidden title="Переменные сохранённые в базе данных для дальнейшего анализа и мониторинга">💾 Переменные БД</button>
     <button class="tab" data-tab="dictionary" id="tab-dictionary" hidden title="Справочники простоев: причины, участки и станции для описания простоев (редактируют администратор и начальники)" data-ui-label="tab_dictionary" data-ui-title="tab_dictionary" data-ui-prefix="📚 ">📚 Справочники</button>
     <button class="tab" data-tab="users" id="tab-users" hidden title="Пользователи системы: создание учётных записей, роли, сброс паролей (только для администратора)" data-ui-label="tab_users" data-ui-title="tab_users" data-ui-prefix="👥 ">👥 Пользователи</button>
@@ -831,6 +835,7 @@
         <ul class="plc-dd-list" id="plc-dd-list" role="listbox" hidden></ul>
       </div>
           <button id="refresh" title="Обновить с ПЛК: заново просканировать OPC UA и обновить список блоков данных и переменных (может занять время). Доступно только администратору" hidden>⟳ Обновить с ПЛК</button>
+          <button type="button" id="tia-open" hidden disabled title="Выгрузить проект TIA Portal в XML и Excel: откроется окно с выбором ПЛК-источника, путём сохранения, состоянием службы и ZIP">🧩 Выгрузить проект TIA</button>
           <div id="scan-meta" class="scan-meta" title="Когда список переменных последний раз считывался с ПЛК">Список ещё не загружен</div>
           <div class="status" id="status" role="status" hidden>
             <span class="status-title"></span>
@@ -950,12 +955,12 @@
         <span id="andon-badge" class="live-badge off" title="Данные читаются из ПЛК раз в секунду, пока открыта эта вкладка">● пауза</span>
         <button type="button" id="andon-edit" class="andon-edit" title="Настроить время окончания часовых интервалов смены и плановое количество кузовов по интервалам для выбранной линии">⚙ Смена и план</button>
         <button type="button" id="andon-tv" class="andon-edit" title="Режим табло для телевизора на производстве: скрывает вкладки и кнопки, показывает только таблицу на весь экран. Выход: клавиша Esc или кнопка в правом нижнем углу, которая появляется при движении мыши">🖥 Режим табло</button>
-      </div>      <div id="andon-body" class="andon-body"><div class="empty">Выберите ПЛК на вкладке «Переменные ПЛК»</div></div>
+      </div>      <div id="andon-body" class="andon-body"><div class="empty">Выберите ПЛК на вкладке «ПЛК»</div></div>
     </div>
 
-    <!-- TAB 4: Alerts & Notifications -->
+    <!-- TAB 4: Оповещения в Telegram (tgnotify.js) -->
     <div id="notifications" class="tab-content">
-      <p style="color: var(--fg-secondary); font-size: 13px;">Алерты и оповещения будут настроены здесь в будущих версиях</p>
+      <p class="tg-msg">Загрузка…</p>
     </div>
   </main>
 
@@ -2514,7 +2519,7 @@
           <div class="andon-main">
             <h2 class="andon-h" title="Линия Finish Line, по которой показаны данные">${screen.name}</h2>
             <div class="kpi-wrap"><table class="kpi-table">
-              <colgroup><col style="width:3%"><col style="width:10%"><col style="width:5%"><col style="width:5%"><col style="width:5%"><col style="width:5%">${FL_MODELS.map(() => '<col style="width:5%">').join('')}<col style="width:${rb ? 11 : rc ? 9 : 13}%">${rb ? '<col style="width:8%">' : ''}${rc ? '<col style="width:7%"><col style="width:8%">' : ''}<col style="width:${rc ? 9 : 11}%"><col style="width:6%"><col style="width:${rb ? 11 : rc ? 8 : 17}%"></colgroup>
+              <colgroup><col style="width:3%"><col style="width:11.5%"><col style="width:5%"><col style="width:5%"><col style="width:5%"><col style="width:5%">${FL_MODELS.map(() => '<col style="width:5%">').join('')}<col style="width:${rb ? 11 : rc ? 9 : 13}%">${rb ? '<col style="width:8%">' : ''}${rc ? '<col style="width:7%"><col style="width:8%">' : ''}<col style="width:${rc ? 9 : 11}%"><col style="width:6%"><col style="width:${rb ? 11 : rc ? 8 : 17}%"></colgroup>
               <thead><tr>
                 <th title="Номер часового интервала смены">№</th>
                 <th title="Время начала и окончания интервала: начало берётся из ПЛК, окончание из настроек">Время</th>
@@ -3012,6 +3017,7 @@
   <script src="/static/downtimes.js"></script>
   <script src="/static/archive.js"></script>
   <script src="/static/comments.js"></script>
+  <script src="/static/tgnotify.js"></script>
   <script src="/static/authtabs.js"></script>
 </body>
 </html>

@@ -351,6 +351,11 @@ async def _async_main() -> None:
         level=getattr(logging, settings.log_level, logging.INFO),
         format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
     )
+    # Шум в журнале: строка на каждый запрос сайта (aiohttp.access) и на каждое чтение asyncua; остаются предупреждения и ошибки.
+    # Для разбора проблем LOG_LEVEL=DEBUG возвращает всё как было
+    if settings.log_level != "DEBUG":
+        for noisy in ("aiohttp.access", "asyncua"):
+            logging.getLogger(noisy).setLevel(logging.WARNING)
 
     db = Database(settings)
     await db.connect()

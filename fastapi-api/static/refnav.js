@@ -19,7 +19,7 @@
       <a class="auth-btn" href="index.html" style="text-decoration:none" title="Вы вошли в систему. Меню пользователя, смена пароля и выход — на главной странице"><span>${esc(u.last_name + ' ' + u.first_name.charAt(0) + '.')}</span><small>${esc(u.role_name)}</small></a>`;
     const canSee = ['admin', 'chief', 'area_head'].includes(u.role);
     document.querySelector('#tab-users').hidden = u.role !== 'admin';
-    ['#tab-browser', '#tab-saved'].forEach(s => { document.querySelector(s).hidden = u.role !== 'admin'; });   // переменные ПЛК и БД: только администратору
+    ['#tab-browser', '#tab-saved'].forEach(s => { document.querySelector(s).hidden = u.role !== 'admin'; });   // ПЛК и переменные БД: только администратору
     document.querySelector('#tab-dictionary').hidden = !canSee;
   }
   init();

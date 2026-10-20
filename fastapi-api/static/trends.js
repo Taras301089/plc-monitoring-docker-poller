@@ -228,10 +228,18 @@
       if (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) return '—';
       return (Math.round(Number(v) * 10) / 10).toLocaleString('ru-RU', { maximumFractionDigits: 1 });
     }
-    const LIFT_STATUS = { ok: 'Норма', problem: 'Проблема', aborted: 'Прерван', open: 'Не закончен' };
+    // Длительность: до минуты «59,4 с» (через fmtSec), дальше «4 мин 5 с» (секунды округлены); пусто -> прочерк
+    function fmtDur(v) {
+      if (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) return '—';
+      const n = Number(v);
+      if (n < 59.95) return `${fmtSec(n)} с`;
+      const r = Math.round(n);
+      return `${Math.floor(r / 60)} мин ${fmtSec(r % 60)} с`;
+    }
+    const LIFT_STATUS = { ok: 'Норма', problem: 'Проблема', stuck: 'Остановка в пути', aborted: 'Прерван', open: 'Не закончен' };
 
     return { MIN_SPAN, lastLE, normalize, lineSegments, outPaths, pathD, bandD, valueAt, viewExtent, autoRange, niceTicks, timeTicks,
-      clampView, zoomView, panView, fmtVal, fmtClock, tsv, defaultSelection, colorVar, liftShort, nearestOk, isoOffsetMs, fmtSec, LIFT_STATUS };
+      clampView, zoomView, panView, fmtVal, fmtClock, tsv, defaultSelection, colorVar, liftShort, nearestOk, isoOffsetMs, fmtSec, fmtDur, LIFT_STATUS };
   })();
   root.trendsCore = core;
   if (typeof module !== 'undefined' && module.exports) module.exports = core;
@@ -439,7 +447,7 @@
     editing = null;
     if (tagsErr) { box.innerHTML = `<div class="ch-empty">${esc(tagsErr)}</div>`; updateButtons(); return; }
     if (!tags) { box.innerHTML = '<div class="ch-empty">Загрузка…</div>'; updateButtons(); return; }
-    if (!tags.length) { box.innerHTML = '<div class="ch-empty">Отметьте переменные галочкой «Архив» в «Переменные ПЛК», и здесь появятся аналоговые для настройки записи.</div>'; updateButtons(); return; }
+    if (!tags.length) { box.innerHTML = '<div class="ch-empty">Отметьте переменные галочкой «Архив» во вкладке «ПЛК», и здесь появятся аналоговые для настройки записи.</div>'; updateButtons(); return; }
     const cell = (r, c, tip) => `<td class="xg" data-r="${r}" data-c="${c}" data-tip="${esc(tip)}" title="${esc(tip)}"></td>`;
     box.innerHTML = `<table class="tr-rec-t"><thead><tr>
       <th title="ПЛК, которому принадлежит переменная">ПЛК</th>
@@ -970,7 +978,7 @@
     if (!box) return;
     if (g.varsErr) { box.innerHTML = `<div class="ch-empty">${esc(g.varsErr)}</div>`; return; }
     if (!g.vars) { box.innerHTML = '<div class="ch-empty">Загрузка…</div>'; return; }
-    if (!g.vars.plcs.length) { box.innerHTML = '<div class="ch-empty">Нет записанных переменных: отметьте аналоговые переменные галочкой «Архив» в «Переменные ПЛК».</div>'; sel.innerHTML = ''; return; }
+    if (!g.vars.plcs.length) { box.innerHTML = '<div class="ch-empty">Нет записанных переменных: отметьте аналоговые переменные галочкой «Архив» во вкладке «ПЛК».</div>'; sel.innerHTML = ''; return; }
     sel.innerHTML = g.vars.plcs.map(p => `<option value="${p.plc_id}"${p.plc_id === g.plcId ? ' selected' : ''}>${esc(p.name)}</option>`).join('');
     const p = gPlc(), on = new Set(gSelIds());
     const many = p.tags.length > 12;
@@ -1260,15 +1268,20 @@
   const lcLost = () => !lc.data || lc.fail >= 2;
   const lcSave = () => { try { localStorage.setItem(LC_KEY, JSON.stringify({ lift: lc.lift, from: lc.from, to: lc.to, thr: lc.thr })); } catch { /* без сохранения */ } };
   const stText = r => core.LIFT_STATUS[r.status] || String(r.status || '');
-  const stCls = s => (s === 'ok' ? 'lc-s-ok' : s === 'problem' ? 'lc-s-problem' : 'lc-s-other');
+  const lcBad = s => s === 'problem' || s === 'stuck';            // красные итоги: «Проблема» и «Остановка в пути»
+  const stCls = s => (s === 'ok' ? 'lc-s-ok' : lcBad(s) ? 'lc-s-problem' : 'lc-s-other');
+  const isStuck = r => r.status === 'stuck';
+  // у остановки в пути «Последний сигнал» и его время: сигнал, пропавший в момент остановки
+  const lcSig = r => (isStuck(r) ? r.lost_signal : r.last_signal);
+  const lcSigTs = r => (isStuck(r) ? r.lost_signal_ts : r.last_signal_ts);
 
-  // столбцы: text — показ, копирование и фильтр; val — сортировка (как в alarms.js)
+  // столбцы: text — показ, копирование и фильтр; val — сортировка (как в alarms.js); cellTip — подсказка ячейки
   const LC_COLS = [
     { k: 'start', t: 'Начало', tip: 'Дата и время начала цикла по времени завода: лифт на 2-м этаже и вилы выдвинуты вверх', text: r => core.fmtClock(lms(r.start), lcOff()), val: r => lms(r.start) },
-    { k: 'wait', t: 'Ожидание, с', tip: 'Сколько секунд лифт ждал разрешения на отъезд: от начала цикла до команды ехать на 3-й или 4-й этаж', text: r => core.fmtSec(r.wait_s), val: r => (r.wait_s === null || r.wait_s === undefined ? -1 : r.wait_s), num: true },
-    { k: 'status', t: 'Итог', tip: 'Норма: ожидание не дольше порога; Проблема: дольше порога; Прерван: лифт ушёл без команды; Не закончен: команды ещё нет', text: stText, val: stText, filter: true },
-    { k: 'last', t: 'Последний сигнал', tip: 'Сигнал разрешения, который появился последним перед командой на отъезд: именно его лифт ждал дольше всего', text: r => (r.last_signal ? core.liftShort(r.last_signal) : '—'), val: r => (r.last_signal ? core.liftShort(r.last_signal) : ''), filter: true },
-    { k: 'lastTs', t: 'Время сигнала', tip: 'Когда появился последний сигнал разрешения, время завода с точностью до секунды', text: r => (r.last_signal_ts ? core.fmtClock(lms(r.last_signal_ts), lcOff(), false) : '—'), val: r => lms(r.last_signal_ts) || 0, num: true },
+    { k: 'wait', t: 'Ожидание, с', tip: 'Сколько секунд лифт ждал разрешения на отъезд: от начала цикла до команды ехать на 3-й или 4-й этаж; у остановки в пути: сколько лифт стоял между уровнями', text: r => (isStuck(r) ? core.fmtDur(r.stop_s) : core.fmtSec(r.wait_s)), val: r => (isStuck(r) ? r.stop_s : r.wait_s === null || r.wait_s === undefined ? -1 : r.wait_s), num: true, cellTip: r => (isStuck(r) ? 'Лифт стоял между уровнями после пропажи разрешения' : '') },
+    { k: 'status', t: 'Итог', tip: 'Норма: ожидание не дольше порога; Проблема: дольше порога; Остановка в пути: разрешение пропало и лифт встал между уровнями; Прерван: лифт ушёл без команды; Не закончен: команды ещё нет', text: stText, val: stText, filter: true },
+    { k: 'last', t: 'Последний сигнал', tip: 'Сигнал разрешения, который появился последним перед командой на отъезд: именно его лифт ждал дольше всего; у остановки в пути: сигнал, который пропал в момент остановки', text: r => (lcSig(r) ? core.liftShort(lcSig(r)) : '—'), val: r => (lcSig(r) ? core.liftShort(lcSig(r)) : ''), filter: true, cellTip: r => (isStuck(r) ? 'Этот сигнал пропал в момент остановки' : '') },
+    { k: 'lastTs', t: 'Время сигнала', tip: 'Когда появился последний сигнал разрешения (у остановки в пути: когда пропал сигнал), время завода с точностью до секунды', text: r => (lcSigTs(r) ? core.fmtClock(lms(lcSigTs(r)), lcOff(), false) : '—'), val: r => lms(lcSigTs(r)) || 0, num: true },
   ];
 
   function lcHtml() {
@@ -1380,6 +1393,7 @@
       `<span title="Сколько циклов лифта началось за выбранный период${s && lc.data.truncated ? '; показаны не все, сократите период' : ''}">Циклов <b>${v(s && s.count)}${s && lc.data.truncated ? '+' : ''}</b></span>` +
       `<span class="lc-ok" title="Циклов, в которых лифт ждал разрешения не дольше порога">Норма <b>${v(s && s.ok)}</b></span>` +
       `<span class="lc-bad" title="Циклов, в которых лифт ждал разрешения дольше порога">Проблема <b>${v(s && s.problem)}</b></span>` +
+      `<span class="${s && s.stuck > 0 ? 'lc-bad' : ''}" title="Остановок в пути: лифт поехал, разрешение пропало, и лифт встал между уровнями, не доехав до цели">Остановок <b>${v(s && (s.stuck || 0))}</b></span>` +
       `<span title="Среднее ожидание разрешения в циклах «Норма», секунды">Среднее <b>${avg}</b></span>`;
     lcTable();
     if (lc.cur && (lcLost() || !lc.data.cycles.some(c => c.start === lc.cur))) lc.cur = null;
@@ -1400,8 +1414,10 @@
       const arrow = si >= 0 ? `<i class="al-arrow">${lc.sorts[si].dir === 'asc' ? '▲' : '▼'}${lc.sorts.length > 1 ? si + 1 : ''}</i>` : '';
       return `<th data-c="${i}" class="al-sortable${c.num ? ' al-num' : ''}${on ? ' al-fon' : ''}" title="${esc(c.tip)}. Нажмите, чтобы отсортировать по возрастанию, по убыванию и сбросить; Shift+нажатие добавляет вторую сортировку; Ctrl+нажатие выделяет весь столбец"><span class="al-sort">${esc(c.t)}${arrow}</span>${c.filter ? `<button type="button" class="al-fbtn${on ? ' on' : ''}" title="Фильтр по столбцу «${esc(c.t)}»: выбор значений галочками${on ? ' (фильтр включён)' : ''}">▾</button>` : ''}</th>`;
     }).join('');
-    const rows = view.map((r, i) => `<tr data-i="${i}" class="${r.status === 'problem' ? 'lc-problem' : ''}${r.start === lc.cur ? ' lc-cur' : ''}"><td class="lc-n">${i + 1}</td>${LC_COLS.map((c, ci) =>
-      `<td data-c="${ci}" class="${c.num ? 'al-num' : ''}${c.k === 'status' ? ' ' + stCls(r.status) : ''}">${esc(c.text(r))}</td>`).join('')}</tr>`).join('');
+    const rows = view.map((r, i) => `<tr data-i="${i}" class="${lcBad(r.status) ? 'lc-problem' : ''}${r.start === lc.cur ? ' lc-cur' : ''}"><td class="lc-n">${i + 1}</td>${LC_COLS.map((c, ci) => {
+      const tip = c.cellTip ? c.cellTip(r) : '';
+      return `<td data-c="${ci}" class="${c.num ? 'al-num' : ''}${c.k === 'status' ? ' ' + stCls(r.status) : ''}"${tip ? ` title="${esc(tip)}"` : ''}>${esc(c.text(r))}</td>`;
+    }).join('')}</tr>`).join('');
     host.innerHTML = `<table class="users-table al-table"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>` +
       (view.length ? '' : `<div class="ch-empty">${src.length ? 'Нет строк по выбранным фильтрам' : 'Нет циклов за выбранный период'}</div>`);
     if (window.attachColWidths) window.attachColWidths(host.querySelector('table'), 'lift-cycles');
@@ -1547,6 +1563,11 @@
     let g = '';
     const e0 = c.end ? lms(c.end) : c.aborted_ts ? lms(c.aborted_ts) : w1;
     g += `<rect class="${c.status === 'problem' ? 'lc-wait-bad' : 'lc-wait'}" x="${X(s0)}" y="${m.t}" width="${Math.max(1, X(e0) - X(s0))}" height="${sig.length * step}"><title>${esc(`Ожидание разрешения: ${c.wait_s === null || c.wait_s === undefined ? '—' : core.fmtSec(c.wait_s) + ' с'}`)}</title></rect>`;
+    const stuck = isStuck(c) && c.stop_ts;
+    if (stuck) {
+      const x1 = X(lms(c.stop_ts)), x2 = c.resume_ts ? X(lms(c.resume_ts)) : X(w1);
+      g += `<rect class="lc-stop" x="${x1}" y="${m.t}" width="${Math.max(1, x2 - x1)}" height="${sig.length * step}"><title>${esc(`Остановка в пути: ${core.fmtDur(c.stop_s)}${c.resume_ts ? '' : ', до конца периода лифт не доехал'}`)}</title></rect>`;
+    }
     const tk = core.niceTicks(0, span / 1000, Math.max(2, Math.floor(bw / 70)));
     for (const v of tk.ticks) {
       const x = m.l + v * 1000 / span * bw;
@@ -1562,9 +1583,14 @@
       g += `<g><title>${esc(name)}</title>${lane}</g>`;
     });
     const wait = c.wait_s === null || c.wait_s === undefined ? '—' : `${core.fmtSec(c.wait_s)} с`;
-    const head = `<div class="lc-h" title="Время начала цикла по времени завода, ожидание разрешения и итог"><b>Цикл ${esc(core.fmtClock(s0, off, false))}</b> · ${esc(wait)} · <span class="${stCls(c.status)}">${esc(stText(c))}</span></div>`;
+    const head = stuck
+      ? `<div class="lc-h" title="Время начала цикла по времени завода и сколько лифт стоял между уровнями после пропажи разрешения"><b>Цикл ${esc(core.fmtClock(s0, off, false))}</b> · <span class="lc-s-problem">остановка в пути ${esc(core.fmtDur(c.stop_s))}</span></div>`
+      : `<div class="lc-h" title="Время начала цикла по времени завода, ожидание разрешения и итог"><b>Цикл ${esc(core.fmtClock(s0, off, false))}</b> · ${esc(wait)} · <span class="${stCls(c.status)}">${esc(stText(c))}</span></div>`;
     let foot = '';
-    if (c.last_signal && c.last_signal_ts) {
+    if (stuck) {
+      const lost = c.lost_signal ? core.liftShort(c.lost_signal) : 'неизвестный сигнал';
+      foot = `<div class="lc-foot" title="${esc(c.lost_signal || 'Ни один сигнал разрешения не пропал в пределах секунды от остановки')}">Лифт встал, когда пропал ${esc(lost)}, вилы ${c.forks_out ? 'выдвинуты' : 'не выдвинуты'}</div>`;
+    } else if (c.last_signal && c.last_signal_ts) {
       const dt = (lms(c.last_signal_ts) - s0) / 1000;
       const when = dt >= 0 ? `через ${core.fmtSec(dt)} с после` : `за ${core.fmtSec(-dt)} с до`;
       foot = `<div class="lc-foot" title="${esc(c.last_signal)}">Последним появился ${esc(core.liftShort(c.last_signal))} ${when} выдвижения вил</div>`;

@@ -16,10 +16,10 @@ import downtime
 
 router = APIRouter(prefix="/api/kpi")
 
-OWNER_KEYS = ("production", "oto", "ito", "other")
+OWNER_KEYS = ("production", "oto", "ito", "other", "none")   # none: ответственный не назначен
 TITLE = "По ответственным"
 # столбцы блока на экране и в Excel (в том же порядке и с теми же названиями, что HEADS в responsibility.js)
-HEADS = ("", "Всего", "ПР", "ОТО", "ИТО", "ДР", "Не описано", "Ждёт подтверждения", "Спорно")
+HEADS = ("", "Всего", "ПР", "ОТО", "ИТО", "ДР", "Не назначено", "Не описано", "Ждёт подтверждения", "Спорно")
 ROW_MINUTES = "Минут"
 ROW_SHARE = "Доля, %"
 MAX_DAYS = 92
@@ -47,7 +47,7 @@ def owner_split(data: dict[str, Any]) -> dict[str, Any]:
         if m <= 0:
             continue
         left[day] = round(left[day] - m, 6)
-        o = it["owner"] if it["owner"] in OWNER_KEYS else "production"
+        o = it["owner"] if it["owner"] in OWNER_KEYS else "none"
         owners[o] += m
         st = downtime.owner_status(o)
         if st == "pending":
@@ -129,12 +129,12 @@ def write_responsibility(wb: xlsxwriter.Workbook, ws: Any, r0: int, resp: dict[s
     ws.write(r0, 0, TITLE, section)
     ws.write_row(r0 + 1, 0, list(HEADS), head)
     ws.write(r0 + 2, 0, ROW_MINUTES, lab)
-    ws.write_formula(r0 + 2, 1, "=" + "+".join(f"{c}{r0 + 3}" for c in "CDEFG"), bn1, total)   # сумма отделов и «не описано» (не SUM: это не столбец таблицы)
-    for c, v in enumerate([o["production"], o["oto"], o["ito"], o["other"], resp["undescribed"], resp["pending"], resp["disputed"]], start=2):
+    ws.write_formula(r0 + 2, 1, "=" + "+".join(f"{c}{r0 + 3}" for c in "CDEFGH"), bn1, total)   # сумма отделов и «не описано» (не SUM: это не столбец таблицы)
+    for c, v in enumerate([o["production"], o["oto"], o["ito"], o["other"], o["none"], resp["undescribed"], resp["pending"], resp["disputed"]], start=2):
         ws.write_number(r0 + 2, c, v, n1)
     ws.write(r0 + 3, 0, ROW_SHARE, lab)
     sh = resp["share"]
-    for c, key in enumerate(["total", "production", "oto", "ito", "other", "undescribed", "pending", "disputed"], start=1):
+    for c, key in enumerate(["total", "production", "oto", "ito", "other", "none", "undescribed", "pending", "disputed"], start=1):
         letter = xlsxwriter.utility.xl_col_to_name(c)
         cached = (100.0 if total else 0.0) if key == "total" else sh[key]
         ws.write_formula(r0 + 3, c, f'=IF($B{r0 + 3}=0,"",{letter}{r0 + 3}/$B{r0 + 3})', pct, cached / 100 if total else 0)   # при нуле Excel сам покажет пусто (формула), в кэше число, чтобы читалки без пересчёта не спотыкались

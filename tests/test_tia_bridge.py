@@ -110,8 +110,8 @@ def test_screen_and_service_are_wired():
     js = (STATIC / "tiaexport.js").read_text(encoding="utf-8")
     html = (STATIC / "index.html").read_text(encoding="utf-8")
     assert "/static/tiaexport.js" in html and "/static/tia.css" in html
-    assert "isAdmin()" in js and "tia-all" in js and "Выгрузить выбранные" in js        # общая таблица с «выбрать все», одна кнопка
-    for el in ("tia-all", "tia-go"):
+    assert "isAdmin()" in js and ">Выгрузить</button>" in js and 'id="tia-open"' in html     # кнопка во вкладке «ПЛК», окно: источник, путь, одна кнопка
+    for el in ("tia-src", "tia-target", "tia-go"):
         assert re.search(rf'id="{el}"[^>]*title="[^"]{{15,}}"', js), el
     assert "app.include_router(tia_router)" in (ROOT / "fastapi-api" / "main.py").read_text(encoding="utf-8")
     assert "/tia-bridge" in (ROOT / "docker-compose.yml").read_text(encoding="utf-8")

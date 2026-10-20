@@ -2,7 +2,8 @@
 
 Контейнер Linux не может вызвать TIA Openness (это Windows-программа), поэтому обмен идёт через общую папку (в контейнере /tia-bridge,
 на ПК C:\\tia-bridge): сайт кладёт заявку requests/<id>.json, служба выгружает проект скриптом tia-export.ps1 и пишет jobs/<id>/status.json
-и ZIP в out/. Всё только для администратора; пути проектов берутся из tia-projects.json, а не от клиента."""
+и ZIP в out/ (копия ZIP кладётся в папку, которую администратор указал в поле «Путь сохранения»). Всё только для администратора;
+пути проектов берутся из tia-projects.json, а не от клиента; путь сохранения проверяет сайт (check_target) и ещё раз служба."""
 from __future__ import annotations
 
 import json
@@ -26,6 +27,55 @@ ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
 ZIP_RE = re.compile(r"^TIA_[A-Za-z0-9_-]{1,40}_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}\.zip$")
 ALIVE_SEC = 30                      # служба считается работающей, если отметка bridge.json не старше
 ACTIVE = ("queued", "running")
+DEFAULT_TARGET = r"C:\tia-bridge\out"   # папка out службы на ПК сервера: туда ZIP кладётся всегда
+TARGET_MAX = 240
+_BAD_CHARS = re.compile(r'[<>"|?*\x00-\x1f]')
+_SYSTEM_TOP = ("windows", "programdata", "$recycle.bin", "system volume information", "recovery", "boot")
+
+
+def check_target(raw: str | None) -> str | None:
+    r"""Путь сохранения копии ZIP: None, если не задан; иначе нормализованный путь или ValueError с понятной причиной.
+
+    Допустимо: абсолютный путь с буквой диска (C:\...) или UNC (\\сервер\ресурс\...), без «..», не длиннее 240 знаков.
+    Запрещено: корень диска, системные папки (Windows, Program Files*, ProgramData и т.п.), сама папка Users и корень профиля
+    пользователя (C:\Users\<имя>); вложенные папки профиля (C:\Users\<имя>\Documents\...) разрешены.
+    Та же проверка есть в tia-bridge.ps1 (Test-TargetDir): служба проверяет ещё раз и пробует записать в папку."""
+    if raw is None:
+        return None
+    p = str(raw).strip().replace("/", "\\")
+    if not p:
+        return None
+    if len(p) > TARGET_MAX:
+        raise ValueError(f"Путь сохранения длиннее {TARGET_MAX} знаков")
+    if _BAD_CHARS.search(p):
+        raise ValueError('Путь сохранения содержит недопустимые знаки (< > " | ? *)')
+    if p.startswith("\\\\"):
+        parts = p[2:].split("\\")
+        if len(parts) < 2 or not parts[0] or not parts[1] or ":" in p:
+            raise ValueError(r"Сетевой путь пишется как \\сервер\папка\...")
+        segs, drive = parts[2:], None
+    elif re.match(r"^[A-Za-z]:\\", p):
+        if ":" in p[2:]:
+            raise ValueError("Двоеточие допустимо только после буквы диска")
+        segs, drive = p[3:].split("\\"), p[0].upper()
+    else:
+        raise ValueError(r"Укажите полный путь с буквой диска (C:\папка) или сетевой путь (\\сервер\папка)")
+    while segs and segs[-1] == "":
+        segs.pop()                                    # завершающая косая черта
+    if any(s == "" for s in segs):
+        raise ValueError("В пути две косые черты подряд")
+    if any(s.strip(" .") == "" for s in segs):
+        raise ValueError("Переход «..» и папки из одних точек в пути запрещены")
+    if drive:
+        if not segs:
+            raise ValueError("Корень диска нельзя выбрать: укажите папку")
+        top = segs[0].lower()
+        if top in _SYSTEM_TOP or top.startswith("program files"):
+            raise ValueError(f"Системная папка {drive}:\\{segs[0]} не подходит для сохранения")
+        if top == "users" and len(segs) <= 2:
+            raise ValueError(r"Нельзя сохранять в папку Users или в корень профиля: укажите вложенную папку (например, Documents\TIA)")
+        return f"{drive}:\\" + "\\".join(segs)
+    return "\\\\" + "\\".join(parts[:2] + segs)
 
 
 def _read_json(path: Path) -> Any:
@@ -44,13 +94,15 @@ def _write_json(path: Path, obj: Any) -> None:
 
 
 def load_projects() -> list[dict[str, str]]:
-    """Разрешённые проекты из tia-projects.json: id (латиница, цифры, _ -), name, path. Путь клиенту не отдаётся."""
+    """Разрешённые проекты из tia-projects.json: id (латиница, цифры, _ -), name, path, plc (необязательно: имя ПЛК в PMM,
+    сайт по нему показывает проект в списке «Источник»). Путь проекта клиенту не отдаётся."""
     cfg = _read_json(BRIDGE_DIR / "tia-projects.json")
     items = cfg.get("projects") if isinstance(cfg, dict) else None
     out = []
     for p in items or []:
         if isinstance(p, dict) and ID_RE.match(str(p.get("id", ""))) and p.get("path"):
-            out.append({"id": p["id"], "name": str(p.get("name") or p["id"]), "path": str(p["path"])})
+            out.append({"id": p["id"], "name": str(p.get("name") or p["id"]), "path": str(p["path"]),
+                        "plc": str(p.get("plc") or "").strip() or None})
     return out
 
 
@@ -81,14 +133,23 @@ def _last_done(jobs: list[dict[str, Any]]) -> dict[str, Any] | None:
     for j in jobs:
         f = j.get("file")
         if j.get("state") == "done" and f and ZIP_RE.match(str(f)) and (BRIDGE_DIR / "out" / f).is_file():
-            return {k: j.get(k) for k in ("file", "size", "finished_at", "exported", "skipped", "failed")}
+            return {k: j.get(k) for k in ("file", "size", "finished_at", "exported", "skipped", "failed",
+                                          "texts", "prodiag", "target", "saved_to", "copy_error")}
+    return None
+
+
+def _last_target(jobs: list[dict[str, Any]]) -> str | None:
+    """Последний путь сохранения, указанный для проекта (из новой задачи к старой)."""
+    for j in jobs:
+        if j.get("target"):
+            return str(j["target"])
     return None
 
 
 def _public_job(j: dict[str, Any] | None) -> dict[str, Any] | None:
     if not j:
         return None
-    return {k: j.get(k) for k in ("id", "state", "requested_by", "requested_at", "started_at", "finished_at", "error")}
+    return {k: j.get(k) for k in ("id", "state", "requested_by", "requested_at", "started_at", "finished_at", "error", "target")}
 
 
 def user_label(user: dict[str, Any]) -> str:
@@ -100,16 +161,22 @@ async def get_projects(_: dict[str, Any] = Depends(require_admin)) -> dict[str, 
     rows = []
     for p in load_projects():
         jobs = _jobs_of(p["id"])
-        rows.append({"id": p["id"], "name": p["name"], "job": _public_job(jobs[0] if jobs else None), "last": _last_done(jobs)})
-    return {"alive": bridge_alive(), "projects": rows}
+        rows.append({"id": p["id"], "name": p["name"], "plc": p["plc"], "target": _last_target(jobs),
+                     "job": _public_job(jobs[0] if jobs else None), "last": _last_done(jobs)})
+    return {"alive": bridge_alive(), "default_target": DEFAULT_TARGET, "projects": rows}
 
 
 class ExportBody(BaseModel):
     project_ids: list[str] = Field(min_length=1, max_length=20)
+    target_dir: str | None = Field(default=None, max_length=1000)
 
 
 @router.post("/export", summary="Поставить выгрузку проектов TIA в очередь (только администратор)")
 async def start_export(body: ExportBody, user: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
+    try:
+        target = check_target(body.target_dir)
+    except ValueError as ex:
+        raise HTTPException(status_code=422, detail=str(ex)) from None
     if not bridge_alive():
         raise HTTPException(status_code=503, detail="Служба выгрузки TIA не запущена на ПК сервера (задача «PMM TIA bridge»)")
     known = {p["id"] for p in load_projects()}
@@ -125,9 +192,12 @@ async def start_export(body: ExportBody, user: dict[str, Any] = Depends(require_
             skipped.append(pid)             # уже в очереди или выгружается: второй раз не ставим
             continue
         jid = f"{pid}-{now.strftime('%Y%m%d-%H%M%S')}"
-        _write_json(BRIDGE_DIR / "jobs" / jid / "status.json",
-                    {"project": pid, "state": "queued", "requested_by": user_label(user), "requested_at": now.isoformat()})
-        _write_json(BRIDGE_DIR / "requests" / f"{jid}.json", {"id": jid, "project": pid, "requested_by": user_label(user)})
+        st = {"project": pid, "state": "queued", "requested_by": user_label(user), "requested_at": now.isoformat()}
+        req = {"id": jid, "project": pid, "requested_by": user_label(user)}
+        if target:
+            st["target"] = req["target"] = target
+        _write_json(BRIDGE_DIR / "jobs" / jid / "status.json", st)
+        _write_json(BRIDGE_DIR / "requests" / f"{jid}.json", req)
         started.append(jid)
     if not started:
         raise HTTPException(status_code=409, detail="Выбранные проекты уже выгружаются")

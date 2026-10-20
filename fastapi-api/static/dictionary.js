@@ -60,7 +60,7 @@
     await load();
   }
 
-  const OWNER_OPTS = [['production', 'ПР — Производство'], ['oto', 'ОТО'], ['ito', 'ИТО'], ['other', 'ДР — Другое (внешние причины)']];
+  const OWNER_OPTS = [['none', 'Не назначен'], ['production', 'ПР — Производство'], ['oto', 'ОТО'], ['ito', 'ИТО'], ['other', 'ДР — Другое (внешние причины)']];
   const ownerCell = (item, edit) => `<td class="dict-owner"><label title="Ответственный по умолчанию: при выборе этой причины в окне простоя подставляется он (ПР — производство, ОТО, ИТО, ДР — другое, внешние причины); в окне простоя его можно изменить">Ответственный по умолчанию <select data-a="owner"${edit ? '' : ' disabled'} title="Ответственный по умолчанию для этой причины; менять могут администратор и начальники">${OWNER_OPTS.map(([k, v]) => `<option value="${k}"${(item.owner || 'production') === k ? ' selected' : ''}>${v}</option>`).join('')}</select></label></td>`;
   const row = (item, i, list, kind, extra, label, edit) => `
     <tr class="${item.is_active ? '' : 'off'}" data-kind="${kind}" data-id="${item.id}" data-i="${i}">
