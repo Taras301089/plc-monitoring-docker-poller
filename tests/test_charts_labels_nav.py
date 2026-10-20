@@ -72,13 +72,15 @@ def test_reports_tab_uses_same_plan_fact_chart():
 # ---------- 2. легенда Парето ----------
 
 def test_pareto_legend_and_title_on_screen():
-    m = re.search(r"const PARETO_LEGEND = '(<div class=\"ch-legend\" title=\"([^\"]+)\">.*?</div>)'", JS)
+    # легенда собирается функцией: название ряда берётся из словаря «Названия» (стандартное «Отставание, мин»)
+    m = re.search(r"const PARETO_LEGEND = \(\) => '<div class=\"ch-legend\" title=\"([^\"]+)\">(.*?)</div>';", JS)
     assert m
-    assert m.group(2) == ("Накопленная доля причин простоя в процентах от суммы всех причин; "
+    assert m.group(1) == ("Накопленная доля причин простоя в процентах от суммы всех причин; "
                           "показывает, сколько простоя дают первые причины")
-    names = re.findall(r"(?:</i>|^)([^<]+)", re.sub(r'^<div[^>]*>|</div>$', "", m.group(1)))
-    assert names == ["Простой, мин", "Накопленный %"]
-    assert "ch-l-cum" in m.group(1) and "PARETO_LEGEND" in JS.split("kind === 'reasons'")[1][:40]
+    body = m.group(2).replace("' + L('down_min', 'Отставание, мин') + '", "Отставание, мин")
+    names = re.findall(r"(?:</i>|^)([^<]+)", body)
+    assert names == ["Отставание, мин", "Накопленный %"]
+    assert "ch-l-cum" in body and "PARETO_LEGEND" in JS.split("kind === 'reasons'")[1][:40]
 
 
 def test_pareto_legend_line_is_gray_like_the_chart():
@@ -108,7 +110,8 @@ async def _chart_xml(anon, scr, kind, d1, d2):
 async def test_excel_pareto_legend_names_like_screen(app, anon, pool):
     scr = await _seed(pool)
     xml = await _chart_xml(anon, scr, "reasons", D0, DAY)
-    names = re.findall(r"(?:</i>|^)([^<]+)", re.sub(r'^<div[^>]*>|</div>$', "", re.search(r"const PARETO_LEGEND = '(.*?)';", JS).group(1)))
+    legend = re.search(r"const PARETO_LEGEND = \(\) => '(.*?)';", JS).group(1).replace("' + L('down_min', 'Отставание, мин') + '", "Отставание, мин")
+    names = re.findall(r"(?:</i>|^)([^<]+)", re.sub(r'^<div[^>]*>|</div>$', "", legend))
     for name in names:
         assert f"<c:v>{name}</c:v>" in xml, name
     assert "<c:legend>" in xml and "<c:lineChart>" in xml

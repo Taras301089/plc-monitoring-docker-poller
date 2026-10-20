@@ -1,4 +1,4 @@
-// Вкладка «Тренды»: «Связь с ПЛК» за период (ленты по времени), «Графики переменных» (онлайн и архив, линейка, масштаб, границы), «Запись переменных»
+// Вкладка «Тренды»: «Связь с ПЛК» за период (ленты по времени), «Графики переменных» (онлайн и архив, линейка, масштаб, границы), «Циклы лифтов», «Запись переменных»
 (function (root) {
   'use strict';
 
@@ -198,8 +198,48 @@
     // Цвет линии по номеру в выборе: набор --chart-1…8
     const colorVar = i => `var(--chart-${(i % 8) + 1})`;
 
+    // ---- «Циклы лифтов»
+    // Короткое имя сигнала: часть после «DB.» (OPMode08_DB.FK300.AtTop -> FK300.AtTop, ITL_GWM_DB.From GWM.BodyCheck1 -> From GWM.BodyCheck1)
+    function liftShort(name) {
+      const s = String(name === null || name === undefined ? '' : name);
+      const i = s.indexOf('DB.');
+      return i >= 0 ? s.slice(i + 3) : s;
+    }
+    // Ближайший по времени начала цикл со статусом «Норма» (сам выбранный цикл не берётся); нет такого: null
+    function nearestOk(cycles, start) {
+      const t0 = Date.parse(start);
+      let best = null, bd = Infinity;
+      for (const c of cycles || []) {
+        if (c.status !== 'ok' || c.start === start) continue;
+        const d = Math.abs(Date.parse(c.start) - t0);
+        if (d < bd) { bd = d; best = c; }
+      }
+      return best;
+    }
+    // Сдвиг времени завода из ISO с зоной («…+05:00» -> 5 ч в мс, «Z» -> 0); без зоны: null
+    function isoOffsetMs(iso) {
+      const s = String(iso || '');
+      const m = /([+-])(\d\d):?(\d\d)$/.exec(s);
+      if (!m) return /Z$/.test(s) ? 0 : null;
+      return (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3])) * 60000;
+    }
+    // Секунды для экрана: одна цифра после запятой; пусто -> прочерк
+    function fmtSec(v) {
+      if (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) return '—';
+      return (Math.round(Number(v) * 10) / 10).toLocaleString('ru-RU', { maximumFractionDigits: 1 });
+    }
+    // Длительность: до минуты «59,4 с» (через fmtSec), дальше «4 мин 5 с» (секунды округлены); пусто -> прочерк
+    function fmtDur(v) {
+      if (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) return '—';
+      const n = Number(v);
+      if (n < 59.95) return `${fmtSec(n)} с`;
+      const r = Math.round(n);
+      return `${Math.floor(r / 60)} мин ${fmtSec(r % 60)} с`;
+    }
+    const LIFT_STATUS = { ok: 'Норма', problem: 'Проблема', stuck: 'Остановка в пути', aborted: 'Прерван', open: 'Не закончен' };
+
     return { MIN_SPAN, lastLE, normalize, lineSegments, outPaths, pathD, bandD, valueAt, viewExtent, autoRange, niceTicks, timeTicks,
-      clampView, zoomView, panView, fmtVal, fmtClock, tsv, defaultSelection, colorVar };
+      clampView, zoomView, panView, fmtVal, fmtClock, tsv, defaultSelection, colorVar, liftShort, nearestOk, isoOffsetMs, fmtSec, fmtDur, LIFT_STATUS };
   })();
   root.trendsCore = core;
   if (typeof module !== 'undefined' && module.exports) module.exports = core;
@@ -324,6 +364,7 @@
         <div class="ch-body" id="tr-body"></div>
       </section>
       ${gHtml()}
+      ${lcHtml()}
       <section class="ch-card tr-rec" id="tr-rec" hidden>
         <header><h3 title="Настройка записи аналоговых переменных, отмеченных «Архив»: как часто сборщик данных пишет их значения в базу">Запись переменных</h3>
           <span class="tr-rec-btns"><button type="button" id="tr-rec-save" class="dt-sec" disabled title="Сохранить все изменённые строки: каждая проверяется и отправляется на сервер, сборщик данных применит значения со следующего опроса">Сохранить изменения</button>
@@ -362,6 +403,7 @@
     });
     initGrid();
     gInit();
+    lcInit();
     built = true;
     syncAdmin();
   }
@@ -405,7 +447,7 @@
     editing = null;
     if (tagsErr) { box.innerHTML = `<div class="ch-empty">${esc(tagsErr)}</div>`; updateButtons(); return; }
     if (!tags) { box.innerHTML = '<div class="ch-empty">Загрузка…</div>'; updateButtons(); return; }
-    if (!tags.length) { box.innerHTML = '<div class="ch-empty">Отметьте переменные галочкой «Архив» в «Переменные ПЛК», и здесь появятся аналоговые для настройки записи.</div>'; updateButtons(); return; }
+    if (!tags.length) { box.innerHTML = '<div class="ch-empty">Отметьте переменные галочкой «Архив» во вкладке «ПЛК», и здесь появятся аналоговые для настройки записи.</div>'; updateButtons(); return; }
     const cell = (r, c, tip) => `<td class="xg" data-r="${r}" data-c="${c}" data-tip="${esc(tip)}" title="${esc(tip)}"></td>`;
     box.innerHTML = `<table class="tr-rec-t"><thead><tr>
       <th title="ПЛК, которому принадлежит переменная">ПЛК</th>
@@ -732,10 +774,11 @@
     if (!timer) timer = setInterval(tick, 10000);
     syncAdmin();
     gShow();
+    lcShow();
   }
 
   const prevAuth = window.onAuthChanged;
-  window.onAuthChanged = () => { if (prevAuth) prevAuth(); syncAdmin(); };
+  window.onAuthChanged = () => { if (prevAuth) prevAuth(); syncAdmin(); lcAuth(); };
 
   // ================= «Графики переменных» =================
   const GKEY = 'trends:graph';
@@ -935,7 +978,7 @@
     if (!box) return;
     if (g.varsErr) { box.innerHTML = `<div class="ch-empty">${esc(g.varsErr)}</div>`; return; }
     if (!g.vars) { box.innerHTML = '<div class="ch-empty">Загрузка…</div>'; return; }
-    if (!g.vars.plcs.length) { box.innerHTML = '<div class="ch-empty">Нет записанных переменных: отметьте аналоговые переменные галочкой «Архив» в «Переменные ПЛК».</div>'; sel.innerHTML = ''; return; }
+    if (!g.vars.plcs.length) { box.innerHTML = '<div class="ch-empty">Нет записанных переменных: отметьте аналоговые переменные галочкой «Архив» во вкладке «ПЛК».</div>'; sel.innerHTML = ''; return; }
     sel.innerHTML = g.vars.plcs.map(p => `<option value="${p.plc_id}"${p.plc_id === g.plcId ? ' selected' : ''}>${esc(p.name)}</option>`).join('');
     const p = gPlc(), on = new Set(gSelIds());
     const many = p.tags.length > 12;
@@ -1207,6 +1250,363 @@
   }
   setInterval(() => { try { gTick(); } catch { /* следующий тик */ } }, 1000);
 
+  // ================= «Циклы лифтов» =================
+  // Список циклов за период (GET /api/lifts/{lift}/cycles), таблица как в Excel (сортировка и фильтры из alarms.js),
+  // по щелчку по строке временные диаграммы выбранного цикла и ближайшего цикла «Норма» (GET …/cycles/detail)
+  const LC_KEY = 'trends:lifts';
+  const LC_MAX = 31;                        // сервер отдаёт период не больше 31 дня
+  const LIFTS = ['EL300'];                  // позже EL301, EL302
+  const LC_GO = /\.Goto(3rd|4th)$/;         // команды на отъезд: синие полосы
+  const lc = {
+    lift: LIFTS[0], from: '', to: '', thr: 10, data: null, fail: 0, err: '', token: 0, loadedAt: 0, built: false,
+    sorts: [{ k: 'start', dir: 'desc' }], filters: {}, sel: null, view: [], drag: false, pop: null,
+    cur: null, dTok: 0, shown: null, cache: new Map(),
+  };
+  const lq = s => pane.querySelector(s);
+  const lms = iso => (iso ? Date.parse(iso) : NaN);
+  const lcOff = () => { const o = lc.data ? core.isoOffsetMs(lc.data.from) : null; return o === null ? 5 * 3600000 : o; };
+  const lcLost = () => !lc.data || lc.fail >= 2;
+  const lcSave = () => { try { localStorage.setItem(LC_KEY, JSON.stringify({ lift: lc.lift, from: lc.from, to: lc.to, thr: lc.thr })); } catch { /* без сохранения */ } };
+  const stText = r => core.LIFT_STATUS[r.status] || String(r.status || '');
+  const lcBad = s => s === 'problem' || s === 'stuck';            // красные итоги: «Проблема» и «Остановка в пути»
+  const stCls = s => (s === 'ok' ? 'lc-s-ok' : lcBad(s) ? 'lc-s-problem' : 'lc-s-other');
+  const isStuck = r => r.status === 'stuck';
+  // у остановки в пути «Последний сигнал» и его время: сигнал, пропавший в момент остановки
+  const lcSig = r => (isStuck(r) ? r.lost_signal : r.last_signal);
+  const lcSigTs = r => (isStuck(r) ? r.lost_signal_ts : r.last_signal_ts);
+
+  // столбцы: text — показ, копирование и фильтр; val — сортировка (как в alarms.js); cellTip — подсказка ячейки
+  const LC_COLS = [
+    { k: 'start', t: 'Начало', tip: 'Дата и время начала цикла по времени завода: лифт на 2-м этаже и вилы выдвинуты вверх', text: r => core.fmtClock(lms(r.start), lcOff()), val: r => lms(r.start) },
+    { k: 'wait', t: 'Ожидание, с', tip: 'Сколько секунд лифт ждал разрешения на отъезд: от начала цикла до команды ехать на 3-й или 4-й этаж; у остановки в пути: сколько лифт стоял между уровнями', text: r => (isStuck(r) ? core.fmtDur(r.stop_s) : core.fmtSec(r.wait_s)), val: r => (isStuck(r) ? r.stop_s : r.wait_s === null || r.wait_s === undefined ? -1 : r.wait_s), num: true, cellTip: r => (isStuck(r) ? 'Лифт стоял между уровнями после пропажи разрешения' : '') },
+    { k: 'status', t: 'Итог', tip: 'Норма: ожидание не дольше порога; Проблема: дольше порога; Остановка в пути: разрешение пропало и лифт встал между уровнями; Прерван: лифт ушёл без команды; Не закончен: команды ещё нет', text: stText, val: stText, filter: true },
+    { k: 'last', t: 'Последний сигнал', tip: 'Сигнал разрешения, который появился последним перед командой на отъезд: именно его лифт ждал дольше всего; у остановки в пути: сигнал, который пропал в момент остановки', text: r => (lcSig(r) ? core.liftShort(lcSig(r)) : '—'), val: r => (lcSig(r) ? core.liftShort(lcSig(r)) : ''), filter: true, cellTip: r => (isStuck(r) ? 'Этот сигнал пропал в момент остановки' : '') },
+    { k: 'lastTs', t: 'Время сигнала', tip: 'Когда появился последний сигнал разрешения (у остановки в пути: когда пропал сигнал), время завода с точностью до секунды', text: r => (lcSigTs(r) ? core.fmtClock(lms(lcSigTs(r)), lcOff(), false) : '—'), val: r => lms(lcSigTs(r)) || 0, num: true },
+  ];
+
+  function lcHtml() {
+    const pb = (p, t, tip) => `<button type="button" class="dt-sec" data-lp="${p}" title="${tip}">${t}</button>`;
+    return `
+      <section class="ch-card lc" id="lc">
+        <header><h3 title="Циклы передачи кузова лифтом: сколько лифт ждал разрешения на отъезд и какой сигнал появился последним; щелчок по строке показывает временные диаграммы">Циклы лифтов</h3>
+          <span class="lc-btns"><button type="button" id="lc-reset" class="dt-sec" title="Снять все фильтры по столбцам и вернуть сортировку по началу цикла, новые сверху">Сбросить фильтры</button>
+          <button type="button" id="lc-copy" class="dt-sec" title="Скопировать всю показанную таблицу циклов с заголовками в буфер обмена: её можно вставить в Excel">Копировать таблицу</button></span></header>
+        <div class="ch-bar lc-bar">
+          <label title="Лифт, циклы передачи кузова которого показываются в таблице и на диаграммах">Лифт <select id="lc-lift" title="Лифт, циклы передачи кузова которого показываются в таблице и на диаграммах">${LIFTS.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join('')}</select></label>
+          <button type="button" id="lc-prev" class="dt-sec" title="Сдвинуть период назад на его длину (например, неделя назад или предыдущий день)">◀</button>
+          <label title="Первый день периода">С <input type="date" id="lc-from" max="${today()}" title="Первый день периода"></label>
+          <label title="Последний день периода, включительно; период не больше ${LC_MAX} дней">По <input type="date" id="lc-to" max="${today()}" title="Последний день периода"></label>
+          <button type="button" id="lc-next" class="dt-sec" title="Сдвинуть период вперёд на его длину; дата не позже сегодняшней">▶</button>
+          <span class="ch-presets">${pb('day', 'День', 'Только сегодняшний день')}${pb('week', 'Неделя', 'Последние 7 дней, включая сегодня')}${pb('month', 'Месяц', 'С первого числа текущего месяца по сегодня')}${pb('prev', 'Прошлый месяц', 'Весь прошлый календарный месяц')}</span>
+          <label class="lc-thr" title="Циклы с ожиданием дольше порога считаются проблемными и выделяются красным">Порог, с <input type="number" id="lc-thr" class="trg-num" min="1" max="3600" step="1" title="Циклы с ожиданием дольше порога считаются проблемными и выделяются красным"></label>
+          <span class="lc-sum" id="lc-sum"></span>
+        </div>
+        <div class="al-body lc-body" id="lc-body" tabindex="0" title="Щелчок по строке показывает временные диаграммы цикла; выделите ячейки мышью и нажмите Ctrl+C, чтобы скопировать их для Excel"></div>
+        <div class="lc-diag" id="lc-diag"></div>
+      </section>`;
+  }
+
+  function lcSyncBar() {
+    lq('#lc-from').value = lc.from;
+    lq('#lc-to').value = lc.to;
+    lq('#lc-thr').value = lc.thr;
+    lq('#lc-lift').value = lc.lift;
+    const p = presets();
+    pane.querySelectorAll('[data-lp]').forEach(b => b.classList.toggle('on', p[b.dataset.lp][0] === lc.from && p[b.dataset.lp][1] === lc.to));
+  }
+
+  function lcApply(f, t) {
+    if (!f || !t || t < f) { lcSyncBar(); return; }
+    if (t > today()) t = today();
+    if (daysBetween(f, t) > LC_MAX) { toast(`Период не больше ${LC_MAX} дней`); lcSyncBar(); return; }
+    lc.from = f; lc.to = t; lc.cur = null; lc.data = null; lc.fail = 0; lc.err = '';
+    lcSave(); lcSyncBar(); lcDraw(); lcLoad();
+  }
+
+  function lcInit() {
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(LC_KEY)) || {}; } catch { /* по умолчанию */ }
+    const d = presets().day;
+    lc.lift = LIFTS.includes(saved.lift) ? saved.lift : LIFTS[0];
+    lc.thr = saved.thr > 0 && saved.thr <= 3600 ? saved.thr : 10;
+    lc.from = saved.from || d[0]; lc.to = saved.to || d[1];
+    if (lc.to > today()) lc.to = today();
+    if (lc.from > lc.to || daysBetween(lc.from, lc.to) > LC_MAX) [lc.from, lc.to] = d;
+    lcSyncBar();
+    const dates = () => lcApply(lq('#lc-from').value, lq('#lc-to').value);
+    lq('#lc-from').addEventListener('change', dates);
+    lq('#lc-to').addEventListener('change', dates);
+    pane.querySelectorAll('[data-lp]').forEach(b => b.addEventListener('click', () => lcApply(...presets()[b.dataset.lp])));
+    const shift = k => {
+      const n = daysBetween(lc.from, lc.to) * k, t = addDays(lc.to, n);
+      if (t > today() && k > 0) return;
+      lcApply(addDays(lc.from, n), t);
+    };
+    lq('#lc-prev').addEventListener('click', () => shift(-1));
+    lq('#lc-next').addEventListener('click', () => shift(1));
+    lq('#lc-lift').addEventListener('change', e => { lc.lift = e.target.value; lc.cur = null; lc.data = null; lc.fail = 0; lc.err = ''; lcSave(); lcDraw(); lcLoad(); });
+    lq('#lc-thr').addEventListener('change', e => {
+      const v = Number(String(e.target.value).replace(',', '.'));
+      if (!(v > 0 && v <= 3600)) { toast('Порог: от 1 до 3600 секунд'); e.target.value = lc.thr; return; }
+      lc.thr = v; lcSave(); lcLoad();
+    });
+    lq('#lc-reset').addEventListener('click', () => { lc.filters = {}; lc.sorts = [{ k: 'start', dir: 'desc' }]; lcTable(); });
+    lq('#lc-copy').addEventListener('click', () => lcCopy({ r1: 0, c1: 0, r2: lc.view.length - 1, c2: LC_COLS.length - 1 }, true));
+    const body = lq('#lc-body');
+    body.addEventListener('keydown', e => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && e.code === 'KeyC' && lc.sel) { e.preventDefault(); lcCopy(lc.sel, false); }
+      else if (mod && e.code === 'KeyA') { e.preventDefault(); lc.sel = { r1: 0, c1: 0, r2: lc.view.length - 1, c2: LC_COLS.length - 1 }; lcPaintSel(); }
+      else if (e.key === 'Escape') { lc.sel = null; lcPaintSel(); }
+    });
+    document.addEventListener('mouseup', () => { lc.drag = false; });
+    document.addEventListener('mousedown', e => { if (lc.pop && !lc.pop.contains(e.target) && !e.target.closest('#lc .al-fbtn')) lcClosePop(); });
+    lc.built = true;
+    lcDraw();
+  }
+
+  async function lcLoad() {
+    if (!lc.built) return;
+    const my = ++lc.token, thr = lc.thr;
+    try {
+      const r = await fetch(`/api/lifts/${encodeURIComponent(lc.lift)}/cycles?date_from=${lc.from}&date_to=${lc.to}&threshold=${thr}`, { signal: AbortSignal.timeout(6000) });
+      if (r.status === 401 || r.status === 403) throw new Error('Циклы лифтов доступны после входа в систему');
+      if (!r.ok) throw new Error(await errText(r));
+      const d = await r.json();
+      if (my !== lc.token) return;
+      lc.data = d; lc.fail = 0; lc.err = '';
+    } catch (ex) {
+      if (my !== lc.token) return;
+      lc.fail = lc.data ? lc.fail + 1 : 2;
+      lc.err = ex.name === 'TimeoutError' ? 'Сервер не ответил за 6 секунд' : (ex.message || 'Не удалось загрузить циклы');
+    }
+    lc.loadedAt = Date.now();
+    lcDraw();
+  }
+
+  function lcDraw() {
+    if (!lc.built) return;
+    const s = lcLost() ? null : lc.data.summary;
+    const v = x => (s ? esc(x) : '—');
+    const avg = s && s.avg_wait_ok_s !== null && s.avg_wait_ok_s !== undefined ? `${core.fmtSec(s.avg_wait_ok_s)} с` : '—';
+    lq('#lc-sum').innerHTML =
+      `<span title="Сколько циклов лифта началось за выбранный период${s && lc.data.truncated ? '; показаны не все, сократите период' : ''}">Циклов <b>${v(s && s.count)}${s && lc.data.truncated ? '+' : ''}</b></span>` +
+      `<span class="lc-ok" title="Циклов, в которых лифт ждал разрешения не дольше порога">Норма <b>${v(s && s.ok)}</b></span>` +
+      `<span class="lc-bad" title="Циклов, в которых лифт ждал разрешения дольше порога">Проблема <b>${v(s && s.problem)}</b></span>` +
+      `<span class="${s && s.stuck > 0 ? 'lc-bad' : ''}" title="Остановок в пути: лифт поехал, разрешение пропало, и лифт встал между уровнями, не доехав до цели">Остановок <b>${v(s && (s.stuck || 0))}</b></span>` +
+      `<span title="Среднее ожидание разрешения в циклах «Норма», секунды">Среднее <b>${avg}</b></span>`;
+    lcTable();
+    if (lc.cur && (lcLost() || !lc.data.cycles.some(c => c.start === lc.cur))) lc.cur = null;
+    lcDiagrams();
+  }
+
+  function lcTable() {
+    const host = lq('#lc-body');
+    lcClosePop();
+    lc.sel = null;
+    if (lcLost()) { lc.view = []; host.innerHTML = `<div class="ch-empty">${esc(lc.err || 'Загрузка…')}</div>`; return; }
+    const AU = window.alarmsUtil;
+    const src = lc.data.cycles || [];
+    const view = AU ? AU.sortRows(AU.filterRows(src, LC_COLS, lc.filters), LC_COLS, lc.sorts) : src.slice();
+    lc.view = view;
+    const head = `<th class="lc-n" title="Номер строки в показанной таблице">№</th>` + LC_COLS.map((c, i) => {
+      const si = lc.sorts.findIndex(x => x.k === c.k), on = (lc.filters[c.k] || []).length > 0;
+      const arrow = si >= 0 ? `<i class="al-arrow">${lc.sorts[si].dir === 'asc' ? '▲' : '▼'}${lc.sorts.length > 1 ? si + 1 : ''}</i>` : '';
+      return `<th data-c="${i}" class="al-sortable${c.num ? ' al-num' : ''}${on ? ' al-fon' : ''}" title="${esc(c.tip)}. Нажмите, чтобы отсортировать по возрастанию, по убыванию и сбросить; Shift+нажатие добавляет вторую сортировку; Ctrl+нажатие выделяет весь столбец"><span class="al-sort">${esc(c.t)}${arrow}</span>${c.filter ? `<button type="button" class="al-fbtn${on ? ' on' : ''}" title="Фильтр по столбцу «${esc(c.t)}»: выбор значений галочками${on ? ' (фильтр включён)' : ''}">▾</button>` : ''}</th>`;
+    }).join('');
+    const rows = view.map((r, i) => `<tr data-i="${i}" class="${lcBad(r.status) ? 'lc-problem' : ''}${r.start === lc.cur ? ' lc-cur' : ''}"><td class="lc-n">${i + 1}</td>${LC_COLS.map((c, ci) => {
+      const tip = c.cellTip ? c.cellTip(r) : '';
+      return `<td data-c="${ci}" class="${c.num ? 'al-num' : ''}${c.k === 'status' ? ' ' + stCls(r.status) : ''}"${tip ? ` title="${esc(tip)}"` : ''}>${esc(c.text(r))}</td>`;
+    }).join('')}</tr>`).join('');
+    host.innerHTML = `<table class="users-table al-table"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>` +
+      (view.length ? '' : `<div class="ch-empty">${src.length ? 'Нет строк по выбранным фильтрам' : 'Нет циклов за выбранный период'}</div>`);
+    if (window.attachColWidths) window.attachColWidths(host.querySelector('table'), 'lift-cycles');
+    host.querySelectorAll('th[data-c]').forEach(th => th.addEventListener('click', e => {
+      const ci = Number(th.dataset.c), c = LC_COLS[ci];
+      if (e.target.closest('.al-fbtn')) { lcFilter(c, e.target.closest('.al-fbtn')); return; }
+      if (e.ctrlKey || e.metaKey) { lc.sel = { r1: 0, c1: ci, r2: lc.view.length - 1, c2: ci }; lcPaintSel(); return; }
+      lc.sorts = AU ? AU.nextSorts(lc.sorts, c.k, e.shiftKey) : lc.sorts;
+      lcTable();
+    }));
+    host.querySelectorAll('tbody td[data-c]').forEach(td => {
+      const pos = () => ({ r: Number(td.parentNode.dataset.i), c: Number(td.dataset.c) });
+      td.addEventListener('mousedown', e => {
+        if (e.button) return;
+        const p = pos();
+        lc.drag = true;
+        lc.sel = e.shiftKey && lc.sel ? { r1: lc.sel.r1, c1: lc.sel.c1, r2: p.r, c2: p.c } : { r1: p.r, c1: p.c, r2: p.r, c2: p.c };
+        lcPaintSel();
+      });
+      td.addEventListener('mouseover', () => { if (lc.drag && lc.sel) { const p = pos(); lc.sel.r2 = p.r; lc.sel.c2 = p.c; lcPaintSel(); } });
+    });
+    host.querySelectorAll('tbody tr').forEach(tr => tr.addEventListener('click', e => {
+      if (e.shiftKey) return;
+      const r = lc.view[Number(tr.dataset.i)];
+      if (!r) return;
+      lc.cur = r.start;
+      host.querySelectorAll('tbody tr').forEach(x => x.classList.toggle('lc-cur', x === tr));
+      lcDiagrams();
+    }));
+  }
+
+  const lcNorm = s => ({ r1: Math.min(s.r1, s.r2), r2: Math.max(s.r1, s.r2), c1: Math.min(s.c1, s.c2), c2: Math.max(s.c1, s.c2) });
+  function lcPaintSel() {
+    const r = lc.sel ? lcNorm(lc.sel) : null;
+    lq('#lc-body').querySelectorAll('tbody td[data-c]').forEach(td => {
+      const ri = Number(td.parentNode.dataset.i), c = Number(td.dataset.c);
+      td.classList.toggle('al-sel', !!r && ri >= r.r1 && ri <= r.r2 && c >= r.c1 && c <= r.c2);
+    });
+  }
+
+  function lcCopy(range, withHead) {
+    if (!lc.view.length) return;
+    const s = lcNorm(range), cols = LC_COLS.slice(s.c1, s.c2 + 1);
+    const m = [];
+    if (withHead) m.push(cols.map(c => c.t));
+    for (let r = s.r1; r <= s.r2; r++) m.push(cols.map(c => c.text(lc.view[r])));
+    const text = core.tsv(m);
+    const done = () => toast(`Скопировано: ${s.r2 - s.r1 + 1} строк × ${s.c2 - s.c1 + 1} столбцов`);
+    const fallback = () => {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch { toast('Не удалось скопировать'); }
+      ta.remove();
+    };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+  }
+
+  // Фильтр столбца: список значений с поиском и галочками (вид как в «Авариях»)
+  function lcClosePop() { if (lc.pop) { lc.pop.remove(); lc.pop = null; } }
+  function lcFilter(col, btn) {
+    lcClosePop();
+    const all = [...new Set((lc.data ? lc.data.cycles : []).map(r => col.text(r)))].sort((a, b) => String(a).localeCompare(String(b), 'ru', { numeric: true }));
+    const chosen = new Set(lc.filters[col.k] && lc.filters[col.k].length ? lc.filters[col.k] : all);
+    const pop = document.createElement('div');
+    lc.pop = pop;
+    pop.className = 'al-pop';
+    pop.innerHTML = `<input type="search" placeholder="Поиск" title="Найти значение в списке столбца «${esc(col.t)}»"><div class="al-pop-list"></div>
+      <div class="al-pop-act"><button type="button" class="dt-sec" data-a="clear" title="Показать все значения столбца и закрыть окно">Сбросить</button><button type="button" data-a="ok" title="Оставить в таблице только отмеченные значения">Применить</button></div>`;
+    document.body.appendChild(pop);
+    const r = btn.getBoundingClientRect();
+    pop.style.top = Math.min(r.bottom + 4, window.innerHeight - 320) + 'px';
+    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 270)) + 'px';
+    const list = pop.querySelector('.al-pop-list'), search = pop.querySelector('input');
+    const paint = () => {
+      const term = search.value.trim().toLowerCase();
+      list.innerHTML = all.filter(v => String(v).toLowerCase().includes(term)).map(v =>
+        `<label title="Показывать строки со значением «${esc(v)}»"><input type="checkbox" title="Отметьте, чтобы показывать строки с этим значением" value="${esc(v)}"${chosen.has(v) ? ' checked' : ''}> ${esc(v)}</label>`).join('') || '<div class="al-muted">Ничего не найдено</div>';
+    };
+    paint();
+    search.addEventListener('input', paint);
+    list.addEventListener('change', e => { if (e.target.checked) chosen.add(e.target.value); else chosen.delete(e.target.value); });
+    pop.addEventListener('click', e => {
+      const a = e.target.closest('[data-a]');
+      if (!a) return;
+      if (a.dataset.a === 'clear' || chosen.size === all.length) delete lc.filters[col.k]; else lc.filters[col.k] = [...chosen];
+      lcTable();
+    });
+    pop.addEventListener('keydown', e => { if (e.key === 'Escape') lcClosePop(); });
+    search.focus();
+  }
+
+  // Подробности цикла с отрезками сигналов; законченный цикл не меняется, поэтому хранится в памяти
+  async function lcDetail(start) {
+    const key = `${lc.lift}|${lc.thr}|${start}`;
+    if (lc.cache.has(key)) return lc.cache.get(key);
+    try {
+      const r = await fetch(`/api/lifts/${encodeURIComponent(lc.lift)}/cycles/detail?start=${encodeURIComponent(start)}&threshold=${lc.thr}`, { signal: AbortSignal.timeout(6000) });
+      if (!r.ok) return { err: await errText(r) };
+      const d = await r.json();
+      if (d.cycle && d.cycle.status !== 'open') lc.cache.set(key, d);
+      return d;
+    } catch (ex) {
+      return { err: ex.name === 'TimeoutError' ? 'Сервер не ответил за 6 секунд' : 'Не удалось загрузить диаграмму' };
+    }
+  }
+
+  async function lcDiagrams() {
+    const box = lq('#lc-diag');
+    const cyc = lc.cur && !lcLost() ? lc.data.cycles.find(c => c.start === lc.cur) : null;
+    const my = ++lc.dTok;
+    if (!cyc) { lc.shown = null; box.innerHTML = ''; return; }
+    const ok = core.nearestOk(lc.data.cycles, cyc.start);
+    const [a, b] = await Promise.all([lcDetail(cyc.start), ok ? lcDetail(ok.start) : Promise.resolve(null)]);
+    if (my !== lc.dTok) return;
+    lc.shown = [a, b];
+    lcPaint();
+  }
+
+  function lcPaint() {
+    const box = lq('#lc-diag');
+    if (!box || !lc.shown) return;
+    box.innerHTML = '<div class="lc-pane"></div><div class="lc-pane"></div>';
+    box.querySelectorAll('.lc-pane').forEach((el, i) => {
+      const d = lc.shown[i];
+      const W = Math.max(300, Math.floor(el.clientWidth) || 560);
+      if (!d) el.innerHTML = '<div class="lc-none">Другого нормального цикла для сравнения нет</div>';
+      else if (d.err) el.innerHTML = `<div class="lc-none">${esc(d.err)}</div>`;
+      else el.innerHTML = lcSvg(d, W);
+    });
+  }
+
+  // Временная диаграмма цикла: дорожка на каждый сигнал, полоса = сигнал 1; ось в секундах от начала окна
+  function lcSvg(d, W) {
+    const c = d.cycle, off = lcOff(), sig = d.signals || [];
+    const w0 = lms(d.window[0]), w1 = lms(d.window[1]), span = Math.max(1000, w1 - w0);
+    const s0 = lms(c.start);
+    const narrow = W < 460;
+    const m = { l: narrow ? 104 : 170, r: 10, t: 2, b: 20 };
+    const step = 13, laneH = 9, bw = Math.max(60, W - m.l - m.r);
+    const H = m.t + sig.length * step + m.b;
+    const X = t => m.l + (Math.min(Math.max(t, w0), w1) - w0) / span * bw;
+    let g = '';
+    const e0 = c.end ? lms(c.end) : c.aborted_ts ? lms(c.aborted_ts) : w1;
+    g += `<rect class="${c.status === 'problem' ? 'lc-wait-bad' : 'lc-wait'}" x="${X(s0)}" y="${m.t}" width="${Math.max(1, X(e0) - X(s0))}" height="${sig.length * step}"><title>${esc(`Ожидание разрешения: ${c.wait_s === null || c.wait_s === undefined ? '—' : core.fmtSec(c.wait_s) + ' с'}`)}</title></rect>`;
+    const stuck = isStuck(c) && c.stop_ts;
+    if (stuck) {
+      const x1 = X(lms(c.stop_ts)), x2 = c.resume_ts ? X(lms(c.resume_ts)) : X(w1);
+      g += `<rect class="lc-stop" x="${x1}" y="${m.t}" width="${Math.max(1, x2 - x1)}" height="${sig.length * step}"><title>${esc(`Остановка в пути: ${core.fmtDur(c.stop_s)}${c.resume_ts ? '' : ', до конца периода лифт не доехал'}`)}</title></rect>`;
+    }
+    const tk = core.niceTicks(0, span / 1000, Math.max(2, Math.floor(bw / 70)));
+    for (const v of tk.ticks) {
+      const x = m.l + v * 1000 / span * bw;
+      g += `<line class="ch-grid" x1="${x}" x2="${x}" y1="${m.t}" y2="${H - m.b}"/><text class="ch-tick" x="${x}" y="${H - 5}" text-anchor="middle">${esc(String(v).replace('.', ','))} с</text>`;
+    }
+    sig.forEach((name, i) => {
+      const y = m.t + i * step, short = core.liftShort(name), cls = LC_GO.test(name) ? 'lc-go' : 'lc-on';
+      let lane = `<text class="ch-tick" x="${m.l - 6}" y="${y + laneH}" text-anchor="end">${esc(trunc(short, narrow ? 15 : 26))}</text><rect class="lc-track" x="${m.l}" y="${y}" width="${bw}" height="${laneH}"/>`;
+      for (const iv of (d.intervals && d.intervals[name]) || []) {
+        const x1 = X(lms(iv[0])), x2 = X(lms(iv[1]));
+        lane += `<rect class="${cls}" x="${x1}" y="${y}" width="${Math.max(1.5, x2 - x1)}" height="${laneH}"/>`;
+      }
+      g += `<g><title>${esc(name)}</title>${lane}</g>`;
+    });
+    const wait = c.wait_s === null || c.wait_s === undefined ? '—' : `${core.fmtSec(c.wait_s)} с`;
+    const head = stuck
+      ? `<div class="lc-h" title="Время начала цикла по времени завода и сколько лифт стоял между уровнями после пропажи разрешения"><b>Цикл ${esc(core.fmtClock(s0, off, false))}</b> · <span class="lc-s-problem">остановка в пути ${esc(core.fmtDur(c.stop_s))}</span></div>`
+      : `<div class="lc-h" title="Время начала цикла по времени завода, ожидание разрешения и итог"><b>Цикл ${esc(core.fmtClock(s0, off, false))}</b> · ${esc(wait)} · <span class="${stCls(c.status)}">${esc(stText(c))}</span></div>`;
+    let foot = '';
+    if (stuck) {
+      const lost = c.lost_signal ? core.liftShort(c.lost_signal) : 'неизвестный сигнал';
+      foot = `<div class="lc-foot" title="${esc(c.lost_signal || 'Ни один сигнал разрешения не пропал в пределах секунды от остановки')}">Лифт встал, когда пропал ${esc(lost)}, вилы ${c.forks_out ? 'выдвинуты' : 'не выдвинуты'}</div>`;
+    } else if (c.last_signal && c.last_signal_ts) {
+      const dt = (lms(c.last_signal_ts) - s0) / 1000;
+      const when = dt >= 0 ? `через ${core.fmtSec(dt)} с после` : `за ${core.fmtSec(-dt)} с до`;
+      foot = `<div class="lc-foot" title="${esc(c.last_signal)}">Последним появился ${esc(core.liftShort(c.last_signal))} ${when} выдвижения вил</div>`;
+    }
+    return `${head}<svg class="ch-svg lc-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img">${g}</svg>${foot}`;
+  }
+
+  // «сегодня»: перечитывать раз в 30 секунд, пока вкладка открыта; прошлый период читается при открытии
+  function lcTick() {
+    if (!lc.built || !pane.classList.contains('active') || document.hidden) return;
+    if (lc.to === today() && Date.now() - lc.loadedAt >= 30000) lcLoad();
+  }
+  function lcShow() { if (lc.built) lcLoad(); }
+  function lcAuth() { if (lc.built) { lc.cache.clear(); if (pane.classList.contains('active')) lcLoad(); } }
+  setInterval(() => { try { lcTick(); } catch { /* следующий тик */ } }, 5000);
+
   tabBtn.addEventListener('click', show);
-  window.addEventListener('resize', () => { if (pane.classList.contains('active')) requestAnimationFrame(() => { draw(); gDraw(); }); });
+  window.addEventListener('resize', () => { if (pane.classList.contains('active')) requestAnimationFrame(() => { draw(); gDraw(); lcPaint(); }); });
 })(typeof window !== 'undefined' ? window : globalThis);

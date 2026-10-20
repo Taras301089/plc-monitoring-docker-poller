@@ -150,24 +150,24 @@ async def test_reports_day_preview_and_excel_for_no_output_day(app, anon, pool):
     p = (await anon.get(f"/api/kpi/screens/{scr}/day-preview", params={"date": OFF.isoformat()})).json()
     assert p["no_output"] is True and p["state"] == dayflags.NO_OUTPUT and p["note"].startswith(dayflags.NO_OUTPUT_LABEL)
     h = p["headers"]
-    down, delta = h.index("Простой мин"), h.index("±")
+    down, delta = h.index("Отставание мин"), h.index("±")
     assert all(not isinstance(r[down], (int, float)) or r[down] == 0 for r in p["rows"])
     assert all(r[delta] == "" for r in p["rows"])                      # «±» не показывается
     book = (await anon.get(f"/api/kpi/screens/{scr}/day.xlsx", params={"date": OFF.isoformat()})).content
     cells = _cells(book)
     assert dayflags.NO_OUTPUT_LABEL in _shared(book)
-    assert _tile_value(cells, "Простой, мин") == dayflags.NO_OUTPUT_LABEL
+    assert _tile_value(cells, "Отставание, мин") == dayflags.NO_OUTPUT_LABEL
     # состав плиток дня без выпуска тот же, что на экране «Отчёты» (подписи плиток не меняются)
     from pathlib import Path
     js = (Path(__file__).resolve().parent.parent / "fastapi-api" / "static" / "reports.js").read_text(encoding="utf-8")
     day_src = js[js.index("async function drawDay"):js.index("async function drawPeriod")]
-    screen_tiles = re.findall(r"tile\('([^']+)'", day_src)
+    screen_tiles = re.findall(r"tile\(L\('[^']+',\s*'([^']+)'", day_src)
     sheet_tiles = [v for k, v in cells.items() if re.fullmatch(r"[A-Z]+3", k) and isinstance(v, str)]
     assert sheet_tiles == screen_tiles
     # у рабочего дня подписи нет
     book2 = (await anon.get(f"/api/kpi/screens/{scr}/day.xlsx", params={"date": WORK.isoformat()})).content
     assert not any(dayflags.NO_OUTPUT_LABEL in s for s in _shared(book2))
-    assert _tile_value(_cells(book2), "Простой, мин") == 15.0
+    assert _tile_value(_cells(book2), "Отставание, мин") == 15.0
 
 
 async def test_reports_period_excel_and_autosave_exclude_no_output(app, anon, pool):
@@ -175,7 +175,7 @@ async def test_reports_period_excel_and_autosave_exclude_no_output(app, anon, po
     scr = await _seed(pool)
     book = (await anon.get(f"/api/kpi/screens/{scr}/period.xlsx", params={"from": WORK.isoformat(), "to": OFF.isoformat()})).content
     cells = _cells(book)
-    assert _tile_value(cells, "Простой, мин") == 15.0 and _tile_value(cells, "Не описано, мин") == 15.0
+    assert _tile_value(cells, "Отставание, мин") == 15.0 and _tile_value(cells, "Не описано, мин") == 15.0
     assert dayflags.NO_OUTPUT_LABEL in _shared(book)
     # автосохранение: файл за воскресенье, плитка простоя дня без выпуска подписана, месяц считает без этих минут
     data, _, _, n = await build_combined_report(pool, scr, OFF)
@@ -183,7 +183,7 @@ async def test_reports_period_excel_and_autosave_exclude_no_output(app, anon, po
     cells = _cells(data)
     tiles = []
     for ref, v in cells.items():
-        if v == "Простой, мин":                       # плитка дня и плитка «с начала месяца»
+        if v == "Отставание, мин":                       # плитка дня и плитка «с начала месяца»
             col, row = re.match(r"([A-Z]+)(\d+)", ref).groups()
             tiles.append(cells[f"{col}{int(row) + 1}"])
     # плитка дня подписана «нет выпуска», месячная плитка и таблица «По дням» считают только рабочий день (15 мин)
@@ -245,7 +245,7 @@ async def test_flag_puts_downtime_into_statistics_everywhere(app, anon, users, p
     assert "T_MASTER" in p["note"] and "Мастер" in p["note"]                       # «Фамилия, должность» после содержания
     book = (await anon.get(f"/api/kpi/screens/{scr}/day.xlsx", params={"date": OFF.isoformat()})).content
     assert any(s.startswith(dayflags.FULL_DOWNTIME_LABEL) for s in _shared(book))
-    assert _tile_value(_cells(book), "Простой, мин") == 180.0
+    assert _tile_value(_cells(book), "Отставание, мин") == 180.0
     fl = (await anon.get("/api/kpi/day-flags", params={"screen_id": scr, "from": WORK.isoformat(), "to": TODAY.isoformat()})).json()
     assert [(x["date"], x["state"]) for x in fl["days"]] == [(OFF.isoformat(), dayflags.FULL_DOWNTIME)]
     assert fl["days"][0]["flag"]["set_by_name"].startswith("T_MASTER, Мастер")

@@ -1,0 +1,34 @@
+# Тестовая копия сайта только для чтения: подключается к рабочей базе пользователем pmm_readonly (только SELECT)
+# Имя проекта pmm-test обязательно: иначе compose тронет рабочие контейнеры
+# Запуск: .\dev-up.ps1, остановка: .\dev-down.ps1 (пароль в файле .env.dev, в Git не хранится)
+name: pmm-test
+
+services:
+  fastapi-api-test:
+    build: ./fastapi-api
+    container_name: pmm_test_api
+    restart: "no"
+    environment:
+      DATABASE_URL: postgresql://pmm_readonly:${PMM_READONLY_PASSWORD}@postgres_db:5432/general_data_hub_BD
+      READ_ONLY: "1"
+      APP_ENV: dev
+      KPI_UTC_OFFSET_HOURS: "5"
+      POLLER_URL: http://plc-monitoring-docker-poller:8080
+      REPORTS_DIR: /tmp/reports
+      BACKUP_DIR: /tmp/backups
+    volumes:
+      - ${TIA_BRIDGE_HOST_DIR:-C:/tia-bridge}:/tia-bridge:ro   # только чтение: список проектов и состояние службы для проверки вкладки «Выгрузка TIA»
+    ports:
+      - "127.0.0.1:8001:8000"
+    networks:
+      - default
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  default:
+    name: plc-monitoring-docker-poller_default
+    external: true

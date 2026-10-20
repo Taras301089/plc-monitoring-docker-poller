@@ -14,22 +14,29 @@ from typing import Any, Literal
 import asyncpg
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from readonly import READ_ONLY, blocked
 from auth import current_user, ensure_auth_schema, require_admin, require_editor, require_user, router as auth_router
 from downtime import ensure_downtime_schema, router as downtime_router
 from dayflags import ensure_dayflags_schema, router as dayflags_router
 from history import router as history_router
 from colwidths import ensure_colwidths_schema, router as colwidths_router
+import labels
+from labels import ensure_labels_schema, router as labels_router
 from period import router as period_router
+from responsibility import router as responsibility_router
+from dtresponse import router as dtresponse_router
 from reports import ensure_reports_schema, reports_loop, router as reports_router
 from activity import ensure_activity_schema, router as activity_router
 from comments import ensure_comments_schema, router as comments_router
 from backups import router as backups_router
 from trends import ensure_trends_schema, router as trends_router
 from alarms import ensure_alarms_schema, router as alarms_router
+from tia import router as tia_router
+from lift_cycles import router as lift_cycles_router
 from tgnotify import TgSender, TgUpdatesPoller, ensure_tg_schema, router as tgnotify_router
 from repair import ensure_repair_binding
 from starve import ensure_starve_binding
@@ -97,6 +104,8 @@ BODY_COUNTER_ROLES = {
 async def ensure_plc_order(pool: asyncpg.Pool) -> None:
     """Порядок ПЛК в списке (общий для всех): колонка sort_order; ПЛК без номера встают в конец по id."""
     await pool.execute("ALTER TABLE plcs ADD COLUMN IF NOT EXISTS sort_order INTEGER")
+    # «Аварии ПЛК (OPC UA)»: поллер собирает аварии самого ПЛК по Alarms & Conditions в alarm_ac_events
+    await pool.execute("ALTER TABLE plcs ADD COLUMN IF NOT EXISTS ac_alarms BOOLEAN NOT NULL DEFAULT FALSE")
     await pool.execute(
         """
         UPDATE plcs p SET sort_order = (SELECT COALESCE(max(sort_order), 0) FROM plcs) + s.rn
@@ -262,6 +271,13 @@ async def ensure_kpi_schema(pool: asyncpg.Pool) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
+    if READ_ONLY:
+        # Тестовая копия: база только для чтения, поэтому ни схем, ни фоновых задач (отчёты, Telegram)
+        try:
+            yield
+        finally:
+            await app.state.pool.close()
+        return
     await ensure_kpi_schema(app.state.pool)
     await ensure_starve_binding(app.state.pool)
     await ensure_repair_binding(app.state.pool)
@@ -282,6 +298,7 @@ async def lifespan(app: FastAPI):
     await seed_manual_screens(app.state.pool)
     await ensure_reports_schema(app.state.pool)
     await ensure_colwidths_schema(app.state.pool)
+    await ensure_labels_schema(app.state.pool)
     await ensure_tg_schema(app.state.pool)
     reports_task = asyncio.create_task(reports_loop(app))
     tg_stop = asyncio.Event()
@@ -306,7 +323,10 @@ app.include_router(downtime_router)
 app.include_router(dayflags_router)
 app.include_router(history_router)
 app.include_router(colwidths_router)
+app.include_router(labels_router)
 app.include_router(period_router)
+app.include_router(responsibility_router)
+app.include_router(dtresponse_router)
 app.include_router(reports_router)
 app.include_router(manual_router)
 app.include_router(comments_router)
@@ -314,8 +334,26 @@ app.include_router(activity_router)
 app.include_router(backups_router)
 app.include_router(trends_router)
 app.include_router(alarms_router)
+app.include_router(tia_router)
+app.include_router(lift_cycles_router)
 app.include_router(tgnotify_router)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+
+@app.middleware("http")
+async def read_only_guard(request, call_next):
+    """Тестовая копия (READ_ONLY=1): любые запросы, кроме чтения, отклоняются."""
+    if blocked(request.method, READ_ONLY, request.url.path):
+        return JSONResponse({"detail": "Тестовая копия: только чтение"}, status_code=403)
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def labels_for_excel(request, call_next):
+    """Excel-выгрузки берут названия из словаря «Названия» (кэш 5 с); при ошибке остаются стандартные."""
+    if request.url.path.endswith(".xlsx"):
+        await labels.refresh(app.state.pool)
+    return await call_next(request)
 
 
 @app.middleware("http")
@@ -403,7 +441,7 @@ async def list_plcs() -> list[dict[str, Any]]:
     scan_ages = await plc_scan_ages(pool)
     rows = await pool.fetch(
         """
-        SELECT p.id, p.name, p.opc_endpoint, p.is_active,
+        SELECT p.id, p.name, p.opc_endpoint, p.is_active, p.ac_alarms,
                s.is_connected, COALESCE(NULLIF(s.last_error, ''), '') AS link_error,
                extract(epoch FROM (now() - s.last_successful_poll))::int AS poll_age_sec,
                extract(epoch FROM (now() - s.updated_at))::int AS status_age_sec
@@ -435,6 +473,7 @@ class CreatePlcRequest(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     opc_endpoint: str = Field(min_length=1, max_length=1024)
     is_active: bool | None = None   # «Включён в опрос»: не задан — при создании включён, при правке остаётся как был
+    ac_alarms: bool | None = None   # «Аварии ПЛК (OPC UA)»: не задан — при создании выключен, при правке остаётся как был
 
 
 @app.post("/api/plcs")
@@ -443,14 +482,16 @@ async def create_plc(request: CreatePlcRequest, _: dict[str, Any] = Depends(requ
     try:
         plc_id = await pool.fetchval(
             """
-            INSERT INTO plcs (name, opc_endpoint, is_active, sort_order)
-            VALUES ($1, $2, $3, (SELECT COALESCE(max(sort_order), 0) + 1 FROM plcs))
+            INSERT INTO plcs (name, opc_endpoint, is_active, ac_alarms, sort_order)
+            VALUES ($1, $2, $3, $4, (SELECT COALESCE(max(sort_order), 0) + 1 FROM plcs))
             RETURNING id
             """,
-            request.name, request.opc_endpoint, True if request.is_active is None else request.is_active
+            request.name, request.opc_endpoint, True if request.is_active is None else request.is_active,
+            bool(request.ac_alarms)
         )
         return {"id": plc_id, "name": request.name, "opc_endpoint": request.opc_endpoint,
-                "is_active": True if request.is_active is None else request.is_active}
+                "is_active": True if request.is_active is None else request.is_active,
+                "ac_alarms": bool(request.ac_alarms)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -461,11 +502,12 @@ async def update_plc(plc_id: int, request: CreatePlcRequest, _: dict[str, Any] =
     try:
         result = await pool.fetchrow(
             """
-            UPDATE plcs SET name = $1, opc_endpoint = $2, is_active = COALESCE($4::boolean, is_active)
+            UPDATE plcs SET name = $1, opc_endpoint = $2, is_active = COALESCE($4::boolean, is_active),
+                            ac_alarms = COALESCE($5::boolean, ac_alarms)
             WHERE id = $3
-            RETURNING id, name, opc_endpoint, is_active
+            RETURNING id, name, opc_endpoint, is_active, ac_alarms
             """,
-            request.name, request.opc_endpoint, plc_id, request.is_active
+            request.name, request.opc_endpoint, plc_id, request.is_active, request.ac_alarms
         )
         if not result:
             raise HTTPException(status_code=404, detail="ПЛК не найден")

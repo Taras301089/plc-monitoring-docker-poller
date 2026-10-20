@@ -68,6 +68,11 @@
 .dict-table td { padding: 5px 10px; }
 .dict-hint { color: var(--fg-secondary); font-size: 11px; margin-left: 6px; font-weight: normal; }
 .dict-area { margin-bottom: 14px; }
+.dict-names { margin-top: 18px; }
+.nm-table input[type="text"] { width: 100%; min-height: 30px; font-size: var(--fs-small); text-align: left; }
+.nm-table td { text-align: left; vertical-align: top; }
+.nm-filter { font-size: var(--fs-small); }
+.nm-warn { font-size: var(--fs-small); margin-top: 4px; }
 .dict-area.off > .dict-area-head b { color: var(--fg-secondary); }
 .dict-area-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; flex-wrap: wrap; }
 .dict-area-head .acts { margin-left: auto; display: flex; gap: 4px; }
@@ -142,3 +147,5 @@
 
 /* Вкладка «Простои»: кнопки и поля фильтров одного размера */
 #downtimes button, #downtimes select, #downtimes input { font-size: var(--fs-small); }
+.dict-table td.dict-owner { white-space: nowrap; font-size: var(--fs-small); color: var(--fg-secondary); }
+.dict-table td.dict-owner select { font-size: var(--fs-small); min-height: 26px; margin-left: 4px; }

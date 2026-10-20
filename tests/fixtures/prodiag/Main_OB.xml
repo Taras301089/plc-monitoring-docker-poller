@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <SW.Blocks.OB ID="0">
+    <AttributeList><Name>Main</Name></AttributeList>
+    <ObjectList>
+      <SW.Blocks.CompileUnit ID="1" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource><FlgNet xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/v4">
+  <Parts>
+    <Call UId="21"><CallInfo Name="Parent_FB" BlockType="FB"><Instance Scope="GlobalVariable" UId="22"><Component Name="Parent_DB1" /></Instance></CallInfo></Call>
+    <Call UId="23"><CallInfo Name="Parent_FB" BlockType="FB"><Instance Scope="GlobalVariable" UId="24"><Component Name="Parent_DB2" /></Instance></CallInfo></Call>
+    <Call UId="25"><CallInfo Name="Dev_FB" BlockType="FB"><Instance Scope="GlobalVariable" UId="26"><Component Name="Dev_DB" /></Instance></CallInfo></Call>
+  </Parts>
+  <Wires />
+</FlgNet></NetworkSource>
+          <ProgrammingLanguage>LAD</ProgrammingLanguage>
+        </AttributeList>
+      </SW.Blocks.CompileUnit>
+    </ObjectList>
+  </SW.Blocks.OB>
+</Document>

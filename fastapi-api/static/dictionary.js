@@ -10,6 +10,7 @@
   let showArchived = false;
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const isAdmin = () => { const st = window.authState && window.authState(); return !!(st && st.user && st.user.role === 'admin'); };
   const canEdit = () => {
     const st = window.authState && window.authState();
     return !!(st && st.user && EDITORS.includes(st.user.role));
@@ -59,10 +60,13 @@
     await load();
   }
 
-  const row = (item, i, list, kind, extra, label) => `
+  const OWNER_OPTS = [['none', 'Не назначен'], ['production', 'ПР — Производство'], ['oto', 'ОТО'], ['ito', 'ИТО'], ['other', 'ДР — Другое (внешние причины)']];
+  const ownerCell = (item, edit) => `<td class="dict-owner"><label title="Ответственный по умолчанию: при выборе этой причины в окне простоя подставляется он (ПР — производство, ОТО, ИТО, ДР — другое, внешние причины); в окне простоя его можно изменить">Ответственный по умолчанию <select data-a="owner"${edit ? '' : ' disabled'} title="Ответственный по умолчанию для этой причины; менять могут администратор и начальники">${OWNER_OPTS.map(([k, v]) => `<option value="${k}"${(item.owner || 'production') === k ? ' selected' : ''}>${v}</option>`).join('')}</select></label></td>`;
+  const row = (item, i, list, kind, extra, label, edit) => `
     <tr class="${item.is_active ? '' : 'off'}" data-kind="${kind}" data-id="${item.id}" data-i="${i}">
       <td class="num">${i + 1}</td>
       <td><b>${esc(item.name)}</b>${item.hint ? ` <span class="dict-hint">${esc(item.hint)}</span>` : ''}${item.is_active ? '' : ' <span class="badge off">в архиве</span>'}</td>
+      ${kind === 'reasons' ? ownerCell(item, edit) : ''}
       <td class="acts">
         <button type="button" data-a="up" ${i === 0 ? 'disabled' : ''} title="Поднять ${label} выше в списке выбора">▲</button>
         <button type="button" data-a="down" ${i === list.length - 1 ? 'disabled' : ''} title="Опустить ${label} ниже в списке выбора">▼</button>
@@ -89,7 +93,7 @@
           <div class="dict-head"><h3>Причины простоев</h3>
             ${edit ? '<button type="button" id="reason-add" title="Добавить новую причину простоя в общий список (для всех брендов и Finish Line)">+ Причина</button>' : ''}</div>
           <table class="users-table dict-table"><tbody id="dict-reasons">
-            ${reasons.map((r, i) => row(r, i, reasons, 'reasons', x => ({ name: x.name, hint: x.hint }), 'причину')).join('')}
+            ${reasons.map((r, i) => row(r, i, reasons, 'reasons', x => ({ name: x.name, hint: x.hint }), 'причину', edit)).join('')}
           </tbody></table>
         </section>
 
@@ -112,8 +116,10 @@
               </tbody></table></div>`;
           }).join('') || '<div class="empty">В этом направлении нет участков</div>'}
         </section>
-      </div>`;
+      </div>
+      ${isAdmin() ? '<section class="dict-names" id="dict-names"></section>' : ''}`;
     bind(edit, areas);
+    if (isAdmin() && window.namesSection) window.namesSection.mount(pane.querySelector('#dict-names'));   // раздел «Названия» (names.js)
   }
 
   function bind(edit, areas) {
@@ -126,7 +132,7 @@
       const name = (prompt('Название новой причины простоя') || '').trim();
       if (!name) return;
       const hint = (prompt('Пояснение к причине (можно оставить пустым)') || '').trim();
-      act('POST', '/api/kpi/reasons', { name, hint }, 'Причина добавлена');
+      act('POST', '/api/kpi/reasons', { name, hint }, 'Причина добавлена');   // ответственный по умолчанию «ПР», меняется в списке
     });
     pane.querySelector('#area-add').addEventListener('click', () => {
       const name = (prompt('Название нового участка') || '').trim();
@@ -147,6 +153,8 @@
       });
       tr.querySelector('[data-a="toggle"]').addEventListener('click', () =>
         act('PUT', `/api/kpi/reasons/${item.id}`, body({ is_active: !item.is_active }), item.is_active ? 'Причина в архиве' : 'Причина возвращена'));
+      tr.querySelector('[data-a="owner"]').addEventListener('change', e =>
+        act('PUT', `/api/kpi/reasons/${item.id}`, body({ owner: e.target.value }), 'Ответственный по умолчанию изменён'));
     });
 
     // участки и станции

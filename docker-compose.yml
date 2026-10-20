@@ -48,6 +48,8 @@ services:
       POLLER_URL: http://plc-monitoring-docker-poller:8080
       KPI_UTC_OFFSET_HOURS: "5"
       APP_ENV: ${APP_ENV:-dev}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}   # ключ бота из корневого .env сервера (в Git не хранится); пусто: оповещения в Telegram не отправляются
+      TELEGRAM_CA_FILE: /extra-ca/corp-ca.pem   # корневой сертификат предприятия для HTTPS к Telegram (сетевой экран подменяет сертификаты); нет файла: обычная проверка
       REPORTS_DIR: /reports
       REPORTS_HOST_DIR: ${REPORTS_HOST_DIR:-C:/Andon-Reports}
       BACKUP_DIR: /backups
@@ -56,6 +58,8 @@ services:
     volumes:
       - ${REPORTS_HOST_DIR:-C:/Andon-Reports}:/reports
       - ${BACKUP_HOST_DIR:-C:/plc-backups}:/backups:ro
+      - ${TIA_BRIDGE_HOST_DIR:-C:/tia-bridge}:/tia-bridge
+      - ${TLS_EXTRA_HOST_DIR:-C:/pmm-certs}:/extra-ca:ro
     depends_on:
       - postgres
       - plc-monitoring-docker-poller

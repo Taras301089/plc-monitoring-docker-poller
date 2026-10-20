@@ -15,6 +15,7 @@ from checker import TagChecker
 from config import load_settings
 from database import Database
 from alarm_collector import AlarmCollector
+from ac_collector import AcCollector
 from kpi_collector import BodyEventLogger, KpiCollector
 from models import DigitalTelemetryPoint, Plc
 from opc_client import PlcOpcClient
@@ -350,6 +351,11 @@ async def _async_main() -> None:
         level=getattr(logging, settings.log_level, logging.INFO),
         format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
     )
+    # Шум в журнале: строка на каждый запрос сайта (aiohttp.access) и на каждое чтение asyncua; остаются предупреждения и ошибки.
+    # Для разбора проблем LOG_LEVEL=DEBUG возвращает всё как было
+    if settings.log_level != "DEBUG":
+        for noisy in ("aiohttp.access", "asyncua"):
+            logging.getLogger(noisy).setLevel(logging.WARNING)
 
     db = Database(settings)
     await db.connect()
@@ -485,6 +491,7 @@ async def _async_main() -> None:
     kpi_tasks = [
         asyncio.create_task(KpiCollector(db.get_pool, lambda: service._clients, service._stop).run()),
         asyncio.create_task(AlarmCollector(db.get_pool, lambda: service._clients, service._stop).run()),
+        asyncio.create_task(AcCollector(db.get_pool, service._stop).run()),   # аварии ПЛК по OPC UA A&C, своё подключение
         asyncio.create_task(BodyEventLogger(db.get_pool, lambda: service._clients, service._stop).run()),
     ]
 

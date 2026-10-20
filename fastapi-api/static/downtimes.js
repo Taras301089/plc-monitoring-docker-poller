@@ -8,6 +8,7 @@
   const f = { preset: 'today', from: '', to: '', rest: false, comments: false, mine: false };
   let today = null;
   let data = [];
+  let resp = null;                // итоги отставания по отделам за период (считает сервер, responsibility.py)
   let built = false;
   let sorts = [];                 // [{ k, dir }] — dir: 1 по возрастанию, -1 по убыванию
   const colFilters = {};          // ключ столбца -> Set разрешённых значений
@@ -16,6 +17,8 @@
   let anchor = null;
   let dragging = false;
 
+  const L = (key, def) => (window.uiLabel ? window.uiLabel(key, def) : def);   // названия из словаря «Названия» (labels.js)
+  const TT = (key, def) => (window.uiTitle ? window.uiTitle(key, def) : def);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const pad = n => String(n).padStart(2, '0');
   const hhmm = m => (m === null || m === undefined ? '' : `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`);
@@ -36,14 +39,23 @@
     { k: 'station', t: 'Станция', tip: 'Станция или пост, на которой был простой', get: r => (rest(r) ? '' : (r.station || '')), filter: true },
     { k: 'plan', t: 'План', tip: 'Плановое количество кузовов за интервал', get: r => String(r.plan), val: r => r.plan, num: true, dup: true },
     { k: 'fact', t: 'Факт', tip: 'Фактическое количество кузовов за интервал', get: r => String(r.fact), val: r => r.fact, num: true, dup: true },
-    { k: 'total', t: 'Простой, мин', tip: 'Всего минут простоя в интервале (повторяется у каждой причины интервала)', get: r => fmt(r.minutes), val: r => r.minutes, num: true, dup: true },
+    { k: 'total', get t() { return L('down_min', 'Отставание, мин'); }, get tip() { return TT('down_min', 'Отставание от плана, мин: (план − факт) ÷ план × длительность интервала; включает остановки и медленную работу; повторяется у каждой причины интервала'); }, get: r => fmt(r.minutes), val: r => r.minutes, num: true, dup: true },
     { k: 'reason', t: 'Причина', tip: 'Причина простоя; «Не описано» — минуты, для которых причина ещё не указана', get: r => (rest(r) ? 'Не описано' : (r.reason || '')), filter: true },
+    { k: 'owner', t: 'Отв.', tip: 'Ответственный за отставание по этой причине: ПР производство, ОТО, ИТО, ДР другое (внешние причины). … ждёт подтверждения, ✓ подтверждено, ! спорно', get: r => (rest(r) ? '' : window.dtOwner.ownLabel(r.owner, r.owner_status)), filter: true },
     { k: 'mins', t: 'Мин.', tip: 'Сколько минут из простоя приходится на эту причину', get: r => fmt(r.item_minutes), val: r => r.item_minutes, num: true },
     { k: 'note', t: 'Описание', tip: 'Что произошло (текст строки описания)', get: r => (rest(r) ? '' : (r.note || '')) },
     { k: 'who', t: 'Внёс', tip: 'Кто внёс строку описания', get: r => (rest(r) ? '' : (r.created_by_name || '')), filter: true },
     { k: 'cm', t: '💬', tip: 'Количество комментариев к строке', get: r => (r.comments ? String(r.comments) : ''), val: r => r.comments || 0, num: true },
   ];
   const colIdx = k => COLS.findIndex(c => c.k === k);
+  // Ячейка «Отв.»: знак со статусом и подсказкой (отдел, статус, ответ отдела); кликабелен, если вошедший может ответить за отдел
+  const ownCell = (r, v) => {
+    const R = window.dtResponse;
+    const st = r.owner_status || window.dtOwner.ownStatus(r.owner);
+    const can = !!(R && R.canRespond(me(), r.owner));
+    const tip = (R ? R.ownTip(r.owner, st, r.response, r.reason, r.item_minutes) : v) + (can ? '. Нажмите, чтобы ответить за отдел: согласен, частично или не согласен' : '');
+    return `<span class="own-i own-${st}${can ? ' own-click' : ''}" title="${esc(tip)}">${esc(v)}</span>`;
+  };
   const sortVal = (c, r) => (c.val ? c.val(r) : c.get(r));
 
   async function getJson(url) {
@@ -70,6 +82,7 @@
     if (!res) { pane.querySelector('#dl-body').innerHTML = '<div class="empty">Не удалось загрузить простои</div>'; return; }
     today = res.today;
     data = res.rows;
+    resp = res.responsibility || null;
     pane.querySelector('#dl-from').value = res.from || '';
     pane.querySelector('#dl-to').value = res.to || '';
     draw();
@@ -91,7 +104,7 @@
         <button type="button" id="dl-reset" class="dt-sec dl-btn" title="Снять все фильтры по столбцам и сортировку">Сбросить фильтры</button>
         <button type="button" id="dl-copyall" class="dt-sec dl-btn" title="Скопировать всю показанную таблицу с заголовками: её можно вставить в Excel">Копировать таблицу</button>
       </div>
-      <div id="dl-sum" class="dl-sum"></div><div id="dl-body" class="dl-body" tabindex="0" title="Выделите ячейки мышью и нажмите Ctrl+C, чтобы скопировать"></div>`;
+      <div id="dl-resp" class="resp-block"></div><div id="dl-sum" class="dl-sum"></div><div id="dl-body" class="dl-body" tabindex="0" title="Выделите ячейки мышью и нажмите Ctrl+C, чтобы скопировать"></div>`;
     pane.querySelectorAll('#dl-presets button').forEach(b => b.addEventListener('click', () => { f.preset = b.dataset.p; load(); }));
     const dates = () => { f.preset = 'custom'; f.from = pane.querySelector('#dl-from').value; f.to = pane.querySelector('#dl-to').value; load(); };
     pane.querySelector('#dl-from').addEventListener('change', dates);
@@ -230,8 +243,28 @@
     else if (e.key === 'Escape') { sel = null; paintSel(); }
   }
 
+  // Блок «Минуты по ответственным» за выбранный период (все линии; фильтры столбцов и галочки на него не влияют). Числа с сервера
+  function drawResp() {
+    const box = pane.querySelector('#dl-resp');
+    if (!box) return;
+    const K = window.respKit;
+    if (!resp || !K) { box.innerHTML = ''; return; }
+    const rows = K.tableRows(resp);
+    box.innerHTML = `<h3 title="Сколько минут отставания приходится на каждый отдел за выбранный период, по всем линиям. Сумма ПР, ОТО, ИТО, ДР и «Не описано» равна «Всего»; «Ждёт подтверждения» и «Спорно» это часть минут отделов. Фильтры таблицы ниже на блок не действуют">${esc(K.TAB_TITLE)}
+      <button type="button" class="dt-sec dl-btn" id="dl-resp-copy" title="Скопировать блок вместе с заголовками: его можно вставить в Excel">Копировать</button></h3>
+      <table class="users-table resp-t"><thead><tr>${K.HEADS.map((h, i) => `<th title="${esc(K.TIPS[i])}">${esc(h)}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map((r, ri) => `<tr>${r.map((v, i) => `<td${ri ? ' class="resp-sub"' : ''}>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    box.querySelector('#dl-resp-copy').addEventListener('click', () => {
+      const text = [K.HEADS, ...rows].map(r => r.join('\t')).join('\n');
+      const done = () => toast('Скопировано: блок «Минуты по ответственным»');
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, () => toast('Не удалось скопировать')); else toast('Не удалось скопировать');
+    });
+    if (window.attachColWidths) window.attachColWidths(box.querySelector('table'), 'downtimes-resp');
+  }
+
   // ---------- отрисовка ----------
   function draw() {
+    drawResp();
     pane.querySelectorAll('#dl-presets button').forEach(b => b.classList.toggle('active', b.dataset.p === f.preset));
     const u = me();
     const mineBox = pane.querySelector('#dl-mine');
@@ -264,11 +297,20 @@
         const cls = [c.num ? 'dl-num' : '', c.nowrap ? 'dl-nw' : '', c.dup && dup ? 'dl-dup' : '', c.k === 'reason' && rest(r) ? 'dl-warn' : '', c.k === 'note' ? 'dl-note' : '', c.k === 'who' ? 'dl-who' : '', c.k === 'cm' && v ? 'dt-cm' : '']
           .filter(Boolean).join(' ');
         const tip = c.k === 'who' && !rest(r) ? ` title="${esc(`Внёс: ${r.created_by_name}, ${fmtTs(r.created_at)}${r.updated_by_name && r.updated_by_name !== r.created_by_name ? `. Изменил: ${r.updated_by_name}, ${fmtTs(r.updated_at)}` : ''}`)}"` : '';
+        if (c.k === 'owner' && v) return `<td data-c="${ci}" class="${cls}">${ownCell(r, v)}</td>`;
         return `<td data-c="${ci}" class="${cls}"${tip}>${c.k === 'cm' && v ? '💬' : ''}${esc(v)}</td>`;
       }).join('')}<td class="dl-act"><button type="button" class="dl-open" title="Открыть простой: описать, изменить или прокомментировать">›</button></td></tr>`;
     }).join('')}</tbody></table>`;
     bindHead(body);
     window.attachColWidths(body.querySelector("table"), "downtimes");
+    // знак ОТО / ИТО в «Отв.»: окно «Ответ отдела» для того, кто может ответить (проверка прав и на сервере)
+    body.querySelectorAll('.own-click').forEach(sp => sp.addEventListener('click', e => {
+      e.stopPropagation();
+      const r = view[Number(sp.closest('tr').dataset.i)];
+      if (!r || !window.dtResponse) return;
+      window.dtResponse.open({ item: { id: r.item_id, owner: r.owner, minutes: r.item_minutes, response: r.response || null },
+        time: `${fmtDay(r.date)} ${hhmm(r.start_min)}–${hhmm(r.end_min)}`, dtMinutes: r.minutes, reason: r.reason || '', note: r.note || '', onDone: load });
+    }));
     body.querySelectorAll('tbody tr').forEach(tr => {
       const r = view[Number(tr.dataset.i)];
       const open = () => { if (window.dtOpenById) window.dtOpenById(r.downtime_id, r.item_id, true); };
@@ -311,6 +353,7 @@
     });
   }
 
+  document.addEventListener('ui-labels-changed', () => { if (built) draw(); });   // администратор изменил название в окне «Названия»
   tab.addEventListener('click', load);
   window.dtListRefresh = () => { if (pane.classList.contains('active')) load(); };
   const prev = window.onAuthChanged;
