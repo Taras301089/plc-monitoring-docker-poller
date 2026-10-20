@@ -152,7 +152,7 @@ async def test_day_preview_column_only_for_bound_screen(app, anon, pool):
     await _hourly(pool, scr)
     pv = (await anon.get(f"/api/kpi/screens/{scr}/day-preview", params={"date": DAY.isoformat()})).json()
     h = pv["headers"]
-    assert h[h.index("Takt Time") + 1] == "Простой RB262" and h[h.index("Takt Time") + 2] == "Простой мин"
+    assert h[h.index("Takt Time") + 1] == "Простой RB262" and h[h.index("Takt Time") + 2] == "Отставание мин"
     col = h.index("Простой RB262")
     assert [r[col] for r in pv["rows"]] == [16.73, 2.0, "—"]
     _, other = await _screen(pool, name="GWM", starve_bound=False, template="body_counter")
@@ -207,7 +207,7 @@ def test_andon_screen_column_matches_excel():
     fl = html[html.index("function buildFlLayout"):html.index("function openPlanDialog")]
     th = re.search(r'<th title="([^"]+)"[^>]*>Простой RB262</th>', fl)
     assert th and th.group(1) == HINT
-    assert fl.index("Takt Time</th>") < fl.index("Простой RB262</th>") < fl.index("Простой, мин</th>")
+    assert fl.index("Takt Time</th>") < fl.index("Простой RB262</th>") < fl.index("Отставание, мин</th>")
     assert 'data-k="starve"' in fl and 'data-k="starveSum"' in fl
     assert "dt_0" in fl   # столбец только для экранов с привязкой
     arch = (STATIC / "archive.js").read_text(encoding="utf-8")

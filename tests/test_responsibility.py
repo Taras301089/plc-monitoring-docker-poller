@@ -173,7 +173,7 @@ async def test_excel_day_has_owner_column_like_screen(app, users, anon, pool):
     pv = (await anon.get(f"/api/kpi/screens/{scr}/day-preview", params={"date": DAY.isoformat()})).json()
     assert "Отв." in pv["headers"]
     c = pv["headers"].index("Отв.")
-    assert c == pv["headers"].index("Простой мин") + 1   # как на экране Andon: «Отв.» сразу после «Простой, мин»
+    assert c == pv["headers"].index("Отставание мин") + 1   # как на экране Andon: «Отв.» сразу после «Простой, мин»
     assert [r[c] for r in pv["rows"]] == ["ОТО …", "ПР ✓", ""]       # две причины и «не описан» (пусто)
     assert len(pv["headers"]) == len(pv["rows"][0])
     xl = await anon.get(f"/api/kpi/screens/{scr}/day.xlsx", params={"date": DAY.isoformat()})

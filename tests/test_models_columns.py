@@ -227,12 +227,12 @@ async def test_with_starve_order_matches_screen(app, anon, pool, live):
     scr = await _screen(pool, starve=True)
     await _hourly(pool, scr)
     h = (await anon.get(f"/api/kpi/screens/{scr}/day-preview", params={"date": DAY.isoformat()})).json()["headers"]
-    assert h[h.index("±") + 1:h.index("Простой мин")] == MODELS + ["Takt Time", "Простой RB262"]
+    assert h[h.index("±") + 1:h.index("Отставание мин")] == MODELS + ["Takt Time", "Простой RB262"]
     cells, formulas, _ = _cells(await _book(anon, scr))
     row, L = _table(cells, h)
     n = 4
     total = row + n + 1
-    assert formulas[f"{L['Простой мин']}{total}"].startswith("SUM(")
+    assert formulas[f"{L['Отставание мин']}{total}"].startswith("SUM(")
     assert formulas[f"{L['Простой RB262']}{total}"].startswith("SUM(")
 
 
@@ -267,7 +267,7 @@ def test_screen_columns_equal_excel_headers():
     html = (STATIC / "index.html").read_text(encoding="utf-8")
     fl = html[html.index("function buildFlLayout"):html.index("function openPlanDialog")]
     h = history.day_headers(True, True)
-    on_screen = [t for t in ("№", "Время", "Мин.", "План", "Факт", "±", "Takt Time", "Простой RB262", "Простой, мин", "Причина") if f">{t}</th>" in fl]
+    on_screen = [t for t in ("№", "Время", "Мин.", "План", "Факт", "±", "Takt Time", "Простой RB262", "Отставание, мин", "Причина") if f">{t}</th>" in fl]
     assert fl.index("±</th>") < fl.index("FL_MODELS.map(m => `<th") < fl.index("Takt Time</th>")   # модели между «±» и «Takt Time»
     assert [x for x in h if x in on_screen] == [x for x in on_screen if x in h]
     assert h[h.index("±") + 1:h.index("Takt Time")] == MODELS

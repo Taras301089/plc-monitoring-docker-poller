@@ -44,12 +44,12 @@
               <th title="Плановое количество подсборок за интервал: вводится вручную">План</th>
               <th title="Фактическое количество подсборок за интервал: вводится вручную. Пока не введено, простой не считается">Факт</th>
               <th title="Отклонение факта от плана для завершённых интервалов: красный — отставание">±</th>
-              <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой, мин</th>
+              <th title="Отставание от плана, мин: (план − факт) ÷ план × длительность интервала; включает остановки и медленную работу. Нажмите на число, чтобы указать станцию и причину" data-ui-label="down_min" data-ui-title="down_min">Отставание, мин</th>
               <th title="Ответственный за отставание по каждой причине, в порядке причин: ПР — производство, ОТО, ИТО, ДР — другое (внешние причины). Знак: … ждёт подтверждения, ✓ подтверждено, ! спорно. Расшифровка по наведению">Отв.</th>
               <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
             </tr></thead>
             <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td class="man" data-k="plan"></td><td class="man fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td class="dt" data-k="dt"></td><td class="own" data-k="own"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
-            <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td data-k="planSum"></td><td data-k="factSum"></td><td class="delta" data-k="deltaSum"></td><td></td><td></td><td class="resp-sum" data-k="resp"></td></tr></tfoot>
+            <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td data-k="planSum"></td><td data-k="factSum"></td><td class="delta" data-k="deltaSum"></td><td class="resp-sum" data-k="resp" colspan="3"></td></tr></tfoot>
           </table></div>
         </div>
       </div>`;

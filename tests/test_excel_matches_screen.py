@@ -41,9 +41,21 @@ def tile_labels(content: bytes) -> list[str]:
     return out
 
 
+# Названия, изменённые администратором в окне «Названия» (ключ -> текст). Экран и Excel берут их из словаря, поэтому тест
+# подставляет их так же, как страница: стандартное название записано в коде рядом с ключом, L('ключ', 'стандартное')
+CUSTOM: dict[str, str] = {}
+
+
+def _lab(key: str, default: str) -> str:
+    return CUSTOM.get(key) or default
+
+
 def _calls(text: str, fn: str) -> list[str]:
-    """Первые аргументы-строки вызовов fn('...' в тексте."""
-    return re.findall(rf"\b{fn}\('([^']+)'", text)
+    """Первые аргументы вызовов fn('...') или fn(L('ключ', '...')) в тексте; подпись из словаря заменяется изменённой."""
+    out = []
+    for m in re.finditer(rf"\b{fn}\((?:L\('(\w+)', '([^']+)'\)|'([^']+)')", text):
+        out.append(_lab(m.group(1), m.group(2)) if m.group(1) else m.group(3))
+    return out
 
 
 def _section(text: str, start: str, end: str) -> str:
@@ -54,7 +66,7 @@ def _section(text: str, start: str, end: str) -> str:
 # ---------- экран: что показывает страница ----------
 
 def screen_charts_cards() -> list[str]:
-    return re.findall(r"kind: '\w+', title: '([^']+)'", _src("charts.js"))
+    return [_lab(k, d) for k, d in re.findall(r"kind: '\w+', get title\(\) \{ return L\('(\w+)', '([^']+)'\)", _src("charts.js"))]
 
 
 def screen_charts_tiles() -> list[str]:
@@ -70,7 +82,7 @@ def screen_trends_tiles() -> list[str]:
 
 
 def screen_reports_chart_titles() -> list[str]:
-    return re.findall(r"q\('chart-title'\)\.textContent = '([^']+)'", _src("reports.js"))
+    return [_lab(k, d) for k, d in re.findall(r"q\('chart-title'\)\.textContent = L\('(\w+)', '([^']+)'\)", _src("reports.js"))]
 
 
 def screen_reports_tiles(fn: str, nxt: str) -> list[str]:
@@ -126,7 +138,7 @@ async def test_charts_period_several_days_hides_cumulative(app, anon, pool):
 
 async def test_charts_each_chart_export_has_its_screen_title(app, anon, pool):
     scr = await _seed(pool)
-    kinds = re.findall(r"kind: '(\w+)', title:", _src("charts.js"))
+    kinds = re.findall(r"kind: '(\w+)', get title", _src("charts.js"))
     for kind, title in zip(kinds, screen_charts_cards()):
         d1 = DAY if kind == "cumulative" else D0
         book = await _get(anon, f"/api/kpi/screens/{scr}/chart.xlsx", {"kind": kind, "from": d1.isoformat(), "to": DAY.isoformat()})

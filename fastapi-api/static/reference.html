@@ -127,6 +127,12 @@
     .bk-tile b { display: block; font-size: 16px; font-variant-numeric: tabular-nums; }
     .bk-num { text-align: right; font-variant-numeric: tabular-nums; }
     #backups-section table td.bk-num { text-align: right; }
+    .scheme-box { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 4px; padding: 12px; margin: 12px 0; background: var(--bg-primary); }
+    .scheme-box svg { max-width: 100%; height: auto; }
+    .sch-key { display: inline-block; padding: 2px 10px; border-radius: 4px; border: 2px solid; font-size: 13px; margin-right: 8px; color: #e5e7eb; }
+    .sch-ok { background: #14532d; border-color: #34d399; }
+    .sch-wip { background: #1e3a8a; border-color: #4c9aff; }
+    .sch-plan { background: #2b2f36; border-color: #9aa0a6; border-style: dashed; }
   </style>
   <link rel="stylesheet" href="/static/auth.css">
   <link rel="stylesheet" href="/static/downtime.css">
@@ -184,6 +190,7 @@ C:\plc-monitoring-docker-poller/
 │   ├── downtime.py             ← Простои и их описание (автосоздаёт сборщик KPI в поллере)
 │   ├── dayflags.py             ← Дни без выпуска (простой не считается) и отметка «Простой весь день (поломка линии)»: единое правило для всех расчётов простоя, таблицы <code>kpi_day_flags</code> и журнал <code>kpi_day_flags_log</code>
 │   ├── responsibility.py       ← Итоги отставания по отделам (ПР / ОТО / ИТО / ДР, не описано, ждёт подтверждения, спорно): одна функция для Andon, «Простоев», «Отчётов» и Excel
+│   ├── dtresponse.py           ← Ответ отдела ОТО / ИТО на ответственность за отставание (согласен / частично / не согласен): права, таблицы <code>kpi_downtime_responses</code> и журнал <code>kpi_downtime_responses_log</code>
 │   ├── manual.py               ← Экраны подсборок: ручной ввод плана и факта, журнал ввода
 │   ├── comments.py             ← Комментарии к простоям, упоминания @, уведомления
 │   ├── activity.py             ← Кто в сети и статистика входов (админ и начальники)
@@ -196,6 +203,7 @@ C:\plc-monitoring-docker-poller/
 │   ├── trends.py               ← Вкладка «Тренды»: связь с ПЛК, «Графики переменных» (GET /api/trends/vars, /series, /series.xlsx: сырые точки или корзины min/avg/max по времени), «Запись переменных» (мёртвая зона и границы)
 │   ├── lift_cycles.py          ← Циклы передачи кузова лифтом (EL300, WBS1): начало, конец, ожидание разрешения, последний сигнал, «Остановка в пути»; GET /api/lifts/{lift}/cycles?date_from=&amp;date_to=&amp;threshold=&amp;min_stop_s= (список и сводка за период, до 31 дня), /cycles/detail?start= (цикл и отрезки сигналов для диаграммы), только чтение, вход обязателен
 │   ├── tia.py                  ← Выгрузка проекта TIA (окно во вкладке «ПЛК»): заявки службе tia-bridge, проверка пути сохранения (check_target), состояние и скачивание ZIP
+│   ├── tia_logic.py            ← Логика ПЛК из выгрузки TIA (LAD/FBD): выход → цепочка условий И/ИЛИ в JSON, chains_for(), раскрытие вызовов FC/FB (основа ИИ-помощника «почему стоит станция»)
 │   ├── requirements.txt
 │   └── static/
 │       ├── index.html          ← Браузер переменных ПЛК
@@ -218,6 +226,7 @@ C:\plc-monitoring-docker-poller/
 │       ├── reports.js          ← Вкладка «Отчёты» (админ): автосохранение отчётов по линиям (день и с начала месяца на одном листе)
 │       ├── dayflag.js          ← Дни без выпуска на экране: кнопка отметки, подпись «нет выпуска», строка «По дням»
 │       ├── responsibility.js   ← Подписи итогов по отделам: строка «ИТОГО» на Andon, блоки «Минуты по ответственным» и «По ответственным»
+│       ├── dtresponse.js       ← Окно «Ответ отдела ОТО/ИТО» из колонки «Отв.» на Andon и во «Простоях»
 │       ├── authtabs.js         ← Перезагрузка вкладок «Пользователи», «Справочники», «Отчёты» после обновления страницы, когда стало известно, кто вошёл
 │       ├── plant-time.js       ← Часы Andon: время сервиса на ПК, не пояс браузера/телевизора
 │       ├── plctime.js          ← Время ПЛК и расхождение с сервером («12:41:05 · +5м 28с») в списке ПЛК вкладки «ПЛК»
@@ -275,6 +284,80 @@ C:\plc-monitoring-docker-poller/
       </table>
     </section>
 
+    <!-- ========== СХЕМА ПРОЕКТА ========== -->
+    <section id="scheme-section">
+      <h2>🗺 Схема проекта: связи и готовность</h2>
+      <p>Блоки системы, связи между ними и что уже работает. Рамки: <span class="sch-key sch-ok" title="Блок работает на рабочем сервере">готово</span><span class="sch-key sch-wip" title="Блок сделан, но ещё не включён или ждёт решения, привязки или настройки">в работе или ждёт вас</span><span class="sch-key sch-plan" title="Блок запланирован: в системе его пока нет">запланировано</span> Состояние на 19.10.2026. Код каждой схемы (Mermaid) можно вставить на сайте <a href="https://mermaid.live" target="_blank" rel="noopener">mermaid.live</a>, чтобы изменить её или сохранить картинкой; когда блок становится готовым, меняйте его цвет в коде и дату состояния.</p>
+
+      <h3>1. Данные: ПЛК, опрос, база и сайт</h3>
+      <div class="scheme-box" data-scheme="scheme-code-1" title="Схема рисуется из кода ниже; при смене темы перерисовывается">Схема рисуется…</div>
+      <div class="copy-row"><div class="code-block" id="scheme-code-1" data-copy>flowchart LR
+  classDef ready fill:#14532d,stroke:#34d399,color:#ecfdf5,stroke-width:2px
+  classDef wip fill:#1e3a8a,stroke:#4c9aff,color:#eff6ff,stroke-width:2px
+  classDef plan fill:#2b2f36,stroke:#9aa0a6,color:#e5e7eb,stroke-width:2px,stroke-dasharray:6 4
+  USERS[&quot;ПК и телефоны&lt;br/&gt;порт 8000&quot;]:::ready
+  TV[&quot;Телевизоры&lt;br/&gt;табло Andon, порт 80&quot;]:::ready
+  IIS[&quot;IIS :80&lt;br/&gt;адрес без порта&quot;]:::ready
+  API[&quot;fastapi_api :8000&lt;br/&gt;сайт PMM и API&quot;]:::ready
+  DB[(&quot;postgres_db :5432&lt;br/&gt;основная база&quot;)]:::ready
+  POLL[&quot;python-async-poller&lt;br/&gt;опрос ПЛК раз в секунду&quot;]:::ready
+  ACC[&quot;Сборщик аварий ПЛК&lt;br/&gt;выключен у всех ПЛК&quot;]:::wip
+  PLC[&quot;ПЛК Siemens S7-1500 x8&lt;br/&gt;OPC UA :4840&quot;]:::ready
+  OTHER[&quot;Grafana :3000&lt;br/&gt;и n8n :5678&quot;]:::ready
+  TEST[&quot;Тестовая копия :8001&lt;br/&gt;только чтение&quot;]:::ready
+  USERS --&gt; API
+  TV --&gt; IIS
+  IIS --&gt; API
+  API &lt;--&gt; DB
+  API &lt;--&gt; POLL
+  POLL --&gt; DB
+  PLC &lt;--&gt; POLL
+  PLC --&gt; ACC
+  ACC --&gt; DB
+  OTHER --&gt; DB
+  TEST --&gt; DB</div><button type="button" class="copy-btn" title="Скопировать код схемы 1 (Mermaid) в буфер обмена, чтобы вставить его на сайте mermaid.live">Скопировать</button></div>
+      <h3>2. Файлы, выгрузка проектов TIA и Telegram</h3>
+      <div class="scheme-box" data-scheme="scheme-code-2" title="Схема рисуется из кода ниже; при смене темы перерисовывается">Схема рисуется…</div>
+      <div class="copy-row"><div class="code-block" id="scheme-code-2" data-copy>flowchart TB
+  classDef ready fill:#14532d,stroke:#34d399,color:#ecfdf5,stroke-width:2px
+  classDef wip fill:#1e3a8a,stroke:#4c9aff,color:#eff6ff,stroke-width:2px
+  classDef plan fill:#2b2f36,stroke:#9aa0a6,color:#e5e7eb,stroke-width:2px,stroke-dasharray:6 4
+  API[&quot;fastapi_api :8000&lt;br/&gt;сайт PMM&quot;]:::ready
+  FILES[&quot;Папки: Andon-Reports,&lt;br/&gt;plc-backups, tia-bridge&quot;]:::ready
+  JOBS[&quot;Планировщик:&lt;br/&gt;бэкап 03:00,&lt;br/&gt;копия отчётов 23:50&quot;]:::ready
+  SHARE[&quot;Сетевая папка&lt;br/&gt;отчётов&quot;]:::ready
+  BRIDGE[&quot;tia-bridge.ps1&lt;br/&gt;служба выгрузки TIA&quot;]:::ready
+  TIA[&quot;TIA Portal V17&lt;br/&gt;Openness, проекты .ap17&quot;]:::ready
+  TELEGRAM[&quot;Telegram Bot API&lt;br/&gt;ключ и сертификат готовы,&lt;br/&gt;чат не привязан&quot;]:::wip
+  API --&gt;|автоотчёты xlsx| FILES
+  API &lt;--&gt;|папка обмена| BRIDGE
+  BRIDGE --&gt; TIA
+  BRIDGE --&gt;|архив ZIP| FILES
+  JOBS --&gt; FILES
+  JOBS --&gt; SHARE
+  API --&gt;|очередь сообщений| TELEGRAM</div><button type="button" class="copy-btn" title="Скопировать код схемы 2 (Mermaid) в буфер обмена, чтобы вставить его на сайте mermaid.live">Скопировать</button></div>
+      <h3>3. Разработка, обновление сервера и планы</h3>
+      <div class="scheme-box" data-scheme="scheme-code-3" title="Схема рисуется из кода ниже; при смене темы перерисовывается">Схема рисуется…</div>
+      <div class="copy-row"><div class="code-block" id="scheme-code-3" data-copy>flowchart LR
+  classDef ready fill:#14532d,stroke:#34d399,color:#ecfdf5,stroke-width:2px
+  classDef wip fill:#1e3a8a,stroke:#4c9aff,color:#eff6ff,stroke-width:2px
+  classDef plan fill:#2b2f36,stroke:#9aa0a6,color:#e5e7eb,stroke-width:2px,stroke-dasharray:6 4
+  DEV[&quot;ПК разработчиков&lt;br/&gt;Taras и Almat&quot;]:::ready
+  GH[&quot;GitHub: ветки и main&quot;]:::ready
+  TESTS[&quot;run-tests.ps1&lt;br/&gt;проверка перед слиянием&quot;]:::ready
+  UPD[&quot;update-server.ps1&lt;br/&gt;бэкап, сборка, откат&quot;]:::ready
+  SRV[&quot;Рабочий сервер&quot;]:::ready
+  DEV --&gt;|push, Pull request| GH
+  TESTS --&gt; GH
+  GH --&gt;|main| UPD
+  UPD --&gt; SRV
+  TRAP[&quot;Ловушка лифта EL300&lt;br/&gt;сообщение и картинка&quot;]:::plan
+  PRODIAG[&quot;Аварии ProDiag&lt;br/&gt;нужна передача из ПЛК&quot;]:::plan
+  TIAMORE[&quot;Проекты TIA&lt;br/&gt;остальных ПЛК&quot;]:::plan
+  LIFTX[&quot;Excel циклов лифтов&quot;]:::plan
+  SSO[&quot;Вход по доменной&lt;br/&gt;учётке&quot;]:::plan
+  ORCH[&quot;Режим оркестратора&lt;br/&gt;ночные задачи&quot;]:::plan</div><button type="button" class="copy-btn" title="Скопировать код схемы 3 (Mermaid) в буфер обмена, чтобы вставить его на сайте mermaid.live">Скопировать</button></div>
+    </section>
     <!-- ========== СТРАТЕГИЯ БЭКАПА ========== -->
     <section>
       <h2>💾 Что хранится и как это сохранять</h2>
@@ -377,7 +460,9 @@ C:\plc-monitoring-docker-poller/
         <li><strong>Путь сохранения</strong>: папка для копии ZIP, по умолчанию последний путь этого проекта или <code>C:\tia-bridge\out</code>. Допустим полный путь с буквой диска (<code>D:\TIA\Выгрузки</code>) или сетевой (<code>\\сервер\папка</code>), не длиннее 240 знаков, без «..»; корень диска, системные папки (Windows, Program Files, ProgramData) и корень профиля (<code>C:\Users\имя</code>) запрещены. Путь проверяет сайт и ещё раз служба: она создаёт папку и пробует записать в неё файл; если нельзя, заявка сразу получает ошибку «Папка недоступна для записи», TIA не запускается</li>
         <li><strong>Выгрузить</strong>: ставит заявку; кнопка неактивна, пока служба не запущена, у источника нет проекта или выгрузка уже идёт. Рядом индикатор «● служба работает» / «● служба не запущена»</li>
         <li>Ниже состояние выбранного источника: «в очереди», «выгружается…», «готово» или «ошибка: …», затем «Последняя выгрузка: дата, время · размер · блоков, пропущено, не выгружено · файлов Excel: тексты проекта, ProDiag», кнопка «⬇ ZIP» и куда положена копия архива</li>
+        <li><strong>Таблица проектов</strong> «Проект · ПЛК · Выгрузка (ZIP) · Файл для ИИ»: по строке на каждый проект из <code>tia-projects.json</code>. «Выгрузка (ZIP)»: «⏳ выгружается…», «✓ дата, размер» или «✗ ошибка: …», кнопка «Скачать ZIP». «Файл для ИИ»: «— ждёт выгрузки», «⏳ создаётся…», «✓ готов дата, размер; N блоков, M выходов» или «✗ ошибка: причина»; кнопки «Скачать JSON» и «Пересобрать» (из последнего ZIP, без новой выгрузки из TIA)</li>
       </ul>
+      <p><strong>Файл для ИИ</strong> (логика ПЛК): после каждой успешной выгрузки сайт сам, в фоне, разбирает ZIP модулем <code>tia_logic.py</code> и кладёт <code>C:\tia-bridge\logic\&lt;id проекта&gt;.json</code> (рядом <code>&lt;id&gt;.status.json</code> с состоянием; базы данных нет). Файл заменяется целиком: сначала пишется временный файл, потом он переименовывается, поэтому читающий никогда не увидит недописанный. Если сборка не удалась (повреждённый архив, нет блоков), прежний файл остаётся, а в окне видна причина. В файле для каждого выхода (катушка, Move, выход вызова блока) записана цепочка условий И/ИЛИ с контактами, сравнениями, таймерами и вызовами FC/FB; нераспознанное (SCL, Calc, строковые функции) помечено явно. По нему локальная модель сможет объяснить, почему встала станция. Кнопки «Скачать JSON» и «Пересобрать» видны только администратору, имя файла берётся из списка проектов, а не от клиента. Размер на WBS1 около 2 МБ. В тестовой копии сайта (только чтение, <code>READ_ONLY=1</code>, папка <code>/tia-bridge</code> подключена как <code>:ro</code>) сборка не запускается и ничего не пишет: в колонке «🔒 недоступно в тестовой копии (только чтение)», «Пересобрать» неактивна; если файл уже лежит в <code>logic</code>, он показан как готовый (дата и размер по файлу) и скачивается. Если состояние записать нельзя, в окне «✗ ошибка» с причиной, а не вечное «создаётся».</p>
       <p>В архиве: XML блоков (OB, FB, FC, DB), типов данных (UDT) и таблиц тегов, тексты проекта на каждом языке <code>ProjectTexts_&lt;язык&gt;.xlsx</code>, контроли ProDiag <code>ProDiag_Supervisions.xlsx</code> и отчёт <code>manifest.csv</code> (строка на каждый файл: что выгружено, пропущено или с ошибкой). Архив всегда лежит в <code>C:\tia-bridge\out</code> (хранятся 3 последних на проект, оттуда его отдаёт «⬇ ZIP»), копия кладётся в «Путь сохранения».</p>
       <p>Сайт работает в Linux-контейнере и не может вызвать TIA Openness (программа Windows), поэтому обмен идёт через папку <code>C:\tia-bridge</code> (в контейнере <code>/tia-bridge</code>). Сайт кладёт туда заявку, а служба <code>tia-bridge.ps1</code> на этом же ПК берёт её, вызывает <code>tia-export.ps1</code> (TIA Portal V17 без окна, открывается <strong>копия</strong> проекта), собирает ZIP и пишет состояние. Открытых портов нет, путь к проекту сайт не передаёт: он берётся из списка <code>C:\tia-bridge\tia-projects.json</code> (образец <code>tia-projects.example.json</code>, поле <code>plc</code> связывает проект с ПЛК).</p>
       <p>Что нужно на ПК: TIA Portal V17, учётная запись Windows в группе «Siemens TIA Openness» (после добавления выйти из системы и войти снова), нужные пакеты поддержки оборудования (HSP) для устройств проекта, проект-копия, не открытая в TIA. Служба запускается задачей планировщика «PMM TIA bridge» при входе в Windows под этой учётной записью; если службы нет, в окне выгрузки написано «служба не запущена». При ошибке (например, не установлен HSP или папка недоступна) причина показывается в строке состояния окна.</p>
@@ -441,6 +526,36 @@ C:\plc-monitoring-docker-poller/
       </table>
       <p>В каждой папке лежат пары файлов <code>hub_ГГГГ-ММ-ДД.dump</code> (основная база) и <code>n8n_ГГГГ-ММ-ДД.dump</code>. Папки проверены на доступность и запись 2026-10-14.</p>
       <p><strong>Срок хранения:</strong> на сервере <code>C:\plc-backups</code> 30 дней, в сетевой папке и на Google Drive 7 дней (аварийный запас на случай поломки сервера или удаления папки). Сроки и пути заданы в начале <code>backup.ps1</code> (<code>$keepDays</code>, <code>$copyTargets</code>). После каждого дампа скрипт копирует свежие файлы в эти папки; сбой копирования не считается сбоем бэкапа: основной бэкап цел, а ошибка записывается в <code>C:\plc-backups\status.json</code> (поле <code>copies</code>).</p>
+
+      <h3>Набор конфигурации (config_ГГГГ-ММ-ДД.zip)</h3>
+      <p>Кроме дампов баз <code>backup.ps1</code> каждый раз собирает архив <code>config_ГГГГ-ММ-ДД.zip</code> в <code>C:\plc-backups</code> (хранится 30 дней, как дампы). Внутри: <code>.env</code> (ключ Telegram, <code>APP_ENV=prod</code>, пароли), <code>globals.sql</code> (роли и права базы), <code>n8n_data.tgz</code> (ключ шифрования доступов n8n), <code>grafana_data.tgz</code> (дашборды и настройки Grafana), папка <code>tia-bridge</code> (настройки, логика, диагностика, архивы выгрузок; без <code>work</code> и <code>probe-*</code>, предел 200 МБ), задачи планировщика «PMM backup», «PMM copy reports», «PMM TIA bridge» в XML, настройки IIS (<code>web.config</code> сайтов; <code>applicationHost.config</code> только если у пользователя есть права чтения), сертификат <code>corp-ca.pem</code> и <code>manifest.txt</code> (что вошло, размеры, что пропущено; без секретов). Сбой любой части набора не мешает бэкапу баз: он записывается в <code>manifest.txt</code> и в <code>status.json</code> (поле <code>config</code>: <code>ok</code>, <code>size</code>, <code>missing</code>), а в разделе «Бэкапы» ниже показывается плиткой «Набор конфигурации».</p>
+      <p><strong>Набор копируется только в сетевую папку, на Google Drive он НЕ отправляется:</strong> в нём пароли и ключи, а Google Drive находится вне предприятия. Это задано признаком <code>includeConfig</code> в <code>$copyTargets</code> в начале <code>backup.ps1</code>.</p>
+      <p>Восстановление по шагам (набор нужного дня сначала положить в <code>C:\plc-backups</code>). Распаковать во временную папку:</p>
+      <pre><code>Expand-Archive C:\plc-backups\config_ГГГГ-ММ-ДД.zip -DestinationPath C:\pmm-restore</code></pre>
+      <p>Вернуть <code>.env</code>:</p>
+      <pre><code>Copy-Item C:\pmm-restore\.env C:\plc-monitoring-docker-poller\.env -Force</code></pre>
+      <p>Вернуть роли и права базы (сообщения «role already exists» для уже существующих ролей нормальны):</p>
+      <pre><code>Get-Content C:\pmm-restore\globals.sql | docker exec -i postgres_db psql -U n8n_user -d postgres</code></pre>
+      <p>Остановить n8n и вернуть его данные:</p>
+      <pre><code>docker stop n8n_app</code></pre>
+      <pre><code>docker run --rm -v C:\plc-monitoring-docker-poller\n8n_data:/data -v C:\pmm-restore:/in:ro python:3.12-alpine sh -c "cd /data &amp;&amp; tar xzf /in/n8n_data.tgz"</code></pre>
+      <pre><code>docker start n8n_app</code></pre>
+      <p>Так же для Grafana:</p>
+      <pre><code>docker stop grafana_app</code></pre>
+      <pre><code>docker run --rm -v C:\plc-monitoring-docker-poller\grafana_data:/data -v C:\pmm-restore:/in:ro python:3.12-alpine sh -c "cd /data &amp;&amp; tar xzf /in/grafana_data.tgz"</code></pre>
+      <pre><code>docker start grafana_app</code></pre>
+      <p>Вернуть TIA bridge и сертификат:</p>
+      <pre><code>Copy-Item C:\pmm-restore\tia-bridge\* C:\tia-bridge -Recurse -Force</code></pre>
+      <pre><code>Copy-Item C:\pmm-restore\corp-ca.pem C:\pmm-certs\corp-ca.pem -Force</code></pre>
+      <p>Вернуть задачу планировщика (так же для «PMM copy reports» и «PMM TIA bridge», файлы в <code>C:\pmm-restore\scheduled-tasks</code>):</p>
+      <pre><code>Register-ScheduledTask -TaskName 'PMM backup' -Xml (Get-Content C:\pmm-restore\scheduled-tasks\PMM_backup.xml -Raw) -Force</code></pre>
+      <p>IIS: файлы <code>iis\*_web.config</code> вернуть в папки сайтов в <code>C:\inetpub</code>; <code>applicationHost.config</code> (если он есть в наборе) восстанавливает администратор, а сайт на порту 80 можно создать заново скриптом <code>iis-pmm-open.ps1</code>. В конце удалить временную папку (в ней секреты):</p>
+      <pre><code>Remove-Item C:\pmm-restore -Recurse -Force</code></pre>
+
+      <h3>Запуск при входе в систему (-OnlyIfMissing)</h3>
+      <p>Задача «PMM backup» работает «только при входе пользователя», поэтому если ПК перезагрузился ночью, бэкап в 03:00 пропускается, а режим «догнать» для таких задач не срабатывает (так 19.10 пропал ночной бэкап). Поэтому у задачи два запуска: ежедневно в 03:00 и при входе пользователя, оба с параметром <code>-OnlyIfMissing</code>: если оба дампа за сегодня уже есть и не пустые, скрипт записывает строку в <code>C:\plc-backups\backup.log</code> и выходит, ничего не делая и не трогая <code>status.json</code>. Команда, которая переключает задачу (выполнить в PowerShell администратором):</p>
+      <pre><code>Set-ScheduledTask -TaskName 'PMM backup' -Action (New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -ExecutionPolicy Bypass -File C:\plc-monitoring-docker-poller\backup.ps1 -OnlyIfMissing') -Trigger @((New-ScheduledTaskTrigger -Daily -At 3am), (New-ScheduledTaskTrigger -AtLogOn -User 'MK\Operator_SCADABSOTO'))</code></pre>
+      <p>Проверка: <code>Get-ScheduledTask 'PMM backup'</code> показывает два триггера (Daily и Logon), в действии виден <code>-OnlyIfMissing</code>.</p>
 
       <h3>Регулярный бэкап</h3>
       <p>Автоматического бэкапа в проекте <strong>нет</strong>: его нужно настроить. Рекомендуется ежедневно снимать дамп обеих баз в папку <span class="highlight">C:\plc-backups</span> (вне папки проекта) через «Планировщик заданий» Windows и раз в неделю копировать эту папку на другой диск или сетевую папку. Команды дампа даны в шаге 3 плана переноса ниже. Скрипт <code>backup.ps1</code> после каждого запуска пишет <code>status.json</code> (результат, свободное место диска <code>C:</code>), а администратору ниже показывается раздел «Бэкапы и место на диске»: когда сняты дампы, размер базы и таблиц, прогноз «хватит на N дней» (нужно 7 и более дней бэкапов). Красная плитка означает, что бэкап старше 36 часов или последний запуск закончился ошибкой.</p>
@@ -705,6 +820,12 @@ C:\plc-monitoring-docker-poller/
     <section style="background: #f9fafb; border-left: 4px solid #536471;">
       <p><small>📝 Журнал изменений справки (новые записи сверху)</small></p>
       <ul id="changelog">
+        <li data-date="2026-10-20">бэкап: <code>backup.ps1</code> собирает набор конфигурации <code>config_ГГГГ-ММ-ДД.zip</code> (.env, роли базы, данные n8n и Grafana, TIA bridge, задачи планировщика, IIS, сертификат; хранится 30 дней), копирует его только в сетевую папку (не на Google Drive, там секреты) и пишет поле <code>config</code> в <code>status.json</code>; новый параметр <code>-OnlyIfMissing</code> для запуска при входе в систему (если дампы за сегодня уже есть, ничего не делает); в разделе «Бэкапы» плитка «Набор конфигурации», в справке порядок восстановления; параметры проверки <code>-Dir</code>, <code>-ConfigOnly</code>; тесты <code>test_backup_script.py</code></li>
+        <li data-date="2026-10-19">ответственность за отставание, шаг 2: ответ отдела. В колонке «Отв.» на Andon и во вкладке «Простои» знак «ОТО …» / «ИТО …» для вошедшего сотрудника этого подразделения (роль кроме «Просмотр»), начальника цеха и администратора нажимается и открывает окно «Ответ отдела ОТО» (или ИТО): сверху интервал, минуты простоя и строки, причина и описание; три варианта: «Согласен» (все минуты строки за отделом, статус ✓), «Частично: наши минуты [число]» (больше 0 и меньше минут строки, остаток уходит на ПР, подсказка показывает сколько, статус ✓), «Не согласен: комментарий» (комментарий обязателен, минуты остаются за отделом, статус «спорно», красный «!»); кнопки «Сохранить», «Отозвать ответ» (автор ответа и администратор), «Отмена» (закрытие Esc и щелчком вне окна); под вариантами «Ответил(а) Фамилия, должность, дата время». Срока нет: ответ можно дать и изменить в любой день. У остальных знак не нажимается, а подсказка показывает отдел, статус, ответ, кто ответил и комментарий. Права проверяет сервер (<code>PUT/DELETE /api/downtime-items/{id}/response</code>); новые таблицы <code>kpi_downtime_responses</code> (один ответ на строку) и журнал <code>kpi_downtime_responses_log</code> (кто, когда, было, стало); итоги «По ответственным» (Andon «ИТОГО», «Простои», «Отчёты», Excel) считают ответы одной функцией <code>responsibility.py</code>: «Частично» делит минуты строки между отделом и ПР, «Спорно» теперь не 0; сумма отделов, «не назначено» и «не описано» по-прежнему равна всему отставанию; при смене ответственного прежний ответ другого отдела не действует</li>
+        <li data-date="2026-10-19">справка: раздел «Схема проекта: связи и готовность» (три схемы Mermaid: данные и связи, файлы, выгрузка TIA и Telegram, разработка и планы; цвет рамки блока: «готово», «в работе или ждёт вас», «запланировано»), код каждой схемы копируется кнопкой; рисуется встроенной библиотекой Mermaid (MIT) без интернета</li>
+        <li data-date="2026-10-19">Andon, строка «ИТОГО»: текст «Отставание за день … мин: …» занимает три последние колонки (Простой, Отв., Причина) вместо одной узкой и не переносится на 4–5 строк; строка итогов не растёт, таблица помещается на телевизоре по высоте (то же на экранах подсборок)</li>
+        <li data-date="2026-10-19">окно «Выгрузить проект TIA»: таблица проектов «Проект · ПЛК · Выгрузка (ZIP) · Файл для ИИ». После успешной выгрузки сайт сам в фоне собирает из ZIP файл логики ПЛК для ИИ (<code>C:\tia-bridge\logic\&lt;id&gt;.json</code>, замена целиком, состояние рядом в <code>&lt;id&gt;.status.json</code>); кнопки «Скачать JSON» и «Пересобрать» (только администратор), маршруты <code>GET /api/tia/logic/{id}</code> и <code>POST /api/tia/logic/{id}/rebuild</code></li>
+        <li data-date="2026-10-19">ИИ-помощник «почему стоит станция», часть 1 (S-7): новый модуль <code>tia_logic.py</code> разбирает выгрузку проекта TIA (ZIP или папку XML) и для каждой катушки, Move и выхода вызова блока строит цепочку условий (контакты, И/ИЛИ, сравнения, таймеры, вызовы FC/FB с параметрами) в компактном JSON; нераспознанное (Calc, строковые функции, SCL, Jump) помечено явно. Интерфейса пока нет; запуск: <code>python tia_logic.py выгрузка.zip -o logic.json --stats</code></li>
         <li data-date="2026-10-19">Andon на телевизоре: заливка строки текущего часа и бледно-зелёный столбец «Факт» снова видны (старый браузер телевизора не знает <code>color-mix()</code> и отбрасывал весь фон), значок LIVE и активные кнопки линий тоже; в палитру добавлены готовые полупрозрачные цвета (<code>--ok-a18</code> и др.), а тест <code>test_tv_no_color_mix.py</code> следит, чтобы в стилях экрана Андон не появлялся <code>color-mix()</code> без запасного значения</li>
         <li data-date="2026-10-19">табло FL: колонка «Время» стала шире (11,5% вместо 10%), поэтому время «07:30-08:30» больше не переносится на две строки, строки вдвое ниже и все 13 строк с «ИТОГО» помещаются на телевизоре (1280×720 и 1920×1080)</li>
         <li data-date="2026-10-19">адрес без порта для телевизоров: <code>http://10.85.176.86</code> открывает PMM без входа Windows (сайт IIS «PMM open», скрипт <code>iis-pmm-open.ps1</code> с параметрами -DryRun и -Rollback); сайт «Default Web Site» с входом Windows и заготовкой <code>X-Remote-User</code> остаётся по имени ПК; в справке раздел «Адрес без порта: IIS на порту 80» (когда скрипт запускать снова)</li>
@@ -712,8 +833,12 @@ C:\plc-monitoring-docker-poller/
         <li data-date="2026-10-16">выгрузка проекта TIA: во вкладке «ПЛК» (прежде «Переменные ПЛК») кнопка «🧩 Выгрузить проект TIA» (только администратор) открывает окно: «Источник» (все ПЛК; выбираются ПЛК с проектом, поле <code>plc</code> в <code>tia-projects.json</code>; по умолчанию ПЛК, выбранный вверху), «Путь сохранения» (проверка пути на сайте и в службе, пробная запись, копия ZIP в эту папку), «Выгрузить», индикатор службы, состояние с датой последней выгрузки, файлами Excel (тексты проекта, ProDiag), «⬇ ZIP» и путём копии; панель «Проекты TIA» с вкладки убрана</li>
         <li data-date="2026-10-16">вкладка «Оповещения»: блок «Мой Telegram» (привязка своего чата по ссылке на бота, «Отправить проверку», «Отвязать»), «Что присылать мне» (события, «Линии» через запятую, тихие часы «Тихо с» / «до», кнопка «Сохранить») и для администратора «Все чаты» (состояние бота, отправлено и ошибок за сутки, включение, проверка и удаление чатов, «Привязать группу» командой <code>/bind КОД</code>); перечитывается при открытии и раз в 15 секунд; <code>tgnotify.js</code>, <code>tg.css</code></li>
         <li data-date="2026-10-16">ответственный за отставание больше не ставится сам: у строки простоя, где отдел не выбирал человек, значение «не назначен» (на Andon в колонке «ОТВ.» пусто), в итогах «По ответственным» новый столбец и строка «Не назначено» (в Andon «не назначено N»); сумма ПР + ОТО + ИТО + ДР + «Не назначено» + «Не описано» по-прежнему равна всему отставанию; в справочнике причин «Ответственный по умолчанию» по умолчанию «Не назначен»</li>
+        <li data-date="2026-10-16">окно «Названия» (T-14, этапы 1–2): на вкладке «Справочники» администратор меняет названия и подсказки подписей (вкладки, плитки, графики, колонки таблиц), экран и Excel берут их из базы (новые таблицы <code>ui_labels</code>, <code>ui_labels_log</code>, модуль <code>labels.py</code>, скрипт <code>labels.js</code>); название не длиннее 40 символов, сброс возвращает стандартное, пустая таблица или недоступная база дают прежний вид; колонка и плитка «Простой, мин» теперь называются «Отставание, мин», окно описания «Отставание N мин — линия» (названия «Простой RB262», «Простой BDC» и «Простой весь день (поломка линии)» не меняются); заголовок «Простой мин» в таблице отчёта дня («Отчёты» и Excel) тоже стал «Отставание мин» и меняется отдельным ключом словаря</li>
         <li data-date="2026-10-16">итоги отставания по отделам (T-17): одна серверная функция <code>responsibility.py</code> считает минуты отставания по ПР / ОТО / ИТО / ДР, «не описано», «ждёт подтверждения» и «спорно» (пока 0) поверх общего расчёта <code>summarize</code>, дни без выпуска не входят; сумма отделов и «не описано» всегда равна «Простой, мин»; ответ <code>/api/kpi/screens/{id}/responsibility</code> (день или период) и поле <code>responsibility</code> в списке простоев дня и во «Простоях»; на Andon в строке «ИТОГО» одна строка «Отставание за день N мин: ПР a · ОТО b … · не описано c»; во вкладке «Простои» блок «Минуты по ответственным» за период; в «Отчётах» (день и период) и в Excel (в том числе Andon и автосохранение) блок «По ответственным»; новых таблиц и полей в базе нет</li>
         <li data-date="2026-10-16">ответственность за отставание, шаг 1: у каждой причины простоя «Ответственный» (ПР / ОТО / ИТО / ДР; в окне описания выпадающий список, подставляется из причины и меняется вручную; у ДР описание обязательно, проверка и на сервере); у причины в «Справочниках» «Ответственный по умолчанию» (новые поля <code>kpi_downtime_items.owner</code> и <code>kpi_reasons.owner</code>, у существующих «ПР»); статус: ОТО и ИТО «ждёт подтверждения» (…), ПР и ДР «подтверждено» (✓); колонка «Отв.» на Andon рядом с минутами отставания, во вкладке «Простои» и в Excel (день и лист «Простои» периода); журнал смены ответственного <code>kpi_downtime_items_owner_log</code> (кто, когда, было, стало); формула минут не менялась; ответы отделов («спорно») и таблица «Минуты по ответственным» будут на следующих шагах</li>
+      </ul>
+      <details class="changelog-old"><summary><small>Более ранние изменения</small></summary>
+        <ul id="changelog-old">
         <li data-date="2026-10-15">Andon, шапка: в архиве на широком окне (1920) блок даты и кнопок больше не закрывает часы; в живом режиме часы не заходят на название линии; на окне 901–1100px название линии стоит первой строкой, Takt Time и часы второй; время интервала «07:30-08:30» у FL переносится внутри ячейки, заголовки колонок не слипаются</li>
         <li data-date="2026-10-15">скрипт <code>update-server.ps1</code>: если папка сервера не на ветке <code>main</code>, обновление останавливается до бэкапа и <code>git pull</code> с сообщением «папка сервера не на ветке main: обновление остановлено, ничего не изменено» (код 1); с <code>-DryRun</code> только сообщает</li>
         <li data-date="2026-10-15">Парето аварий и Парето причин простоя: накопленная линия везде называется «Накопленный %» (легенда на экране, ряд графика и заголовок столбца в Excel)</li>
@@ -726,9 +851,6 @@ C:\plc-monitoring-docker-poller/
         <li data-date="2026-10-15">вкладка «Переменные ПЛК», панель «Проекты TIA» (только администратор): выгрузка проектов TIA Portal в XML одной кнопкой для всех отмеченных проектов, состояние и скачивание ZIP; работу выполняет служба <code>tia-bridge.ps1</code> на ПК сервера через папку <code>C:\tia-bridge</code></li>
         <li data-date="2026-10-15">дни без выпуска (закрытый день с фактом 0) не входят в итоги периода: план, факт, % выполнения и «Дней с данными» считаются без них, на графике план-факт таких дней нет; строка дня остаётся в таблице «По дням» (в Excel серая заливка), «Итого» в Excel складывает только дни с выпуском</li>
         <li data-date="2026-10-15">вкладка «Аварии», «Аналитика»: блок «Динамика по дням» (число аварий и минуты по дням, за один день последние 14 дней), два графика Парето рядом без переключателя, фильтры в одной строке с периодом; кнопка «Загрузить из TIA (.xlsx)» в «Справочнике аварий» (администратор)</li>
-      </ul>
-      <details class="changelog-old"><summary><small>Более ранние изменения</small></summary>
-        <ul id="changelog-old">
         <li data-date="2026-10-14">вкладка «Аварии», режим «Аналитика»: кнопки «Убрать» у аварий и «Убрать станцию» убирают аварию или станцию целиком из статистики за все периоды (плитки, Парето, таблицы, Excel; журнал событий не меняется), сверху строка «Убрано из статистики» со списком и кнопкой «Вернуть» (убирать и возвращать могут все вошедшие, кроме роли «Просмотр»; история в таблице <code>alarm_exclusions</code>)</li>
           <li data-date="2026-10-12">Andon: клик по тексту описания причины в колонке «Причина» открывает окно комментария к этому простою (интервал, причина, список комментариев, «Сохранить» Ctrl+Enter, «Отмена» Esc), клик по минутам по-прежнему открывает описание простоя, на табло без входа клик не активен</li>
           <li data-date="2026-10-12">вкладка «Графики»: подписи значений над столбцами «План» (и в «Отчётах»), легенда Парето «Простой, мин» / «Накопленный %», кнопки «⬇ Excel» у графиков и «⬇ Excel — весь отчёт» одного вида, режим «День» со стрелками ◀ ▶ и одной датой</li>
@@ -788,6 +910,8 @@ C:\plc-monitoring-docker-poller/
   </main>
   <script src="/static/refnav.js"></script>
   <script src="/static/backups.js"></script>
+  <script src="/static/vendor/mermaid.min.js" defer></script>
+  <script src="/static/scheme.js" defer></script>
   <script>
 function initTheme() {
       const saved = localStorage.getItem('theme');

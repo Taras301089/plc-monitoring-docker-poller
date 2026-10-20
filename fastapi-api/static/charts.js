@@ -6,6 +6,9 @@
   const pane = hasDom ? document.querySelector('#charts') : null;
   const tabBtn = hasDom ? document.querySelector('.tab[data-tab="charts"]') : null;
 
+  // названия из словаря «Названия» (labels.js); без него (тесты в node, сбой загрузки) стандартные
+  const L = (key, def) => (hasDom && window.uiLabel ? window.uiLabel(key, def) : def);
+  const TT = (key, def) => (hasDom && window.uiTitle ? window.uiTitle(key, def) : def);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const toast = t => (typeof showToast === 'function' ? showToast(t) : alert(t));
   const today = () => window.plantClock.isoDate();   // «сегодня» по времени сервера
@@ -25,14 +28,14 @@
   let loadedAt = 0;
 
   // легенда Парето: подписи те же, что у рядов диаграммы Excel (period.py)
-  const PARETO_LEGEND = '<div class="ch-legend" title="Накопленная доля причин простоя в процентах от суммы всех причин; показывает, сколько простоя дают первые причины"><i class="ch-l-down"></i>Простой, мин<i class="ch-l-cum"></i>Накопленный %</div>';
+  const PARETO_LEGEND = () => '<div class="ch-legend" title="Накопленная доля причин простоя в процентах от суммы всех причин; показывает, сколько простоя дают первые причины"><i class="ch-l-down"></i>' + L('down_min', 'Отставание, мин') + '<i class="ch-l-cum"></i>Накопленный %</div>';
 
   const CARDS = [
-    { kind: 'plan_fact', title: 'План, факт и % выполнения по дням', tip: 'Столбцы: план и факт кузовов за день; линия: процент выполнения плана (правая шкала)' },
-    { kind: 'downtime', title: 'Простой по дням, мин', tip: 'Сколько минут линия простаивала в каждый день (отставание от плана)' },
-    { kind: 'reasons', title: 'Парето причин простоя (топ-10)', tip: 'Причины по убыванию минут простоя; линия показывает накопленную долю: сколько простоя дают первые причины' },
-    { kind: 'stations', title: 'Простой по станциям (топ-15)', tip: 'Станции с наибольшими минутами простоя за период' },
-    { kind: 'cumulative', title: 'Накопленное производство за день', tip: 'Линии: накопленные план и факт по интервалам смены; столбцы: разница факта и плана (ниже нуля: отстаём от плана)' },
+    { kind: 'plan_fact', get title() { return L('chart_plan_fact', 'План, факт и % выполнения по дням'); }, get tip() { return TT('chart_plan_fact', 'Столбцы: план и факт кузовов за день; линия: процент выполнения плана (правая шкала)'); } },
+    { kind: 'downtime', get title() { return L('chart_down_days', 'Простой по дням, мин'); }, get tip() { return TT('chart_down_days', 'Сколько минут линия простаивала в каждый день (отставание от плана)'); } },
+    { kind: 'reasons', get title() { return L('chart_pareto', 'Парето причин простоя (топ-10)'); }, get tip() { return TT('chart_pareto', 'Причины по убыванию минут простоя; линия показывает накопленную долю: сколько простоя дают первые причины'); } },
+    { kind: 'stations', get title() { return L('chart_down_stations', 'Простой по станциям (топ-15)'); }, get tip() { return TT('chart_down_stations', 'Станции с наибольшими минутами простоя за период'); } },
+    { kind: 'cumulative', get title() { return L('chart_cumulative', 'Накопленное производство за день'); }, get tip() { return TT('chart_cumulative', 'Линии: накопленные план и факт по интервалам смены; столбцы: разница факта и плана (ниже нуля: отстаём от плана)'); } },
   ];
 
   const presets = () => {
@@ -137,7 +140,7 @@
     let bars = '';
     days.forEach((d, i) => {
       const x0 = m.l + gw * i + gw / 2;
-      const tip = `${fmtDay(d.date)}: простой ${fmtNum(d.downtime)} мин, описано ${fmtNum(d.described)} мин`;
+      const tip = `${fmtDay(d.date)}: ${L('chart_tip_down', 'простой')} ${fmtNum(d.downtime)} мин, описано ${fmtNum(d.described)} мин`;
       bars += `<rect class="ch-down" x="${x0 - bw / 2}" y="${yv(d.downtime)}" width="${bw}" height="${ih - (yv(d.downtime) - m.t)}"/>`;
       if (gw >= 40 && d.downtime > 0) bars += `<text class="ch-val" x="${x0}" y="${yv(d.downtime) - 4}" text-anchor="middle">${Math.round(d.downtime)}</text>`;
       bars += `<rect class="ch-hit" x="${x0 - gw / 2}" y="${m.t}" width="${gw}" height="${ih}"><title>${esc(tip)}</title></rect>`;
@@ -224,11 +227,12 @@
   function summaryTiles(d) {
     const T = d.totals, tp = T.plan, tf = T.fact, dt = T.downtime, ds = T.described;   // итоги считает сервер: дни без выпуска в них не входят
     const t = (label, val, tip, cls = '') => `<div class="ch-tile ${cls}" title="${esc(tip)}"><span>${esc(label)}</span><b>${esc(val)}</b></div>`;
-    return t('Дней с данными', T.days, 'Сколько дней периода с выпуском; дни без выпуска (на экране «Отчёты» серые строки) не считаются') +
-      t('План', tp, 'Плановое количество кузовов за период, без дней без выпуска') + t('Факт', tf, 'Фактическое количество кузовов за период', 'ch-ok') +
-      t('Выполнение', tp ? pct(tf / tp) : '—', 'Факт делённый на план, без дней без выпуска') +
-      t('Простой, мин', fmtNum(dt), 'Минуты простоя за период (отставание от плана)', 'ch-bad') +
-      t('Не описано, мин', fmtNum(Math.max(0, dt - ds)), 'Минуты простоя, для которых ещё не указана причина');
+    return t(L('tile_days', 'Дней с данными'), T.days, TT('tile_days', 'Сколько дней периода с выпуском; дни без выпуска (на экране «Отчёты» серые строки) не считаются')) +
+      t(L('tile_plan', 'План'), tp, TT('tile_plan', 'Плановое количество кузовов за период, без дней без выпуска')) +
+      t(L('tile_fact', 'Факт'), tf, TT('tile_fact', 'Фактическое количество кузовов за период'), 'ch-ok') +
+      t(L('tile_exec', 'Выполнение'), tp ? pct(tf / tp) : '—', TT('tile_exec', 'Факт делённый на план, без дней без выпуска')) +
+      t(L('down_min', 'Отставание, мин'), fmtNum(dt), TT('down_min', 'Отставание от плана, мин: (план − факт) ÷ план × длительность интервала; включает остановки и медленную работу'), 'ch-bad') +
+      t(L('tile_undescribed', 'Не описано, мин'), fmtNum(Math.max(0, dt - ds)), TT('tile_undescribed', 'Минуты простоя, для которых ещё не указана причина'));
   }
 
   function build() {
@@ -256,7 +260,7 @@
           <header><h3 title="${esc(c.tip)}">${esc(c.title)}</h3>
             <button type="button" class="dt-sec ch-xl" data-kind="${c.kind}" title="Скачать этот график и его данные в Excel за выбранный период">⬇ Excel</button></header>
           ${c.kind === 'cumulative' ? '<div class="ch-legend"><i class="ch-l-plan"></i>Накопленный план<i class="ch-l-fact"></i>Накопленный факт<i class="ch-l-down"></i>Отставание от плана<i class="ch-l-ahead"></i>Опережение плана</div>' : ''}
-          ${c.kind === 'reasons' ? PARETO_LEGEND : ''}
+          ${c.kind === 'reasons' ? PARETO_LEGEND() : ''}
           ${c.kind === 'plan_fact' ? '<div class="ch-legend"><i class="ch-l-plan"></i>План<i class="ch-l-fact"></i>Факт<i class="ch-l-pct"></i>% выполнения</div>' : ''}
           <div class="ch-body" data-body="${c.kind}"></div>
         </section>`).join('')}</div>`;
@@ -395,6 +399,8 @@
     }
   }
 
+  // администратор изменил название в окне «Названия»: заголовки, легенды и подписи перерисовываются
+  document.addEventListener('ui-labels-changed', () => { if (built) { build(); draw(); } });
   tabBtn.addEventListener('click', show);
   window.addEventListener('resize', () => { if (pane.classList.contains('active')) requestAnimationFrame(draw); });
 })();

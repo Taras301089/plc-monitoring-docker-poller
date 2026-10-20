@@ -7,6 +7,9 @@
   const pane = document.querySelector('#reports');
   if (!tab || !pane) return;
 
+  // названия из словаря «Названия» (labels.js); без него стандартные
+  const L = (key, def) => (window.uiLabel ? window.uiLabel(key, def) : def);
+  const TT = (key, def) => (window.uiTitle ? window.uiTitle(key, def) : def);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const toast = t => (typeof showToast === 'function' ? showToast(t) : alert(t));
   const isAdmin = () => { const st = window.authState && window.authState(); return !!(st && st.user && st.user.role === 'admin'); };
@@ -74,7 +77,7 @@
     const K = window.respKit;
     if (!r || !K) return '';
     const rows = K.tableRows(r);
-    return card(K.TITLE, 'Сколько минут отставания приходится на каждый отдел за выбранный день или период. Сумма ПР, ОТО, ИТО, ДР и «Не описано» равна «Всего» (плитка «Простой, мин»); «Ждёт подтверждения» и «Спорно» это часть минут отделов',
+    return card(K.TITLE, 'Сколько минут отставания приходится на каждый отдел за выбранный день или период. Сумма ПР, ОТО, ИТО, ДР и «Не описано» равна «Всего» (плитка «Отставание, мин»); «Ждёт подтверждения» и «Спорно» это часть минут отделов',
       `<table class="users-table rep-prev-t resp-t"><thead><tr>${K.HEADS.map((h, i) => `<th title="${esc(K.TIPS[i])}">${esc(h)}</th>`).join('')}</tr></thead>
       <tbody>${rows.map((x, ri) => `<tr>${x.map(v => `<td${ri ? ' class="resp-sub"' : ''}>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`);
   };
@@ -84,17 +87,17 @@
     const d = await api(`/api/kpi/screens/${state.screen}/day-preview?date=${state.from}`);
     if (my !== token) return;
     q('file').textContent = d.file;
-    q('chart-title').textContent = 'План и факт по часам';
-    q('chart-title').title = 'Плановое и фактическое количество кузовов по часовым интервалам дня; линия показывает % выполнения';
+    q('chart-title').textContent = L('chart_plan_fact_hour', 'План и факт по часам');
+    q('chart-title').title = TT('chart_plan_fact_hour', 'Плановое и фактическое количество кузовов по часовым интервалам дня; линия показывает % выполнения');
     drawFlag(q, d.intervals.length ? d : null);
     if (!d.intervals.length) { q('tiles').innerHTML = ''; q('chart').innerHTML = ''; q('tables').innerHTML = '<div class="empty">За этот день нет данных: отчёт не создаётся</div>'; return; }
     const plan = d.intervals.reduce((s, x) => s + x.plan, 0), fact = d.intervals.reduce((s, x) => s + x.fact, 0);
     const seen = new Set();
     let down = 0;
-    const downCol = d.headers.indexOf('Простой мин');   // положение столбца зависит от линии («Простой RB262» сдвигает его)
+    const downCol = d.headers.indexOf('Отв.') - 1;   // колонка отставания стоит перед «Отв.» (заголовок меняется в словаре; положение зависит от линии: «Простой RB262» сдвигает её)
     d.rows.forEach(r => { if (!seen.has(r[2])) { seen.add(r[2]); down += Number(r[downCol]) || 0; } });
-    q('tiles').innerHTML = tile('План', plan, 'Плановое количество кузовов за день') + tile('Факт', fact, 'Фактическое количество кузовов за день', 'ch-ok')
-      + tile('Выполнение', plan ? pct1(fact / plan) : '—', 'Факт делённый на план') + tile('Простой, мин', window.dayFlag.downValue(d, down, fmtNum), d.no_output && !down ? d.no_output_hint : 'Минуты простоя за день (отставание от плана)', d.no_output && !down ? 'ch-dim' : 'ch-bad');
+    q('tiles').innerHTML = tile(L('tile_plan', 'План'), plan, TT('tile_plan', 'Плановое количество кузовов за день')) + tile(L('tile_fact', 'Факт'), fact, TT('tile_fact', 'Фактическое количество кузовов за день'), 'ch-ok')
+      + tile(L('tile_exec', 'Выполнение'), plan ? pct1(fact / plan) : '—', TT('tile_exec', 'Факт делённый на план')) + tile(L('down_min', 'Отставание, мин'), window.dayFlag.downValue(d, down, fmtNum), d.no_output && !down ? d.no_output_hint : TT('down_min', 'Отставание от плана, мин: (план − факт) ÷ план × длительность интервала; включает остановки и медленную работу'), d.no_output && !down ? 'ch-dim' : 'ch-bad');
     const days = d.intervals.map(x => ({ label: x.label, plan: x.plan, fact: x.fact, pct: x.plan ? x.fact / x.plan : null }));
     q('chart').innerHTML = window.andonChart ? window.andonChart.planFact(days, Math.max(360, q('chart').clientWidth || 640)) : '';
     const rows = d.rows.slice(0, 500);
@@ -109,20 +112,20 @@
     if (my !== token) return;
     drawFlag(q, null);
     q('file').textContent = `Период: ${fmtD(state.from)} — ${fmtD(state.to)}`;
-    q('chart-title').textContent = 'План, факт и % выполнения по дням';
-    q('chart-title').title = 'Столбцы: план и факт кузовов за день; линия: процент выполнения плана (правая шкала)';
+    q('chart-title').textContent = L('chart_plan_fact', 'План, факт и % выполнения по дням');
+    q('chart-title').title = TT('chart_plan_fact', 'Столбцы: план и факт кузовов за день; линия: процент выполнения плана (правая шкала)');
     if (!d.days.length) { q('tiles').innerHTML = ''; q('chart').innerHTML = ''; q('tables').innerHTML = '<div class="empty">За этот период нет данных по линии</div>'; return; }
     const T = d.totals, plan = T.plan, fact = T.fact, down = T.downtime, desc = T.described;   // итоги считает сервер: дни без выпуска в них не входят
-    q('tiles').innerHTML = tile('Дней с данными', T.days, 'Сколько дней периода с выпуском; дни без выпуска (серые строки) не считаются') + tile('План', plan, 'Плановое количество кузовов за период, без дней без выпуска')
-      + tile('Факт', fact, 'Фактическое количество кузовов за период', 'ch-ok') + tile('Выполнение', plan ? pct1(fact / plan) : '—', 'Факт делённый на план, без дней без выпуска')
-      + tile('Простой, мин', fmtNum(down), 'Минуты простоя за период (отставание от плана)', 'ch-bad') + tile('Не описано, мин', fmtNum(Math.max(0, down - desc)), 'Минуты простоя, для которых ещё не указана причина');
+    q('tiles').innerHTML = tile(L('tile_days', 'Дней с данными'), T.days, TT('tile_days', 'Сколько дней периода с выпуском; дни без выпуска (серые строки) не считаются')) + tile(L('tile_plan', 'План'), plan, TT('tile_plan', 'Плановое количество кузовов за период, без дней без выпуска'))
+      + tile(L('tile_fact', 'Факт'), fact, TT('tile_fact', 'Фактическое количество кузовов за период'), 'ch-ok') + tile(L('tile_exec', 'Выполнение'), plan ? pct1(fact / plan) : '—', TT('tile_exec', 'Факт делённый на план, без дней без выпуска'))
+      + tile(L('down_min', 'Отставание, мин'), fmtNum(down), TT('down_min', 'Отставание от плана, мин: (план − факт) ÷ план × длительность интервала; включает остановки и медленную работу'), 'ch-bad') + tile(L('tile_undescribed', 'Не описано, мин'), fmtNum(Math.max(0, down - desc)), TT('tile_undescribed', 'Минуты простоя, для которых ещё не указана причина'));
     q('chart').innerHTML = window.andonChart ? window.andonChart.planFact(d.days.filter(x => !x.no_output), Math.max(360, q('chart').clientWidth || 640)) : '';
     const totalR = d.reasons.reduce((s, x) => s + x.min, 0), totalS = d.stations.reduce((s, x) => s + x.min, 0);
     q('tables').innerHTML =
-      card('По дням', 'Итоги по каждому дню периода: план, факт, выполнение и простой', table(['Дата', 'План', 'Факт', '±', '% выполнения', 'Простой, мин', 'Описано, мин', 'Не описано, мин'],
+      card(L('card_by_days', 'По дням'), TT('card_by_days', 'Итоги по каждому дню периода: план, факт, выполнение и отставание'), table(['Дата', 'План', 'Факт', '±', '% выполнения', L('down_min', 'Отставание, мин'), 'Описано, мин', L('tile_undescribed', 'Не описано, мин')],
         d.days.map(x => window.dayFlag.periodDayRow(x, { fmtD, fmtNum, pct1 })), '', i => (d.days[i].no_output ? 'rep-noout' : '')))
-      + card('Причины простоя', 'Минуты простоя по причинам за период, от самых долгих', table(['Причина', 'Минут', 'Доля'], d.reasons.map(x => [x.name, fmtNum(x.min), totalR ? pct1(x.min / totalR) : '—'])))
-      + card('Простой по станциям', 'Минуты простоя по станциям за период, от самых долгих', table(['Участок', 'Станция', 'Минут', 'Доля'], d.stations.map(x => [x.area, x.station, fmtNum(x.min), totalS ? pct1(x.min / totalS) : '—'])))
+      + card(L('card_reasons', 'Причины простоя'), TT('card_reasons', 'Минуты простоя по причинам за период, от самых долгих; доля каждой причины от общей суммы'), table(['Причина', 'Минут', 'Доля'], d.reasons.map(x => [x.name, fmtNum(x.min), totalR ? pct1(x.min / totalR) : '—'])))
+      + card(L('table_down_stations', 'Простой по станциям'), TT('table_down_stations', 'Минуты простоя по станциям за период, от самых долгих, с долей каждой станции от общей суммы'), table(['Участок', 'Станция', 'Минут', 'Доля'], d.stations.map(x => [x.area, x.station, fmtNum(x.min), totalS ? pct1(x.min / totalS) : '—'])))
       + respCard(d.responsibility);
   }
 
@@ -273,6 +276,8 @@
     if (auto) { q('auto').innerHTML = auto; bindAutosave(); }
   }
 
+  // администратор изменил название в окне «Названия»: отчёт перерисовывается с новыми подписями
+  document.addEventListener('ui-labels-changed', () => { if (pane.querySelector('[data-f="tables"]')) loadReport(true); });
   tab.addEventListener('click', render);
   // «Изменил здесь, увидел везде»: открытая вкладка сама перечитывает отчёт (отметка дня, простои, план)
   setInterval(() => { if (pane.classList.contains('active') && !document.hidden && pane.querySelector('[data-f="tables"]')) loadReport(true); }, REFRESH_MS);

@@ -112,9 +112,9 @@ async def test_sections_order_tiles_and_charts(app, pool, monkeypatch, tmp_path)
     assert r_month - r_day > 10
     # плитки: подписи в третьей строке каждого раздела
     day_tiles = [cells[(r_day + 2, c)] for c in "ACFI" if (r_day + 2, c) in cells]
-    assert day_tiles == ["План", "Факт", "Выполнение", "Простой, мин"]
+    assert day_tiles == ["План", "Факт", "Выполнение", "Отставание, мин"]
     month_tiles = [cells[(r_month + 2, c)] for c in "ABCDEF"]
-    assert month_tiles == ["Дней с данными", "План", "Факт", "Выполнение", "Простой, мин", "Не описано, мин"]
+    assert month_tiles == ["Дней с данными", "План", "Факт", "Выполнение", "Отставание, мин", "Не описано, мин"]
     # таблицы раздела «Месяц» после его плиток, названия как в вебе
     for title in ("По дням", "Причины простоя", "Простой по станциям"):
         assert any(r > r_month for r in _all_rows(cells, title)), title
@@ -143,7 +143,7 @@ async def test_sum_formulas(app, pool, monkeypatch, tmp_path):
     xml = _zip(book).read("xl/worksheets/sheet1.xml").decode("utf-8")
     sums = re.findall(r"<f>SUM\(([A-Z]+)\d+:[A-Z]+\d+\)</f>", xml)
     # день: F, G, H, K, O; месяц: B, C, F, G, H
-    assert sorted(sums) == sorted(["F", "G", "H", "K", "P", "B", "C", "F", "G", "H"])   # «Отв.» стоит после «Простой мин», «Мин. по причине» сдвинулась с O на P
+    assert sorted(sums) == sorted(["F", "G", "H", "K", "P", "B", "C", "F", "G", "H"])   # «Отв.» стоит после «Отставание мин», «Мин. по причине» сдвинулась с O на P
 
 
 async def test_numbers_match_api(app, anon, pool, monkeypatch, tmp_path):

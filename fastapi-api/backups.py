@@ -102,6 +102,7 @@ async def backups_info(request: Request, _: dict[str, Any] = Depends(require_adm
         "keep_days": status.get("keep_days"),
         "last_backup_age_hours": round((time.time() - last_ts) / 3600, 1) if last_ts else None,
         "files": files,
+        "config": status.get("config"),
         "backups_total": sum(f["size"] for f in files),
         "disk_total": status.get("disk_total"),
         "disk_free": status.get("disk_free"),

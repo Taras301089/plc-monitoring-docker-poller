@@ -12,7 +12,8 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
 
 import dayflags
-from downtime import _screen_path, owner_label
+from labels import label as ui_label
+from downtime import _screen_path, owner_label, owner_status
 from history import cumulative_day, download_name, safe_name
 from responsibility import owner_split, write_responsibility
 
@@ -37,8 +38,11 @@ async def _load(pool: asyncpg.Pool, screen_id: int, d1: date, d2: date) -> dict[
         "SELECT prod_date, sum(minutes) AS m FROM kpi_downtimes WHERE screen_id = $1 AND prod_date BETWEEN $2 AND $3 AND source = 'plan' "
         "GROUP BY prod_date", screen_id, d1, d2)}
     items = await pool.fetch(
-        "SELECT d.prod_date, d.idx, i.area_id, i.station_id, i.reason_id, i.minutes, i.note, i.owner, i.created_by_name "
+        # ответ отдела (только того, кто сейчас ответственный): по нему статус и деление минут «Частично» (responsibility.owner_split)
+        "SELECT d.prod_date, d.idx, i.area_id, i.station_id, i.reason_id, i.minutes, i.note, i.owner, i.created_by_name, "
+        "rp.answer, rp.minutes AS resp_minutes "
         "FROM kpi_downtime_items i JOIN kpi_downtimes d ON d.id = i.downtime_id "
+        "LEFT JOIN kpi_downtime_responses rp ON rp.item_id = i.id AND rp.department = i.owner "
         "WHERE d.screen_id = $1 AND d.prod_date BETWEEN $2 AND $3 ORDER BY d.prod_date, d.idx, i.id",
         screen_id, d1, d2,
     )
@@ -117,7 +121,7 @@ def _chart_plan_fact(wb, sheet: str, n: int, c_plan=1, c_fact=2, c_pct=4, r0=0):
     ln.add_series({"name": "% выполнения", "categories": cats, "values": [sheet, r0 + 1, c_pct, r0 + n, c_pct], "y2_axis": True,
                    "line": {"color": "#27AE60", "width": 2.25}, "marker": {"type": "circle", "size": 5}})
     col.combine(ln)
-    col.set_title({"name": "План, факт и % выполнения по дням"})
+    col.set_title({"name": ui_label("chart_plan_fact")})
     col.set_x_axis({"num_format": "dd.mm", "num_font": {"rotation": -45}})
     col.set_y_axis({"name": "Кузовов", "major_gridlines": GRID})
     ln.set_y2_axis({"name": "% выполнения", "num_format": "0%"})
@@ -128,9 +132,9 @@ def _chart_plan_fact(wb, sheet: str, n: int, c_plan=1, c_fact=2, c_pct=4, r0=0):
 
 def _chart_downtime(wb, sheet: str, n: int, c_min=5, r0=0):
     ch = wb.add_chart({"type": "column"})
-    ch.add_series({"name": "Простой, мин", "categories": [sheet, r0 + 1, 0, r0 + n, 0], "values": [sheet, r0 + 1, c_min, r0 + n, c_min],
+    ch.add_series({"name": ui_label("down_min"), "categories": [sheet, r0 + 1, 0, r0 + n, 0], "values": [sheet, r0 + 1, c_min, r0 + n, c_min],
                    "fill": {"color": "#E88B8B"}, "gap": 60})
-    ch.set_title({"name": "Простой по дням, мин"})
+    ch.set_title({"name": ui_label("chart_down_days")})
     ch.set_x_axis({"num_format": "dd.mm", "num_font": {"rotation": -45}})
     ch.set_y_axis({"name": "Минут", "major_gridlines": GRID})
     ch.set_legend({"none": True})
@@ -141,12 +145,12 @@ def _chart_downtime(wb, sheet: str, n: int, c_min=5, r0=0):
 def _chart_pareto(wb, sheet: str, n: int, c_min=1, c_cum=3, r0=0):
     cats = [sheet, r0 + 1, 0, r0 + n, 0]
     ch = wb.add_chart({"type": "column"})
-    ch.add_series({"name": "Простой, мин", "categories": cats, "values": [sheet, r0 + 1, c_min, r0 + n, c_min], "fill": {"color": "#E88B8B"}, "gap": 50})
+    ch.add_series({"name": ui_label("down_min"), "categories": cats, "values": [sheet, r0 + 1, c_min, r0 + n, c_min], "fill": {"color": "#E88B8B"}, "gap": 50})
     ln = wb.add_chart({"type": "line"})
     ln.add_series({"name": "Накопленный %", "categories": cats, "values": [sheet, r0 + 1, c_cum, r0 + n, c_cum], "y2_axis": True,
                    "line": {"color": "#4F5B6B", "width": 2}, "marker": {"type": "circle", "size": 5}})
     ch.combine(ln)
-    ch.set_title({"name": "Парето причин простоя (топ-10)"})
+    ch.set_title({"name": ui_label("chart_pareto")})
     ch.set_y_axis({"name": "Минут", "major_gridlines": GRID})
     ln.set_y2_axis({"num_format": "0%", "max": 1, "min": 0})
     ch.set_x_axis({"num_font": {"rotation": -30}})
@@ -159,7 +163,7 @@ def _chart_stations(wb, sheet: str, n: int, c_name=1, c_min=2, r0=0):
     ch = wb.add_chart({"type": "bar"})
     ch.add_series({"name": "Минут", "categories": [sheet, r0 + 1, c_name, r0 + n, c_name], "values": [sheet, r0 + 1, c_min, r0 + n, c_min],
                    "fill": {"color": "#2F80ED"}, "data_labels": {"value": True}, "gap": 40})
-    ch.set_title({"name": "Простой по станциям (топ-15)"})
+    ch.set_title({"name": ui_label("chart_down_stations")})
     ch.set_y_axis({"reverse": True})
     ch.set_x_axis({"major_gridlines": GRID})
     ch.set_legend({"none": True})
@@ -180,7 +184,7 @@ def _chart_cumulative(wb, sheet: str, n: int, r0=0):
     ln.add_series({"name": "Накопленный факт", "categories": cats, "values": [sheet, r0 + 1, 4, r0 + n, 4],
                    "line": {"color": "#2F80ED", "width": 2.25}, "marker": {"type": "circle", "size": 5}})
     col.combine(ln)
-    col.set_title({"name": "Накопленное производство за день"})
+    col.set_title({"name": ui_label("chart_cumulative")})
     col.set_x_axis({"name": "Интервал", "label_position": "low"})
     col.set_y_axis({"name": "Кузовов", "major_gridlines": GRID})
     col.set_legend({"position": "bottom"})
@@ -249,7 +253,7 @@ def _fmts(wb) -> dict[str, Any]:
 
 
 def _write_days(ws, f, sm_days: list[dict[str, Any]], full: bool, r0: int = 0) -> None:
-    heads = ["Дата", "План", "Факт", "±", "% выполнения"] + (["Простой, мин", "Описано, мин", "Не описано, мин"] if full else [])
+    heads = ["Дата", "План", "Факт", "±", "% выполнения"] + ([ui_label("down_min"), "Описано, мин", ui_label("tile_undescribed")] if full else [])
     ws.write_row(r0, 0, heads, f["head"])
     for r, d in enumerate(sm_days, start=r0 + 1):
         out = bool(d.get("no_output"))   # день без выпуска: серая строка, в итоги не входит
@@ -324,8 +328,9 @@ def write_period_section(wb, ws, f: dict[str, Any], title: str, data: dict[str, 
 
     # 1. плитки итогов (как на экране)
     ws.write(r0, 0, title, f["title"])
-    tiles = [("Дней с данными", sm["totals"]["days"], "tile_v"), ("План", tp, "tile_v"), ("Факт", tf, "tile_ok"),
-             ("Выполнение", (tf / tp) if tp else "", "tile_p"), ("Простой, мин", tdt, "tile_bad"), ("Не описано, мин", round(tdt - tdesc, 1), "tile_1")]
+    tiles = [(ui_label("tile_days"), sm["totals"]["days"], "tile_v"), (ui_label("tile_plan"), tp, "tile_v"), (ui_label("tile_fact"), tf, "tile_ok"),
+             (ui_label("tile_exec"), (tf / tp) if tp else "", "tile_p"), (ui_label("down_min"), tdt, "tile_bad"),
+             (ui_label("tile_undescribed"), round(tdt - tdesc, 1), "tile_1")]
     for c, (label, val, fmt) in enumerate(tiles):
         ws.write(r0 + 2, c, label, f["tile_l"])
         ws.write(r0 + 3, c, val, f[fmt])
@@ -336,7 +341,7 @@ def write_period_section(wb, ws, f: dict[str, Any], title: str, data: dict[str, 
     chart_row = r0 + 5
     row = chart_row + (_rows_for(340) if counted else 0)
 
-    ws.write(row, 0, "По дням", f["section"])
+    ws.write(row, 0, ui_label("card_by_days"), f["section"])
     t_days = row + 1
     _write_days(ws, f, days, True, r0=t_days)
     if counted:
@@ -373,14 +378,14 @@ def write_period_section(wb, ws, f: dict[str, Any], title: str, data: dict[str, 
         ws.insert_chart(t_days, 9, _chart_downtime(wb, sheet, n, r0=t_days))
     row = t_days + max(n + 3, _rows_for(300)) + 1
 
-    ws.write(row, 0, "Причины простоя", f["section"])
+    ws.write(row, 0, ui_label("card_reasons"), f["section"])
     t_reasons = row + 1
     _write_reasons(ws, f, reason_rows, r0=t_reasons)
     if reason_rows:
         ws.insert_chart(t_reasons, 9, _chart_pareto(wb, sheet, min(len(reason_rows), 10), r0=t_reasons))
     row = t_reasons + max(len(reason_rows) + 3, _rows_for(340)) + 1
 
-    ws.write(row, 0, "Простой по станциям", f["section"])
+    ws.write(row, 0, ui_label("table_down_stations"), f["section"])
     t_st = row + 1
     _write_stations(ws, f, station_rows, r0=t_st)
     if station_rows:
@@ -413,7 +418,7 @@ def write_downtime_list(ls, f: dict[str, Any], data: dict[str, Any]) -> None:
         ls.write(r, 4, areas.get(it["area_id"], "—"))
         ls.write(r, 5, stations.get(it["station_id"], "—"))
         ls.write(r, 6, reasons.get(it["reason_id"], "—"))
-        ls.write(r, 7, owner_label(it["owner"]))
+        ls.write(r, 7, owner_label(it["owner"], owner_status(it["owner"], it.get("answer"))))
         ls.write(r, 8, float(it["minutes"]), f["n1"])
         ls.write(r, 9, it["note"] or "")
         ls.write(r, 10, it["created_by_name"] or "")
@@ -457,7 +462,7 @@ def build_chart_workbook(kind: str, line: str, d1: date, d2: date, data: dict[st
             _write_days(ws, f, days, False)
             chart = _chart_plan_fact(wb, "Данные", n) if n else None
         else:
-            ws.write_row(0, 0, ["Дата", "Простой, мин", "Описано, мин", "Не описано, мин"], f["head"])
+            ws.write_row(0, 0, ["Дата", ui_label("down_min"), "Описано, мин", ui_label("tile_undescribed")], f["head"])
             for r, d in enumerate(days, start=1):
                 ws.write_datetime(r, 0, datetime.combine(d["date"], time()), f["date"])
                 ws.write(r, 1, d["downtime"], f["n1"])
