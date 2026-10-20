@@ -24,6 +24,8 @@ from downtime import ensure_downtime_schema, router as downtime_router
 from dayflags import ensure_dayflags_schema, router as dayflags_router
 from history import router as history_router
 from colwidths import ensure_colwidths_schema, router as colwidths_router
+import labels
+from labels import ensure_labels_schema, router as labels_router
 from period import router as period_router
 from responsibility import router as responsibility_router
 from reports import ensure_reports_schema, reports_loop, router as reports_router
@@ -295,6 +297,7 @@ async def lifespan(app: FastAPI):
     await seed_manual_screens(app.state.pool)
     await ensure_reports_schema(app.state.pool)
     await ensure_colwidths_schema(app.state.pool)
+    await ensure_labels_schema(app.state.pool)
     await ensure_tg_schema(app.state.pool)
     reports_task = asyncio.create_task(reports_loop(app))
     tg_stop = asyncio.Event()
@@ -319,6 +322,7 @@ app.include_router(downtime_router)
 app.include_router(dayflags_router)
 app.include_router(history_router)
 app.include_router(colwidths_router)
+app.include_router(labels_router)
 app.include_router(period_router)
 app.include_router(responsibility_router)
 app.include_router(reports_router)
@@ -339,6 +343,14 @@ async def read_only_guard(request, call_next):
     """Тестовая копия (READ_ONLY=1): любые запросы, кроме чтения, отклоняются."""
     if blocked(request.method, READ_ONLY, request.url.path):
         return JSONResponse({"detail": "Тестовая копия: только чтение"}, status_code=403)
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def labels_for_excel(request, call_next):
+    """Excel-выгрузки берут названия из словаря «Названия» (кэш 5 с); при ошибке остаются стандартные."""
+    if request.url.path.endswith(".xlsx"):
+        await labels.refresh(app.state.pool)
     return await call_next(request)
 
 

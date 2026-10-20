@@ -320,7 +320,7 @@
     const m = document.createElement('div');
     m.className = 'kpi-modal';
     m.innerHTML = `<div class="kpi-modal-box dt-box" role="dialog" aria-label="Простой">
-      <h3>Простой ${fmt(d.minutes)} мин — ${esc(screen.name)}</h3>
+      <h3>${esc(window.uiLabel ? window.uiLabel('dt_window_word', 'Отставание') : 'Отставание')} ${fmt(d.minutes)} мин — ${esc(screen.name)}</h3>
       <p>Интервал ${esc(timeText)}: план ${d.plan}, факт ${d.fact}. Добавьте причины, из-за которых линия отстала. Если причин несколько, нажмите «+ причина».</p>
       <div class="dt-rows"></div>
       <div class="dt-sum"></div>

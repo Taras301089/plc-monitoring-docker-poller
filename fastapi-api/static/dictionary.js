@@ -10,6 +10,7 @@
   let showArchived = false;
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const isAdmin = () => { const st = window.authState && window.authState(); return !!(st && st.user && st.user.role === 'admin'); };
   const canEdit = () => {
     const st = window.authState && window.authState();
     return !!(st && st.user && EDITORS.includes(st.user.role));
@@ -115,8 +116,10 @@
               </tbody></table></div>`;
           }).join('') || '<div class="empty">В этом направлении нет участков</div>'}
         </section>
-      </div>`;
+      </div>
+      ${isAdmin() ? '<section class="dict-names" id="dict-names"></section>' : ''}`;
     bind(edit, areas);
+    if (isAdmin() && window.namesSection) window.namesSection.mount(pane.querySelector('#dict-names'));   // раздел «Названия» (names.js)
   }
 
   function bind(edit, areas) {

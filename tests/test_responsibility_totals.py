@@ -128,7 +128,7 @@ async def test_total_equals_tile_everywhere(app, users, anon, pool):
     assert ch["totals"]["downtime"] == r["total"]
     assert round(ch["totals"]["downtime"] - ch["totals"]["described"], 1) == r["undescribed"]
     pv = (await anon.get(f"/api/kpi/screens/{scr}/day-preview", params={"date": DAY.isoformat()})).json()
-    down_col = pv["headers"].index("Простой мин")
+    down_col = pv["headers"].index("Отставание мин")
     tile = sum(float(row[down_col]) for row in pv["rows"] if isinstance(row[down_col], (int, float)) and row[2] == 1 and row[down_col] != "")
     assert tile == r["total"]
     assert pv["responsibility"] == r

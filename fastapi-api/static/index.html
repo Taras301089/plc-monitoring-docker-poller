@@ -794,16 +794,16 @@
 <body>
   <nav class="tabs">
     <button class="tab active" data-tab="andon" title="Dashboard. Информационная панель Andon / KPI: почасовые счётчики кузовов, Takt Time и показатели производства в реальном времени. Наведите, чтобы выбрать бренд и участок">📺 Andon / KPI <span class="tab-caret">▾</span></button>
-    <button class="tab" data-tab="charts" title="Графики по линии за период: план и факт, простои, причины и станции; каждый график можно выгрузить в Excel">📈 Графики</button>
-    <button class="tab" data-tab="trends" title="Технические графики за период: связь с ПЛК (когда связь была и когда пропадала), выгрузка в Excel">📉 Тренды</button>
-    <button class="tab" data-tab="reports" id="tab-reports" title="Отчёт дня по линии: график план/факт и таблица как в файле Excel, выбор дня и скачивание; администратор здесь же настраивает автосохранение отчётов в папку">📁 Отчёты</button>
-    <button class="tab" data-tab="downtimes" id="tab-downtimes" title="Все простои за период одним списком: по одной строке на каждую причину, с описаниями и комментариями">⏱ Простои</button>
-    <button class="tab" data-tab="notifications" title="Параметры подключения к ПЛК и настройки оповещений">🔔 Оповещения</button>
+    <button class="tab" data-tab="charts" title="Графики по линии за период: план и факт, простои, причины и станции; каждый график можно выгрузить в Excel" data-ui-label="tab_charts" data-ui-title="tab_charts" data-ui-prefix="📈 ">📈 Графики</button>
+    <button class="tab" data-tab="trends" title="Технические графики за период: связь с ПЛК (когда связь была и когда пропадала), выгрузка в Excel" data-ui-label="tab_trends" data-ui-title="tab_trends" data-ui-prefix="📉 ">📉 Тренды</button>
+    <button class="tab" data-tab="reports" id="tab-reports" title="Отчёт дня по линии: график план/факт и таблица как в файле Excel, выбор дня и скачивание; администратор здесь же настраивает автосохранение отчётов в папку" data-ui-label="tab_reports" data-ui-title="tab_reports" data-ui-prefix="📁 ">📁 Отчёты</button>
+    <button class="tab" data-tab="downtimes" id="tab-downtimes" title="Все простои за период одним списком: по одной строке на каждую причину, с описаниями и комментариями" data-ui-label="tab_downtimes" data-ui-title="tab_downtimes" data-ui-prefix="⏱ ">⏱ Простои</button>
+    <button class="tab" data-tab="notifications" title="Параметры подключения к ПЛК и настройки оповещений" data-ui-label="tab_notifications" data-ui-title="tab_notifications" data-ui-prefix="🔔 ">🔔 Оповещения</button>
     <button class="tab" data-tab="alarms" id="tab-alarms" title="Журнал аварий ПЛК: активные сейчас и история за период, фильтры по станции и устройству, выгрузка в Excel и справочник аварий. Нажмите, чтобы выбрать бренд: GWM, Chery, Changan, AE">🚨 Аварии <span class="tab-caret">▾</span></button>
     <button class="tab" data-tab="browser" id="tab-browser" hidden title="Просмотр всех переменных ПЛК в реальном времени с возможностью поиска и фильтрации">📊 Переменные ПЛК</button>
     <button class="tab" data-tab="saved" id="tab-saved" hidden title="Переменные сохранённые в базе данных для дальнейшего анализа и мониторинга">💾 Переменные БД</button>
-    <button class="tab" data-tab="dictionary" id="tab-dictionary" hidden title="Справочники простоев: причины, участки и станции для описания простоев (редактируют администратор и начальники)">📚 Справочники</button>
-    <button class="tab" data-tab="users" id="tab-users" hidden title="Пользователи системы: создание учётных записей, роли, сброс паролей (только для администратора)">👥 Пользователи</button>
+    <button class="tab" data-tab="dictionary" id="tab-dictionary" hidden title="Справочники простоев: причины, участки и станции для описания простоев (редактируют администратор и начальники)" data-ui-label="tab_dictionary" data-ui-title="tab_dictionary" data-ui-prefix="📚 ">📚 Справочники</button>
+    <button class="tab" data-tab="users" id="tab-users" hidden title="Пользователи системы: создание учётных записей, роли, сброс паролей (только для администратора)" data-ui-label="tab_users" data-ui-title="tab_users" data-ui-prefix="👥 ">👥 Пользователи</button>
     <div class="tabs-divider"></div>
     <div class="tabs-tools">
       <div id="auth-box" class="auth-wrap"></div>
@@ -959,6 +959,7 @@
     </div>
   </main>
 
+  <script src="/static/labels.js"></script>
   <script src="/static/plant-time.js"></script>
   <script src="/static/plctime.js"></script>
   <script src="/static/reorder.js"></script>
@@ -2235,7 +2236,7 @@
                 <th title="Фактическое количество кузовов, прошедших линию за интервал">Факт</th>
                 <th title="Отклонение факта от плана: зелёный — выполнено, красный — отставание">±</th>
                 <th title="Takt Time за интервал: сколько минут:секунд в среднем уходит на один кузов">Takt Time</th>
-                <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой, мин</th>
+                <th title="Отставание от плана, мин: (план − факт) ÷ план × длительность интервала; включает остановки и медленную работу. Нажмите на число, чтобы указать станцию и причину" data-ui-label="down_min" data-ui-title="down_min">Отставание, мин</th>
                 <th title="Ответственный за отставание по каждой причине, в порядке причин: ПР — производство, ОТО, ИТО, ДР — другое (внешние причины). Знак: … ждёт подтверждения, ✓ подтверждено, ! спорно. Расшифровка по наведению">Отв.</th>
                 <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
               </tr></thead>
@@ -2525,7 +2526,7 @@
                 <th title="Takt Time за интервал: сколько минут:секунд в среднем уходит на один кузов">Takt Time</th>
                 ${rc ? `<th title="Счётчик кузовов. Выход в ремонт">Рем. зона</th><th title="Подсчитывается автоматически. Время простоя BDC (DownTimer_BDC)">Простой BDC</th>` : ''}
                 ${rb ? `<th title="Подсчитывается автоматически. Голодание. Счётчик запускается при отсутствии кузовов в накопителе (буфере) перед ФЛ">Простой RB262</th>` : ''}
-                <th title="Простой по интервалу в минутах (отставание от плана). Нажмите на число, чтобы указать станцию и причину">Простой, мин</th>
+                <th title="Отставание от плана, мин: (план − факт) ÷ план × длительность интервала; включает остановки и медленную работу. Нажмите на число, чтобы указать станцию и причину" data-ui-label="down_min" data-ui-title="down_min">Отставание, мин</th>
                 <th title="Ответственный за отставание по каждой причине, в порядке причин: ПР — производство, ОТО, ИТО, ДР — другое (внешние причины). Знак: … ждёт подтверждения, ✓ подтверждено, ! спорно. Расшифровка по наведению">Отв.</th>
                 <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
               </tr></thead>
@@ -2994,6 +2995,7 @@
   </script>
   <script src="/static/auth.js"></script>
   <script src="/static/dictionary.js"></script>
+  <script src="/static/names.js"></script>
   <script src="/static/activity.js"></script>
   <script src="/static/responsibility.js"></script>
   <script src="/static/downtime.js"></script>

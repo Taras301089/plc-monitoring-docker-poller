@@ -22,7 +22,7 @@ def _helpers(expr: str):
         + "(function(){" + JS + "})();"
         + "const h=window.dtCmHelpers;console.log(JSON.stringify(" + expr + "));"
     )
-    out = subprocess.run(["node", "-e", code], capture_output=True, text=True, encoding="utf-8", timeout=30, check=True).stdout
+    out = subprocess.run(["node", "-"], input=code, capture_output=True, text=True, encoding="utf-8", timeout=30, check=True).stdout
     return json.loads(out)
 
 
