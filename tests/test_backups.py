@@ -61,6 +61,18 @@ async def test_backups_reports_files_and_status(users, tmp_path, monkeypatch):
     assert data["forecast"]["status"] == "no_data"
 
 
+async def test_backups_passes_config_status(users, tmp_path, monkeypatch):
+    import backups
+
+    cfg = {"ok": False, "file": "config_2026-10-20.zip", "size": 5_000_000, "missing": ["IIS applicationHost.config"]}
+    (tmp_path / "status.json").write_text(json.dumps({"ok": True, "config": cfg}), encoding="utf-8")
+    monkeypatch.setattr(backups, "BACKUP_DIR", tmp_path)
+    data = (await users["t_admin"].get("/api/backups")).json()
+    assert data["config"] == cfg
+    (tmp_path / "status.json").write_text(json.dumps({"ok": True}), encoding="utf-8")
+    assert (await users["t_admin"].get("/api/backups")).json()["config"] is None
+
+
 async def test_backups_folder_missing(users, tmp_path, monkeypatch):
     import backups
 
