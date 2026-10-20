@@ -49,7 +49,7 @@
               <th title="Причины простоя: станция, причина и описание, до трёх строк (сначала самые долгие). «+N» — сколько причин не поместилось, все видны по наведению и при нажатии на простой">Причина</th>
             </tr></thead>
             <tbody>${Array.from({ length: n }, (_, i) => `<tr data-i="${i}"><td class="n">${i + 1}</td><td class="time" data-k="time"></td><td data-k="min"></td><td class="man" data-k="plan"></td><td class="man fact" data-k="fact"></td><td class="delta" data-k="delta"></td><td class="dt" data-k="dt"></td><td class="own" data-k="own"></td><td class="why" data-k="why"></td></tr>`).join('')}</tbody>
-            <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td data-k="planSum"></td><td data-k="factSum"></td><td class="delta" data-k="deltaSum"></td><td></td><td></td><td class="resp-sum" data-k="resp"></td></tr></tfoot>
+            <tfoot><tr><td></td><td class="lbl" colspan="2">Итого за смену</td><td data-k="planSum"></td><td data-k="factSum"></td><td class="delta" data-k="deltaSum"></td><td class="resp-sum" data-k="resp" colspan="3"></td></tr></tfoot>
           </table></div>
         </div>
       </div>`;
