@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from auth import require_admin
 from downtime import _screen_path
+import labels
 from combined import build_combined_report
 
 log = logging.getLogger("reports")
@@ -59,6 +60,7 @@ def _write_file(path: Path, data: bytes) -> None:
 async def save_day(pool: asyncpg.Pool, screen_id: int, day: date) -> tuple[Path | None, int]:
     """Строит комбинированный отчёт (день и с начала месяца, один лист) и кладёт его в «месяц/линия/Отчёт_линия_день.xlsx»;
     (путь, число интервалов). Без данных за день файл не создаётся; отдельного месячного файла нет."""
+    await labels.refresh(pool)   # названия в файле автосохранения те же, что на экране («Названия»)
     rep = await build_combined_report(pool, screen_id, day)
     if rep is None:
         raise HTTPException(status_code=404, detail="Экран не найден")

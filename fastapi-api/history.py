@@ -15,6 +15,8 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
 
 import dayflags
+import labels
+from labels import label as ui_label
 from downtime import _screen_path, list_downtimes, owner_label
 from flmodels import MODELS, fetch_counts, has_models, interval_value, model_hint
 from rest_bodies import REST_FIELDS, REST_HINT, REST_TITLE, fetch_rest
@@ -26,7 +28,7 @@ from starve import STARVE_HINT, STARVE_TITLE, has_starve, starve_minutes
 router = APIRouter(prefix="/api/kpi")
 
 DAY_HEADERS = ["Дата", "Линия", "№", "Начало", "Окончание", "Мин.", "План", "Факт", "±", "Takt Time",
-               "Простой мин", "Отв.", "Участок", "Станция", "Причина", "Мин. по причине", "Описание", "Внёс", "Последний комментарий"]
+               "Отставание мин", "Отв.", "Участок", "Станция", "Причина", "Мин. по причине", "Описание", "Внёс", "Последний комментарий"]
 # имя файла начинается с названия экрана, откуда его скачали (правило в CLAUDE.md)
 SRC_NAMES = {"andon": "Andon", "charts": "Графики", "reports": "Отчёты", "downtimes": "Простои", "trends": "Тренды", "alarms": "Аварии"}
 
@@ -48,6 +50,7 @@ def day_headers(starve: bool = False, models: bool = False, repair: bool = False
     """Заголовки таблицы дня как столбцы экрана Andon: у линии Finish Line между «±» и «Takt Time» столбцы моделей (A01, P01, CS55, A13T),
     у линии с таймерами голодания после «Takt Time» ещё «Простой RB262», у FL RB294 — «Рем. зона» и «Простой BDC»."""
     h = list(DAY_HEADERS)
+    h[h.index("Отв.") - 1] = ui_label("col_down_report")      # заголовок колонки из словаря; в коде колонку ищут по месту (перед «Отв.»)
     if models:
         at = h.index("±") + 1
         h[at:at] = MODELS
@@ -63,6 +66,7 @@ def day_headers(starve: bool = False, models: bool = False, repair: bool = False
 def day_widths(headers: list[str]) -> list[int]:
     """Ширины столбцов таблицы дня под данный набор заголовков."""
     base = dict(zip(DAY_HEADERS, DAY_WIDTHS))
+    base[ui_label("col_down_report")] = base["Отставание мин"]
     base.update({m: MODEL_WIDTH for m in MODELS})
     base[STARVE_TITLE] = STARVE_WIDTH
     base[REPAIR_TITLE] = REPAIR_WIDTH
@@ -164,7 +168,7 @@ def write_day_section(wb, ws, f: dict[str, Any], title: str, day: date, rows: li
     n_rows, n = len(rows), len(intervals)
     headers = headers or DAY_HEADERS
     ci = {h: i for i, h in enumerate(headers)}
-    c_plan, c_fact, c_down = ci["План"], ci["Факт"], ci["Простой мин"]
+    c_plan, c_fact, c_down = ci["План"], ci["Факт"], ci["Отв."] - 1      # колонка отставания стоит перед «Отв.»; её заголовок меняется в словаре
     c_starve = ci.get(STARVE_TITLE)
     c_repair, c_bdc = ci.get(REPAIR_TITLE), ci.get(BDC_TITLE)     # только у экрана FL RB294
     c_models = [ci[m] for m in MODELS if m in ci]      # столбцы моделей (только у Finish Line)
@@ -185,8 +189,8 @@ def write_day_section(wb, ws, f: dict[str, Any], title: str, day: date, rows: li
         if r[2] not in seen:
             seen.add(r[2])
             down += float(r[c_down]) if isinstance(r[c_down], (int, float)) else 0.0
-    tiles = [((0, 1), "План", tp, "plain"), ((2, 4), "Факт", tf, "ok"), ((5, 7), "Выполнение", (tf / tp) if tp else "", "pct"),
-             ((8, 10), "Простой, мин", dayflags.NO_OUTPUT_LABEL if no_output and not down else round(down, 1),
+    tiles = [((0, 1), ui_label("tile_plan"), tp, "plain"), ((2, 4), ui_label("tile_fact"), tf, "ok"), ((5, 7), ui_label("tile_exec"), (tf / tp) if tp else "", "pct"),
+             ((8, 10), ui_label("down_min"), dayflags.NO_OUTPUT_LABEL if no_output and not down else round(down, 1),
               "tile_dim" if no_output and not down else "bad")]
     for (c1, c2), label, val, kind in tiles:
         ws.merge_range(r0 + 2, c1, r0 + 2, c2, label, f["tile_l"])
@@ -338,7 +342,7 @@ def write_day_section(wb, ws, f: dict[str, Any], title: str, day: date, rows: li
                        "line": {"color": "#27AE60", "width": 2.25}, "marker": {"type": "circle", "size": 5}})
         chart.combine(ln)
         ln.set_y2_axis({"name": "% выполнения", "num_format": "0%"})
-        chart.set_title({"name": "План и факт по часам"})
+        chart.set_title({"name": ui_label("chart_plan_fact_hour")})
         chart.set_x_axis({"name": "Интервал"})
         chart.set_y_axis({"name": "Кузовов", "major_gridlines": {"visible": True, "line": {"color": "#D9D9D9"}}})
         chart.set_legend({"position": "bottom"})
@@ -386,6 +390,7 @@ async def build_day_data(pool: asyncpg.Pool, screen_id: int, day: date) -> dict[
     if scr is None:
         return None
     # как на экране: показываются только интервалы с планом или фактом
+    await labels.refresh(pool)      # заголовки таблицы дня на экране берутся из словаря так же, как в Excel
     hours_all = await _day_rows(pool, screen_id, day)
     hours = [h for h in hours_all if h["plan"] > 0 or h["fact"] > 0]
     req = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(pool=pool)))

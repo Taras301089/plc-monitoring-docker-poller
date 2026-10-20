@@ -202,7 +202,7 @@ async def test_day_preview_columns_order_and_values(app, anon, pool):
     pv = (await anon.get(f"/api/kpi/screens/{scr}/day-preview", params={"date": DAY.isoformat()})).json()
     h = pv["headers"]
     t = h.index("Takt Time")
-    assert h[t + 1:t + 4] == ["Рем. зона", "Простой BDC", "Простой мин"]
+    assert h[t + 1:t + 4] == ["Рем. зона", "Простой BDC", "Отставание мин"]
     assert [r[h.index("Рем. зона")] for r in pv["rows"]] == [1, 0, 2]
     assert [r[h.index("Простой BDC")] for r in pv["rows"]] == [16.73, 2.0, "—"]
     assert "Простой RB262" not in h
@@ -315,7 +315,7 @@ def test_andon_screen_matches_excel():
     fl = html[html.index("function buildFlLayout"):html.index("function openPlanDialog")]
     assert re.search(r'<th title="Счётчик кузовов\. Выход в ремонт"[^>]*>Рем\. зона</th>', fl)
     assert re.search(r'<th title="Подсчитывается автоматически\. Время простоя BDC \(DownTimer_BDC\)"[^>]*>Простой BDC</th>', fl)
-    assert fl.index("Takt Time</th>") < fl.index("Рем. зона</th>") < fl.index("Простой BDC</th>") < fl.index("Простой, мин</th>")
+    assert fl.index("Takt Time</th>") < fl.index("Рем. зона</th>") < fl.index("Простой BDC</th>") < fl.index("Отставание, мин</th>")
     for k in ('data-k="repair"', 'data-k="bdc"', 'data-k="repairSum"', 'data-k="bdcSum"', 'data-k="str"'):
         assert k in fl
     assert "STR:" in fl and repair.STR_HINT in fl and "rc_1" in fl       # столбцы только у экранов с привязкой

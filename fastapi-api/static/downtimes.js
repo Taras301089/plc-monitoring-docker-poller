@@ -17,6 +17,8 @@
   let anchor = null;
   let dragging = false;
 
+  const L = (key, def) => (window.uiLabel ? window.uiLabel(key, def) : def);   // названия из словаря «Названия» (labels.js)
+  const TT = (key, def) => (window.uiTitle ? window.uiTitle(key, def) : def);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const pad = n => String(n).padStart(2, '0');
   const hhmm = m => (m === null || m === undefined ? '' : `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`);
@@ -37,7 +39,7 @@
     { k: 'station', t: 'Станция', tip: 'Станция или пост, на которой был простой', get: r => (rest(r) ? '' : (r.station || '')), filter: true },
     { k: 'plan', t: 'План', tip: 'Плановое количество кузовов за интервал', get: r => String(r.plan), val: r => r.plan, num: true, dup: true },
     { k: 'fact', t: 'Факт', tip: 'Фактическое количество кузовов за интервал', get: r => String(r.fact), val: r => r.fact, num: true, dup: true },
-    { k: 'total', t: 'Простой, мин', tip: 'Всего минут простоя в интервале (повторяется у каждой причины интервала)', get: r => fmt(r.minutes), val: r => r.minutes, num: true, dup: true },
+    { k: 'total', get t() { return L('down_min', 'Отставание, мин'); }, get tip() { return TT('down_min', 'Отставание от плана, мин: (план − факт) ÷ план × длительность интервала; включает остановки и медленную работу; повторяется у каждой причины интервала'); }, get: r => fmt(r.minutes), val: r => r.minutes, num: true, dup: true },
     { k: 'reason', t: 'Причина', tip: 'Причина простоя; «Не описано» — минуты, для которых причина ещё не указана', get: r => (rest(r) ? 'Не описано' : (r.reason || '')), filter: true },
     { k: 'owner', t: 'Отв.', tip: 'Ответственный за отставание по этой причине: ПР производство, ОТО, ИТО, ДР другое (внешние причины). … ждёт подтверждения, ✓ подтверждено, ! спорно', get: r => (rest(r) ? '' : window.dtOwner.ownLabel(r.owner, r.owner_status)), filter: true },
     { k: 'mins', t: 'Мин.', tip: 'Сколько минут из простоя приходится на эту причину', get: r => fmt(r.item_minutes), val: r => r.item_minutes, num: true },
@@ -334,6 +336,7 @@
     });
   }
 
+  document.addEventListener('ui-labels-changed', () => { if (built) draw(); });   // администратор изменил название в окне «Названия»
   tab.addEventListener('click', load);
   window.dtListRefresh = () => { if (pane.classList.contains('active')) load(); };
   const prev = window.onAuthChanged;
