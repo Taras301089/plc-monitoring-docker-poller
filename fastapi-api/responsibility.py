@@ -2,7 +2,9 @@
 
 Одна функция расчёта для Andon, вкладки «Простои», «Отчётов» и Excel. Всё отставание берётся из общего расчёта (period.summarize поверх
 period._load и правил dayflags), поэтому число совпадает с плиткой «Простой, мин»: дни без выпуска не входят, остаются только описанные людьми минуты.
-Сумма ПР + ОТО + ИТО + ДР + «не описано» всегда равна всему отставанию; «ждёт подтверждения» и «спорно» это срез внутри отделов, а не слагаемые."""
+Сумма ПР + ОТО + ИТО + ДР + «не назначено» + «не описано» всегда равна всему отставанию; «ждёт подтверждения» и «спорно» это срез внутри отделов,
+а не слагаемые. Ответ отдела (kpi_downtime_responses): «Согласен» и «Частично» дают «подтверждено», «Не согласен» даёт «спорно»;
+при «Частично» отделу идут принятые им минуты, остаток строки к ПР."""
 from __future__ import annotations
 
 from datetime import date
@@ -48,8 +50,15 @@ def owner_split(data: dict[str, Any]) -> dict[str, Any]:
             continue
         left[day] = round(left[day] - m, 6)
         o = it["owner"] if it["owner"] in OWNER_KEYS else "none"
+        answer = it.get("answer")
+        st = downtime.owner_status(o, answer)
+        if o in downtime.ANSWERING and answer == "partial" and it.get("resp_minutes") is not None:
+            # «Частично»: отдел принимает k минут, остаток строки относится к производству (обе части «подтверждено»)
+            k = min(float(it["resp_minutes"]), m)
+            owners[o] += k
+            owners["production"] += m - k
+            continue
         owners[o] += m
-        st = downtime.owner_status(o)
         if st == "pending":
             pending_by[o] += m
         elif st == "disputed":

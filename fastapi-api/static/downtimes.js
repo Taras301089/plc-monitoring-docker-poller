@@ -48,6 +48,14 @@
     { k: 'cm', t: '💬', tip: 'Количество комментариев к строке', get: r => (r.comments ? String(r.comments) : ''), val: r => r.comments || 0, num: true },
   ];
   const colIdx = k => COLS.findIndex(c => c.k === k);
+  // Ячейка «Отв.»: знак со статусом и подсказкой (отдел, статус, ответ отдела); кликабелен, если вошедший может ответить за отдел
+  const ownCell = (r, v) => {
+    const R = window.dtResponse;
+    const st = r.owner_status || window.dtOwner.ownStatus(r.owner);
+    const can = !!(R && R.canRespond(me(), r.owner));
+    const tip = (R ? R.ownTip(r.owner, st, r.response, r.reason, r.item_minutes) : v) + (can ? '. Нажмите, чтобы ответить за отдел: согласен, частично или не согласен' : '');
+    return `<span class="own-i own-${st}${can ? ' own-click' : ''}" title="${esc(tip)}">${esc(v)}</span>`;
+  };
   const sortVal = (c, r) => (c.val ? c.val(r) : c.get(r));
 
   async function getJson(url) {
@@ -289,11 +297,20 @@
         const cls = [c.num ? 'dl-num' : '', c.nowrap ? 'dl-nw' : '', c.dup && dup ? 'dl-dup' : '', c.k === 'reason' && rest(r) ? 'dl-warn' : '', c.k === 'note' ? 'dl-note' : '', c.k === 'who' ? 'dl-who' : '', c.k === 'cm' && v ? 'dt-cm' : '']
           .filter(Boolean).join(' ');
         const tip = c.k === 'who' && !rest(r) ? ` title="${esc(`Внёс: ${r.created_by_name}, ${fmtTs(r.created_at)}${r.updated_by_name && r.updated_by_name !== r.created_by_name ? `. Изменил: ${r.updated_by_name}, ${fmtTs(r.updated_at)}` : ''}`)}"` : '';
+        if (c.k === 'owner' && v) return `<td data-c="${ci}" class="${cls}">${ownCell(r, v)}</td>`;
         return `<td data-c="${ci}" class="${cls}"${tip}>${c.k === 'cm' && v ? '💬' : ''}${esc(v)}</td>`;
       }).join('')}<td class="dl-act"><button type="button" class="dl-open" title="Открыть простой: описать, изменить или прокомментировать">›</button></td></tr>`;
     }).join('')}</tbody></table>`;
     bindHead(body);
     window.attachColWidths(body.querySelector("table"), "downtimes");
+    // знак ОТО / ИТО в «Отв.»: окно «Ответ отдела» для того, кто может ответить (проверка прав и на сервере)
+    body.querySelectorAll('.own-click').forEach(sp => sp.addEventListener('click', e => {
+      e.stopPropagation();
+      const r = view[Number(sp.closest('tr').dataset.i)];
+      if (!r || !window.dtResponse) return;
+      window.dtResponse.open({ item: { id: r.item_id, owner: r.owner, minutes: r.item_minutes, response: r.response || null },
+        time: `${fmtDay(r.date)} ${hhmm(r.start_min)}–${hhmm(r.end_min)}`, dtMinutes: r.minutes, reason: r.reason || '', note: r.note || '', onDone: load });
+    }));
     body.querySelectorAll('tbody tr').forEach(tr => {
       const r = view[Number(tr.dataset.i)];
       const open = () => { if (window.dtOpenById) window.dtOpenById(r.downtime_id, r.item_id, true); };
