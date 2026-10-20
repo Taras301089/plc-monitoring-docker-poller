@@ -34,6 +34,14 @@
       'Когда сняты последние дампы. Красный: старше 36 часов, нет файлов или последний запуск скрипта закончился ошибкой'));
     tiles.push(tile('', 'Размер базы', size(d.db_size), 'Размер основной базы данных на диске (сама база, не дамп)'));
     tiles.push(tile('', 'Все дампы', size(d.backups_total), 'Суммарный размер файлов в папке бэкапов (хранятся последние ' + (d.keep_days || 30) + ' дней)'));
+    if (d.config) {
+      const c = d.config;
+      const miss = (c.missing || []).length;
+      tiles.push(tile(c.size > 0 ? '' : 'bad', 'Набор конфигурации',
+        c.size > 0 ? size(c.size) + (miss ? ', не вошло: ' + miss : ', полный') : 'не собран',
+        'Архив настроек и ключей: .env, n8n, Grafana, TIA bridge, IIS, задачи планировщика; копируется только в сетевую папку, не на Google Drive'
+        + ((c.missing || []).length ? '. Не вошло: ' + c.missing.join('; ') : '')));
+    }
     if (d.disk_free != null) {
       tiles.push(tile('', 'Свободно на C:', size(d.disk_free) + ' из ' + size(d.disk_total),
         'Свободное место на диске C: на момент последнего запуска backup.ps1 (обновляется при каждом бэкапе)'));
