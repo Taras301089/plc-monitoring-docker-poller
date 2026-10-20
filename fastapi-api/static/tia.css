@@ -28,3 +28,11 @@
 .tia-ok { color: var(--ok); }
 .tia-err { color: var(--danger); overflow-wrap: anywhere; }
 .tia-run { color: var(--accent); }
+/* таблица проектов в окне: Проект · ПЛК · Выгрузка (ZIP) · Файл для ИИ; на узком окне текст переносится, без горизонтальной прокрутки */
+.tia-tbl { width: 100%; margin-top: 12px; border-collapse: collapse; font-size: var(--fs-small); }
+.tia-tbl th { text-align: left; font-weight: 400; color: var(--fg-secondary); padding: 4px 8px; border-bottom: 1px solid var(--line); }
+.tia-tbl td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; color: var(--fg-primary); }
+.tia-tbl tbody tr:nth-child(even) { background: var(--zebra); }
+.tia-tbl .dt-sec { min-height: 28px; padding: 0 10px; margin: 2px 4px 2px 0; white-space: nowrap; }
+.tia-tbl .dim { color: var(--fg-secondary); }
+.tia-note { margin-top: 8px; font-size: var(--fs-small); color: var(--fg-secondary); overflow-wrap: anywhere; }
