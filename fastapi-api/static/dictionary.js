@@ -117,9 +117,13 @@
           }).join('') || '<div class="empty">В этом направлении нет участков</div>'}
         </section>
       </div>
-      ${isAdmin() ? '<section class="dict-names" id="dict-names"></section>' : ''}`;
+      ${isAdmin() ? '<section class="dict-names" id="dict-names"></section>' : ''}
+      <section class="dict-names" id="dict-signals"></section>
+      <section class="dict-names" id="dict-alarmhelp"></section>`;
     bind(edit, areas);
     if (isAdmin() && window.namesSection) window.namesSection.mount(pane.querySelector('#dict-names'));   // раздел «Названия» (names.js)
+    if (window.signalNamesSection) window.signalNamesSection.mount(pane.querySelector('#dict-signals'));   // «Простые названия сигналов» (signalnames.js)
+    if (window.alarmHelpSection) window.alarmHelpSection.mount(pane.querySelector('#dict-alarmhelp'));   // «Аварии: что делать» (alarmhelp.js)
   }
 
   function bind(edit, areas) {
@@ -190,9 +194,10 @@
     });
   }
 
-  // Вкладка видна только администратору и начальникам
+  // Вкладка видна администратору, начальникам, мастеру и ТО (мастер и ТО правят только «Простые названия сигналов», справочники простоев для них только чтение)
   function updateTab() {
-    const ok = canEdit();
+    const stt = window.authState && window.authState();
+    const ok = !!(stt && stt.user && stt.user.role !== 'viewer');
     tab.hidden = !ok;
     if (!ok && pane.classList.contains('active')) document.querySelector('.tab[data-tab="browser"]').click();
   }

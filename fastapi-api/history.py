@@ -30,7 +30,7 @@ router = APIRouter(prefix="/api/kpi")
 DAY_HEADERS = ["Дата", "Линия", "№", "Начало", "Окончание", "Мин.", "План", "Факт", "±", "Takt Time",
                "Отставание мин", "Отв.", "Участок", "Станция", "Причина", "Мин. по причине", "Описание", "Внёс", "Последний комментарий"]
 # имя файла начинается с названия экрана, откуда его скачали (правило в CLAUDE.md)
-SRC_NAMES = {"andon": "Andon", "charts": "Графики", "reports": "Отчёты", "downtimes": "Простои", "trends": "Тренды", "alarms": "Аварии"}
+SRC_NAMES = {"andon": "Andon", "charts": "Графики", "reports": "Отчёты", "downtimes": "Простои", "trends": "Тренды", "alarms": "Аварии", "signals": "Названия сигналов", "alarm_help": "Справка по авариям"}
 
 
 def download_name(src: str, fname: str) -> str:
