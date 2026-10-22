@@ -41,7 +41,7 @@
     { k: 'fact', t: 'Факт', tip: 'Фактическое количество кузовов за интервал', get: r => String(r.fact), val: r => r.fact, num: true, dup: true },
     { k: 'total', get t() { return L('down_min', 'Отставание, мин'); }, get tip() { return TT('down_min', 'Отставание от плана, мин: (план − факт) ÷ план × длительность интервала; включает остановки и медленную работу; повторяется у каждой причины интервала'); }, get: r => fmt(r.minutes), val: r => r.minutes, num: true, dup: true },
     { k: 'reason', t: 'Причина', tip: 'Причина простоя; «Не описано» — минуты, для которых причина ещё не указана', get: r => (rest(r) ? 'Не описано' : (r.reason || '')), filter: true },
-    { k: 'owner', t: 'Отв.', tip: 'Ответственный за отставание по этой причине: ПР производство, ОТО, ИТО, ДР другое (внешние причины). … ждёт подтверждения, ✓ подтверждено, ! спорно', get: r => (rest(r) ? '' : window.dtOwner.ownLabel(r.owner, r.owner_status)), filter: true },
+    { k: 'owner', t: 'Отв.', tip: 'Ответственный за отставание по этой причине: ПР производство, ОТО, ИТО, ДР другое (внешние причины). ○ ждёт подтверждения, ● принято полностью, ◐ принято частично, ! спорно', get: r => (rest(r) ? '' : window.dtOwner.ownLabel(r.owner, r.owner_status)), filter: true },
     { k: 'mins', t: 'Мин.', tip: 'Сколько минут из простоя приходится на эту причину', get: r => fmt(r.item_minutes), val: r => r.item_minutes, num: true },
     { k: 'note', t: 'Описание', tip: 'Что произошло (текст строки описания)', get: r => (rest(r) ? '' : (r.note || '')) },
     { k: 'who', t: 'Внёс', tip: 'Кто внёс строку описания', get: r => (rest(r) ? '' : (r.created_by_name || '')), filter: true },
@@ -51,7 +51,7 @@
   // Ячейка «Отв.»: знак со статусом и подсказкой (отдел, статус, ответ отдела); кликабелен, если вошедший может ответить за отдел
   const ownCell = (r, v) => {
     const R = window.dtResponse;
-    const st = r.owner_status || window.dtOwner.ownStatus(r.owner);
+    const st = r.owner_mark || r.owner_status || window.dtOwner.ownStatus(r.owner);
     const can = !!(R && R.canRespond(me(), r.owner));
     const tip = (R ? R.ownTip(r.owner, st, r.response, r.reason, r.item_minutes) : v) + (can ? '. Нажмите, чтобы ответить за отдел: согласен, частично или не согласен' : '');
     return `<span class="own-i own-${st}${can ? ' own-click' : ''}" title="${esc(tip)}">${esc(v)}</span>`;
@@ -303,13 +303,14 @@
     }).join('')}</tbody></table>`;
     bindHead(body);
     window.attachColWidths(body.querySelector("table"), "downtimes");
-    // знак ОТО / ИТО в «Отв.»: окно «Ответ отдела» для того, кто может ответить (проверка прав и на сервере)
+    // знак ОТО / ИТО в «Отв.»: единое окно «Ответ отдела и комментарии» (как на Andon); права проверяет и сервер
     body.querySelectorAll('.own-click').forEach(sp => sp.addEventListener('click', e => {
       e.stopPropagation();
       const r = view[Number(sp.closest('tr').dataset.i)];
-      if (!r || !window.dtResponse) return;
-      window.dtResponse.open({ item: { id: r.item_id, owner: r.owner, minutes: r.item_minutes, response: r.response || null },
-        time: `${fmtDay(r.date)} ${hhmm(r.start_min)}–${hhmm(r.end_min)}`, dtMinutes: r.minutes, reason: r.reason || '', note: r.note || '', onDone: load });
+      if (!r || !window.dtItemWindow) return;
+      window.dtItemWindow({ item: { id: r.item_id, owner: r.owner, minutes: r.item_minutes, note: r.note || '', response: r.response || null },
+        idx: r.idx, timeText: `${fmtDay(r.date)} ${hhmm(r.start_min)}–${hhmm(r.end_min)}`, dtMinutes: r.minutes,
+        place: [r.reason, r.label, r.station].filter(Boolean).join(' · '), focus: 'answer', refresh: load });
     }));
     body.querySelectorAll('tbody tr').forEach(tr => {
       const r = view[Number(tr.dataset.i)];

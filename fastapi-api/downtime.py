@@ -21,8 +21,9 @@ MODERATORS = {"admin", "chief", "area_head"}
 OWNERS = {"production": "ПР", "oto": "ОТО", "ito": "ИТО", "other": "ДР"}
 NO_OWNER = "none"          # ответственный не назначен: пока человек не выбрал отдел, строка не относится ни к ПР, ни к ОТО, ни к ИТО, ни к ДР
 OWNER_NAMES = {"production": "Производство", "oto": "ОТО", "ito": "ИТО", "other": "Другое (внешние причины)"}
-STATUS_MARKS = {"pending": "…", "confirmed": "✓", "disputed": "!"}
-STATUS_NAMES = {"pending": "ждёт подтверждения", "confirmed": "подтверждено", "disputed": "спорно"}
+# знак на экране и в Excel: «○» ждёт ответа, «●» принято полностью, «◐» принято частично (только отображение: суммы считает owner_status), «!» спорно
+STATUS_MARKS = {"pending": "○", "confirmed": "●", "partial": "◐", "disputed": "!"}
+STATUS_NAMES = {"pending": "ждёт подтверждения", "confirmed": "принято полностью", "partial": "принято частично", "disputed": "спорно"}
 
 router = APIRouter(prefix="/api/kpi")
 
@@ -37,6 +38,13 @@ def owner_status(owner: str | None, answer: str | None = None) -> str:
     if owner not in ANSWERING:
         return "confirmed"
     return {"agree": "confirmed", "partial": "confirmed", "disagree": "disputed"}.get(answer or "", "pending")
+
+
+def owner_mark(owner: str | None, answer: str | None = None) -> str:
+    """Состояние для знака: как owner_status, но ответ «Частично» отдела ОТО/ИТО показывается отдельным знаком «◐». В итогах не участвует."""
+    if owner in ANSWERING and answer == "partial":
+        return "partial"
+    return owner_status(owner, answer)
 
 
 # ответ отдела к строке описания: только ответ того отдела, который сейчас ответственный (после смены ОТО → ИТО прежний ответ не действует)
@@ -56,7 +64,7 @@ def response_view(r: Any) -> dict[str, Any] | None:
 
 
 def owner_label(owner: str | None, status: str | None = None) -> str:
-    """Сокращение со знаком статуса, одинаковое на Andon, во «Простоях» и в Excel: «ПР ✓», «ОТО …», «ИТО !»."""
+    """Сокращение со знаком статуса, одинаковое на Andon, во «Простоях» и в Excel: «ПР ●», «ОТО ○», «ИТО !», «ОТО ◐»."""
     if owner not in OWNERS:
         return "—"            # не назначен: ни сокращения отдела, ни знака статуса
     return f"{OWNERS[owner]} {STATUS_MARKS[status or owner_status(owner)]}"
@@ -249,7 +257,7 @@ async def list_downtimes(screen_id: int, request: Request, day: date | None = Qu
         by_dt.setdefault(it["downtime_id"], []).append(
             {**{k: it[k] for k in ("id", "area_id", "station_id", "reason_id", "note", "created_by", "created_by_name", "updated_by_name")},
              "minutes": _num(it["minutes"]), "created_at": it["created_at"], "updated_at": it["updated_at"],
-             "owner": it["owner"], "owner_status": owner_status(it["owner"], it["resp_answer"]), "response": response_view(it),
+             "owner": it["owner"], "owner_status": owner_status(it["owner"], it["resp_answer"]), "owner_mark": owner_mark(it["owner"], it["resp_answer"]), "response": response_view(it),
              "comments": item_comments.get(it["id"], 0), "last_comment": last_comment.get(it["id"]),
              "recent_comments": recent_comments.get(it["id"], []),
              "author": _author(it["author_last"], it["author_role"], it["created_by_name"])}
@@ -353,7 +361,7 @@ async def downtimes_list(
             described += _num(r["item_minutes"])
             out.append({**base, "kind": "item", "first": first, "item_id": r["item_id"], "item_minutes": _num(r["item_minutes"]),
                         "area": r["area_name"], "station": r["station_name"], "reason_id": r["reason_id"], "reason": r["reason_name"],
-                        "note": r["note"], "owner": r["owner"], "owner_status": owner_status(r["owner"], r["resp_answer"]),
+                        "note": r["note"], "owner": r["owner"], "owner_status": owner_status(r["owner"], r["resp_answer"]), "owner_mark": owner_mark(r["owner"], r["resp_answer"]),
                         "response": response_view(r),
                         "created_by": r["created_by"], "created_by_name": r["created_by_name"],
                         "updated_by_name": r["updated_by_name"], "created_at": r["created_at"], "updated_at": r["updated_at"],

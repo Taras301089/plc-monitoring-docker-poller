@@ -147,40 +147,10 @@ def node(expr: str):
     return json.loads(subprocess.run([NODE, "-e", code], capture_output=True, text=True, encoding="utf-8", timeout=30, check=True).stdout)
 
 
-PLCS = [{"id": 1, "name": "GWM_UB"}, {"id": 7, "name": "AE_WBS_1"}]
-PRJ = [{"id": "wbs1", "name": "AE · WBS1", "plc": "ae_wbs_1"}, {"id": "old", "name": "Старый", "plc": None}]
-
-
-@pytest.mark.skipif(not NODE, reason="нет node")
-def test_sources_all_plcs_without_project_disabled():
-    s = node(f"t.buildSources({json.dumps(PLCS)}, {json.dumps(PRJ, ensure_ascii=False)}).map(x => [x.value, x.label, x.disabled])")
-    assert s == [["plc:1", "GWM_UB — проект не задан", True], ["wbs1", "AE_WBS_1", False], ["old", "Старый", False]]
-    two = PRJ + [{"id": "wbs1b", "name": "Копия", "plc": "AE_WBS_1"}]
-    labels = node(f"t.buildSources({json.dumps(PLCS)}, {json.dumps(two, ensure_ascii=False)}).map(x => x.label)")
-    assert labels[1:3] == ["AE_WBS_1 · AE · WBS1", "AE_WBS_1 · Копия"]
-    src = f"t.buildSources({json.dumps(PLCS)}, {json.dumps(PRJ, ensure_ascii=False)})"
-    assert node(f"[t.pickSource({src}, 'old'), t.pickSource({src}, 'plc:1'), t.pickSource({src}, ''), t.pickSource([], 'x')]") == ["old", "wbs1", "wbs1", ""]
-
-
-@pytest.mark.skipif(not NODE, reason="нет node")
-def test_source_for_plc_selected_on_top():
-    src = f"t.buildSources({json.dumps(PLCS)}, {json.dumps(PRJ, ensure_ascii=False)})"
-    # ПЛК вверху с проектом предвыбирается (без учёта регистра и пробелов); без проекта или пустое имя: '' и pickSource берёт первый с проектом
-    assert node(f"[t.sourceForPlc({src}, ' ae_wbs_1 '), t.sourceForPlc({src}, 'GWM_UB'), t.sourceForPlc({src}, ''), t.sourceForPlc([], 'AE_WBS_1')]") == [
-        "wbs1", "", "", ""]
-    assert node(f"t.pickSource({src}, t.sourceForPlc({src}, 'GWM_UB'))") == "wbs1"
-
-
 @pytest.mark.skipif(not NODE, reason="нет node")
 def test_default_target_and_can_export():
     assert node("[t.defaultTarget({target:'D:\\\\A'}), t.defaultTarget({last:{target:'E:\\\\B'}}), t.defaultTarget({}, 'C:\\\\x'), t.defaultTarget(null)]") == [
         r"D:\A", r"E:\B", r"C:\x", r"C:\tia-bridge\out"]
-    ok = {"disabled": False, "project": {"id": "wbs1", "job": {"state": "done"}}}
-    run = {"disabled": False, "project": {"id": "wbs1", "job": {"state": "running"}}}
-    none = {"disabled": True, "project": None}
-    assert node(f"[t.canExport(true, {json.dumps(ok)}, false), t.canExport(false, {json.dumps(ok)}, false), t.canExport(true, {json.dumps(ok)}, true),"
-                f" t.canExport(true, {json.dumps(run)}, false), t.canExport(true, {json.dumps(none)}, false), t.canExport(true, null, false)]") == [
-        True, False, False, False, False, False]
 
 
 @pytest.mark.skipif(not NODE, reason="нет node")
@@ -209,7 +179,7 @@ def test_button_in_plc_row_and_modal_no_separate_tab():
     # окно в стиле диалогов сайта: закрытие Esc, щелчком вне окна и кнопкой «Закрыть»; только администратор
     assert "kpi-modal-box auth-modal tia-box" in JS and ">Закрыть</button>" in JS and "e.key === 'Escape'" in JS and "e.target === modal" in JS
     assert "isAdminUser" in JS and "querySelector('#tia-open')" in JS and "#tia'" not in JS
-    assert "Ни для одного ПЛК не задан проект TIA (файл tia-projects.json на ПК сервера)" in JS
+    assert "Ни для одного ПЛК не задан проект" not in JS and "hasData()" in JS        # кнопка доступна и без проектов: проект выбирают из найденных
     assert "AbortSignal.timeout(6000)" in JS and "FAST_MS = 4000" in JS
     for el in ("tia-src", "tia-target", "tia-go", "tia-dl"):
         assert re.search(rf'id="{el}"[^>]*title="[^"]{{40,}}"', JS), el
@@ -229,7 +199,7 @@ def test_plc_tab_renamed_everywhere():
 
 def test_reference_describes_tab():
     sec = REF.split("<h3>Выгрузка проектов TIA Portal в XML</h3>")[1].split("<h3>")[0]
-    for w in ("«🧩 Выгрузить проект TIA»", "«ПЛК»", "Источник", "Закрыть", "Путь сохранения", "Выгрузить", "ProjectTexts_", "ProDiag_Supervisions.xlsx", "manifest.csv", "таблиц тегов"):
+    for w in ("«🧩 Выгрузить проект TIA»", "«ПЛК»", "Проект (папка)", "found-projects.json", "roots", "Закрыть", "Путь сохранения", "Выгрузить", "ProjectTexts_", "ProDiag_Supervisions.xlsx", "manifest.csv", "таблиц тегов"):
         assert w in sec, w
     assert re.search(r'<li data-date="2026-10-16">выгрузка проекта TIA: во вкладке «ПЛК»[^<]*кнопка «🧩 Выгрузить проект TIA»', REF)
     assert "Выгрузка TIA»" not in REF                                         # отдельной вкладки больше нет
@@ -241,3 +211,20 @@ def test_zip_button_mentions_excel_and_css_tokens():
     assert m and "ProjectTexts_" in m.group(1) and "ProDiag_Supervisions.xlsx" in m.group(1)
     css = (STATIC / "tia.css").read_text(encoding="utf-8")
     assert not re.search(r"#[0-9a-fA-F]{3,6}\b|rgb\(", css) and not re.search(r"font-size:\s*\d+px", css)
+
+
+def test_window_explains_and_shows_json_path():
+    # описание окна, точный путь файла для ИИ в строке готового проекта и подсказка, как добавить проект
+    for t in ("Что здесь происходит", r"C:\\tia-bridge\\out", r"C:\\tia-bridge\\logic\\&lt;проект&gt;.json", "Скачать JSON",
+              "по нему локальная модель объяснила, почему встала станция", r"C:\\tia-bridge\\tia-projects.json", "tia-fpath", "(на сервере)"):
+        assert t in JS, t
+    css = (STATIC / "tia.css").read_text(encoding="utf-8")
+    assert ".tia-intro" in css and ".tia-fpath" in css and "var(--fs-small)" in css.split(".tia-intro")[1].split("}")[0]
+
+
+@pytest.mark.skipif(NODE is None, reason="нужен node")
+def test_logic_path_and_hint():
+    code = f"const r = require({json.dumps(str(STATIC / 'tiaexport.js'))}); console.log(JSON.stringify([r.logicPath({{id: 'wbs1'}}), r.logicPath(null), r.foundHint(null)]))"
+    out = json.loads(subprocess.run([NODE, "-e", code], capture_output=True, text=True, timeout=30, check=True, encoding="utf-8").stdout)
+    assert out[0] == r"C:\tia-bridge\logic\wbs1.json" and out[1] == ""
+    assert r"C:\tia-bridge\tia-projects.json" in out[2] and "администратор" in out[2]

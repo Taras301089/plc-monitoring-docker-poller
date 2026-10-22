@@ -14,6 +14,10 @@
   text-transform: none; color: var(--fg-secondary); white-space: nowrap; }
 .tia-box .tia-f select, .tia-box .tia-f input { min-height: 32px; font-size: var(--fs-small); text-align: left; }
 .tia-box .tia-f select { width: auto; min-width: 200px; max-width: 320px; }
+.tia-box .tia-prj select { min-width: 240px; max-width: 420px; }
+.tia-confirm { font-weight: 600; }
+.tia-confirm[hidden] { display: none; }
+.tia-tbl td.tia-plc { white-space: nowrap; overflow-wrap: normal; }
 .tia-path { flex: 1 1 260px; }
 .tia-box .tia-path input[type="text"] { flex: 1; min-width: 160px; width: auto; }
 .tia-bar button { min-height: 32px; padding: 0 14px; white-space: nowrap; }
@@ -35,4 +39,7 @@
 .tia-tbl tbody tr:nth-child(even) { background: var(--zebra); }
 .tia-tbl .dt-sec { min-height: 28px; padding: 0 10px; margin: 2px 4px 2px 0; white-space: nowrap; }
 .tia-tbl .dim { color: var(--fg-secondary); }
+.tia-intro { margin: 6px 0 0; font-size: var(--fs-small); line-height: 1.35; color: var(--fg-secondary); overflow-wrap: anywhere; }
+.tia-fpath { margin-top: 2px; font-size: var(--fs-small); color: var(--fg-secondary); overflow-wrap: anywhere; }
+.tia-note[hidden] { display: none; }
 .tia-note { margin-top: 8px; font-size: var(--fs-small); color: var(--fg-secondary); overflow-wrap: anywhere; }
