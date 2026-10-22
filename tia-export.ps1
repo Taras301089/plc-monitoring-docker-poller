@@ -8,14 +8,16 @@
   Требования: TIA Portal V17 на этом ПК, учётка Windows в группе «Siemens TIA Openness».
   При первом запуске TIA спросит разрешение на доступ Openness: ответить «Да для всех».
   -Project  путь к файлу .ap17 (копия проекта)
-  -OutDir   куда сложить XML (по умолчанию tia_export рядом со скриптом, папка не попадает в Git)
+  -OutDir   куда сложить XML (по умолчанию TIA_PROJECTS_ROOT или Documents\Tia_Opennnes_Export вне репозитория)
   -Compile  перед выгрузкой скомпилировать программу в копии (если блоки не выгружаются как несогласованные)
   -NoPause  не ждать нажатия Enter в конце.
   Код выхода: 0 успех, 1 ошибка.
 #>
 param(
     [Parameter(Mandatory = $true)][string]$Project,
-    [string]$OutDir = (Join-Path $PSScriptRoot 'tia_export'),
+    [string]$OutDir = $(if ([string]::IsNullOrWhiteSpace($env:TIA_PROJECTS_ROOT)) {
+        [IO.Path]::Combine([Environment]::GetFolderPath('MyDocuments'), 'Tia_Opennnes_Export')
+    } else { $env:TIA_PROJECTS_ROOT }),
     [switch]$Compile,
     [switch]$NoPause
 )

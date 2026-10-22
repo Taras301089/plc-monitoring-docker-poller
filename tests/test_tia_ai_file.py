@@ -15,10 +15,10 @@ from fastapi.testclient import TestClient
 
 import auth
 import tia
+from synthetic_tia_fixtures import materialize_tia_fixtures
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC = ROOT / "fastapi-api" / "static"
-FIX = Path(__file__).resolve().parent / "fixtures" / "tia_logic" / "PLC1" / "Blocks"
 ZIP = "TIA_wbs1_2026-10-19_16-10.zip"
 NEW_ZIP = "TIA_wbs1_2026-10-19_17-00.zip"
 NODE = shutil.which("node")
@@ -32,8 +32,9 @@ def make_zip(path: Path, bad: bool = False) -> None:
     if bad:
         path.write_bytes("это не zip".encode("utf-8"))
         return
+    fixture_dir = materialize_tia_fixtures(path.parent / "synthetic_tia", "tia_logic") / "PLC1" / "Blocks"
     with zipfile.ZipFile(path, "w") as z:
-        for f in FIX.glob("*.xml"):
+        for f in fixture_dir.glob("*.xml"):
             z.write(f, f"2026-10-19_16-10/PLC1/Blocks/{f.name}")
 
 

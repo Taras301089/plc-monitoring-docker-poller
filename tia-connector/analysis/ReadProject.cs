@@ -50,7 +50,7 @@ internal static class ReadProject
                 return 0;
             }
             if (args.Length != 3 || (args[0] != "snapshot" && args[0] != "snapshot-file"))
-                throw new ArgumentException("Usage: processes OR snapshot|snapshot-file <exact project.ap17> <new workspace output directory>");
+                throw new ArgumentException("Usage: processes OR snapshot|snapshot-file <exact project.ap17> <new output directory inside TIA_PROJECTS_ROOT (default: Documents\\Tia_Opennnes_Export)>");
             Snapshot(args[1], args[2], args[0] == "snapshot-file");
             return 0;
         }
@@ -67,9 +67,12 @@ internal static class ReadProject
         if (!File.Exists(projectPath) || !projectPath.EndsWith(".ap17", StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("An existing exact V17 project.ap17 path is required.");
         var output = Path.GetFullPath(outputArgument).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var workspace = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar)).Parent.Parent.FullName;
-        if (!output.StartsWith(workspace + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException("Output directory must be inside this helper's repository workspace.");
+        var archiveRoot = Environment.GetEnvironmentVariable("TIA_PROJECTS_ROOT");
+        if (string.IsNullOrWhiteSpace(archiveRoot))
+            archiveRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Tia_Opennnes_Export");
+        archiveRoot = Path.GetFullPath(archiveRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (!output.StartsWith(archiveRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Output directory must be a new child of TIA_PROJECTS_ROOT (default: Documents\\Tia_Opennnes_Export).");
         if (Directory.Exists(output) || File.Exists(output))
             throw new ArgumentException("Output directory must not already exist.");
 

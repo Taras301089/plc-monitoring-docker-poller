@@ -10,3 +10,9 @@ tasks/data/
 
 tia_export/
 .env.dev
+
+# Saved TIA projects and exports live in the external TIA_PROJECTS_ROOT archive.
+/Tia projects/
+*.[xX][mM][lL]
+__pycache__/
+*.pyc

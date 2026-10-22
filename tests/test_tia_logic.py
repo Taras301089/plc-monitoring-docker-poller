@@ -1,19 +1,20 @@
-"""Разбор логики ПЛК из выгрузки TIA (S-7): синтетические сети из tests/fixtures/tia_logic и, если есть, настоящая выгрузка WBS1."""
+"""Разбор логики ПЛК из выгрузки TIA (S-7): временные синтетические сети и, если есть, настоящая выгрузка WBS1."""
 import sys
 from pathlib import Path
 
 import pytest
 
+from synthetic_tia_fixtures import materialize_tia_fixtures
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "fastapi-api"))
 import tia_logic as tl  # noqa: E402
 
-FIX = Path(__file__).resolve().parent / "fixtures" / "tia_logic"
 WBS1_ZIPS = sorted(Path(r"C:\tia-bridge\out").glob("TIA_wbs1_*.zip")) if Path(r"C:\tia-bridge\out").exists() else []
 
 
-@pytest.fixture(scope="module")
-def mini():
-    return tl.TiaLogic.load(FIX)
+@pytest.fixture
+def mini(tmp_path):
+    return tl.TiaLogic.load(materialize_tia_fixtures(tmp_path / "tia_logic", "tia_logic"))
 
 
 def one(logic, name, **kw):

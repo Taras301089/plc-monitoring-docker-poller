@@ -1,0 +1,28 @@
+Saved TIA project exports
+
+Project material was moved out of this repository on 2026-10-22 to:
+  C:\Users\al.abdimalik\Documents\Tia_Opennnes_Export
+
+The archive keeps AE, Changan, Chery and GWM directly under that folder,
+including saved exports, reports and offline proposals. Local analysis data
+formerly in tasks/data is under _local_analysis/tasks_data; saved connector
+exports are under _local_analysis/connector_exports. Original synthetic test
+XML is archived separately under _repository_test_fixtures.
+SHA256 checksums for the moved files are in _migration/20261022-repository-move.json.
+
+Set TIA_PROJECTS_ROOT to use another archive location. Export helpers default
+to Documents\Tia_Opennnes_Export; this setting never selects a live TIA project.
+Source .ap17 project locations remain separate from exported files.
+
+Repository XML files are no longer tracked and new XML is ignored. This removes
+them from the current branch tree; previous Git commits still contain their
+historical versions. No Git history rewrite was performed.
+
+Tests generate their small synthetic XML inputs in temporary directories.
+The GWM screen code and its derived alarm map are in Scada/gwm; runtime does
+not need the external project archive.
+
+Moving these saved files does not export or change anything in TIA Portal.
+Each new TIA export still requires explicit approval for that export under
+the repository AGENTS.md rules. Compilation, project changes, downloads and
+PLC/HMI writes remain prohibited.
