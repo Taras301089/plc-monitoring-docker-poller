@@ -22,7 +22,7 @@ def _between(text, start, end):
 # ---------- окно «Время интервалов» ----------
 
 def test_fl_dialog_has_checkbox_column_and_hint():
-    body = _between(HTML, "const isFl = screen.template === 'fl_counter';", "// Theme toggle")
+    body = _between(HTML, "const isFl = screen.template === 'fl_counter';", "document.body.appendChild(modal);")
     assert 'data-on="${i}"' in body                                   # у каждого интервала своя галочка
     assert TIP in body                                                # подсказка колонки и чекбокса
     assert "isFl ? `<th" in body or "isFl ? '<th" in body             # колонка есть только у ФЛ
@@ -31,7 +31,7 @@ def test_fl_dialog_has_checkbox_column_and_hint():
 
 
 def test_fl_dialog_does_not_send_active_for_other_templates():
-    body = _between(HTML, "const isFl = screen.template === 'fl_counter';", "// Theme toggle")
+    body = _between(HTML, "const isFl = screen.template === 'fl_counter';", "document.body.appendChild(modal);")
     assert re.search(r"active: isFl \? .*? : undefined", body)       # у остальных линий поле не передаётся: остаётся как было
 
 
