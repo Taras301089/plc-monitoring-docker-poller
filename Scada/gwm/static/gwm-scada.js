@@ -65,6 +65,9 @@
   root.GwmScada = api;
   if (!root.document) return;
   const $ = id => document.getElementById(id);
+  if (document.documentElement.dataset.embedded === 'true') {
+    document.querySelector('.overview').appendChild(document.querySelector('.header-meta'));
+  }
   let data = normalizeSnapshot(null), selected = 'MB200', busy = false, pending = false, timer;
   const boolText = value => value === null ? 'Нет данных' : value ? '1 · TRUE' : '0 · FALSE';
   const boolClass = value => value === null ? 'is-unknown' : value ? 'is-on' : 'is-off';
@@ -174,11 +177,6 @@
   }));
   $('station-picker').addEventListener('change', event => select(event.target.value, true));
   $('live-refresh').addEventListener('click', refresh);
-  $('theme-toggle').addEventListener('click', () => {
-    const dark = document.documentElement.dataset.theme !== 'dark';
-    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-    $('theme-toggle').textContent = dark ? 'Светлая тема' : 'Тёмная тема';
-  });
   api.select = id => select(id, true);
   render();
   refresh();

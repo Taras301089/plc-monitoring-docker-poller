@@ -1,0 +1,156 @@
+GWM SCADA - signal and mapping audit
+Observed: 22 October 2026, 15:57:06-15:57:41, Asia/Qyzylorda (UTC+05:00).
+
+Scope and evidence
+------------------
+27 stations, two PLCs, existing read-only /api/scada/gwm endpoint. One overview
+and one selected-station request per station were inspected. This is a point-in-
+time audit, not a capture of a complete machine cycle. No TIA Portal access,
+new export, compilation, PLC writes or changes to the PLC program were made.
+
+Runtime sources: Scada/gwm/api.py, static/gwm-scada.js,
+static/gwm-scada.html and static/gwm-mb-alarm-map.json.
+Saved source: TIA_PROJECTS_ROOT/GWM/MB/Openness_20261016_Primary.
+The saved export finished on 16 October 2026 and contains 480 XML files;
+its manifest records 481 attempted items and one failed export (FOB_RTG1).
+GWM/UB contains only .gitkeep; no saved UB logic is available there.
+The saved MB source is not proof that the running PLC program is identical.
+
+What is already connected
+-------------------------
+All 27 mode values, all 135 sensor BOOL values and all 54 direction BOOL values
+were readable: 216 basic values in total, with no unavailable/null basic values.
+FALSE is a valid observed value; it does not mean a missing signal.
+
+PLC         PLC array index -> layout station
+GWM_UB      1 UB10, 2 UB20, 3 UB30, 4 UB40, 5 UB50, 6 UB60, 7 UB70,
+            8 UB80, 9 UB90, 10 MB100, 11 MB110, 12 MB120, 13 MB130.
+GWM_MB      1 MB140, 2 MB150, 3 MB160, 4 MB170, 5 MB180, 6 MB190,
+            7 MB200, 8 MB210, 9 MB220, 10 MB230, 11 MB240,
+            12 MB250, 13 MB260, 14 MB270.
+
+For each index i the current bindings are:
+  Mode:       user."STN_Screen color"[i] (INT).
+  Sensors:    Stn_Trans.STN[i].SI_Outlet / SI_End / SI_Slow /
+              SI_Start / SI_Inlet (BOOL).
+  Direction:  Stn_Trans.STN[i].RUN_FWD / RUN_BWD (BOOL).
+
+PLC declaration indexes above start at 1. The observed OPC station-array child
+indexes start at 0. The application resolves child ordinals; do not blindly copy
+a PLC index into an OPC NodeId. In particular, MB250 is MB index 12 / OPC child 11.
+The UB mode declaration shown by the user is [1..21], but only its first 13
+members belong to this layout. MB mode declaration is [1..14].
+
+All 27 selected-station responses reported the implemented general diagnostic
+reads complete: Stn.STN[i].zW.Err_Stop, Stn.STN[i].CFG.Cell, the 16 implemented
+Stn.STN[i].EW1 categories, and Cell.CELL[cell].zw.ErrH. This does NOT establish
+that all individual fault texts or all error causes have been mapped.
+
+CARID was nonempty at 19 stations. Five stations reported NoSkid=TRUE (UB30,
+UB40, UB50, MB170, MB210); their empty result is expected. UB10 and UB20 reported
+occupied but an empty CARID string. MB140 CARID is deliberately unavailable.
+No raw CARID/VIN values are included in this report.
+
+Priority information still needed
+--------------------------------
+1. MB140: reliable occupancy and CARID validity.
+   PLC: GWM_MB; station index 1 / OPC ordinal 0.
+   Supply the actual BOOL that proves a body/skid is present, its polarity,
+   and the current-body identifier or pointer used by this station.
+   Existing candidates are Stn_Trans.STN[1].NoSkid and
+   Car_Stn.STN_C[1].CarType.P1, but the saved STN_001_MB140 block only calls
+   STN_CFG and does not wire a transport block. A readable default NoSkid and
+   five readable FALSE sensor fields do not prove physical occupancy.
+   Consequently the screen does not display a retained VIN as the current body.
+   This is a missing verified binding/meaning, not a demonstrated OPC outage.
+
+2. UB10 and UB20: empty identifier while occupancy is TRUE.
+   PLC: GWM_UB; indexes 1 and 2 / OPC ordinals 0 and 1.
+   Supply confirmation of the correct current-body identifier and whether a
+   body is legitimately unidentified at these two early stations. Also confirm
+   that NoSkid is physically driven there. Both current pointer/VIN chains
+   returned successfully, but their current strings were empty.
+   Current chain for station i:
+     Stn_Trans.STN[i].NoSkid = FALSE
+     Car_Stn.STN_C[i].CarType.P1 = p
+     BODY_SN.VIN[p+1].Code (PLC declaration) / discovered VIN ordinal p.
+   Saved MB types: P1 INT, VIN Array[1..100], Code STRING[40]. The backend accepts
+   p=0..99. UB equivalent semantics still need confirmation from its source.
+   For all stations, provide an identifier-valid flag or documented invalid/
+   placeholder rule if the PLC can store diagnostic placeholder strings. The
+   current backend only checks that the returned string is nonempty.
+
+3. UB10-MB130: individual alarm texts and verified Error cause logic.
+   PLC: GWM_UB, indexes 1..13.
+   General EW1 flags and cell ErrH are readable. Detailed message decoding has
+   not been implemented for this PLC, and its relation to screen Error is not
+   verified from saved source. MB word/bit addresses must not be reused for UB.
+   Supply the existing HMI alarm/message table with PLC tag or MSG.W[word].bit,
+   alarm text, station/cell assignment, active polarity and whether the message
+   is a stop cause or a prompt. Existing saved UB block exports or screenshots
+   of the networks producing Err_Stop and the screen color are also useful.
+
+4. MB140-MB270: the remainder of the individual stop-message mapping.
+   PLC: GWM_MB, indexes 1..14.
+   199 messages are mapped: 188 station and 11 cell messages. Coverage includes
+   selected station/cell stop messages, 13 MC07B drive faults per station at
+   MB150-MB260, and one Cell 1 PROFINET device-loss message. It is deliberately
+   partial. No complete HMI alarm list is included in the current runtime map.
+   At the audit time these Error causes had no corresponding detailed message:
+
+   Station  Current readable group                   Missing detail
+   MB160    Stn.STN[3].EW1.Sensor = TRUE              Which sensor/condition.
+   MB200    Stn.STN[7].EW1.Sensor = TRUE              Which sensor/condition.
+   MB230    Cell.CELL[3].zw.ErrH = TRUE               Which cell interlock/fault.
+
+   Observed OPC sources for these three groups respectively:
+     ns=3;s="Stn"."STN"[2]."EW1"."Sensor"
+     ns=3;s="Stn"."STN"[6]."EW1"."Sensor"
+     ns=3;s="Cell"."CELL"[3]."zw"."ErrH"
+   Their station Err_Stop values were TRUE. No mapped detail bit was active.
+   Please supply the HMI alarm texts and exact word/bit or diagnostic BOOLs for
+   those conditions first, plus station-versus-shared-cell scope. Do not infer
+   the failed sensor from normal transport sensor states alone.
+   Much of the remaining MB mapping may be derived from already saved PLC
+   source without new user data; it still requires tracing message allocation
+   and validating against current HMI texts. It is unfinished application
+   mapping, not evidence that all those PLC signals are absent.
+
+5. Code 4: confirm the operator label and UB implementation.
+   Codes 1 Error, 2 Manual and 3 Auto are already used.
+   Saved MB 00266_block_01_Cfg.xml, compile unit 272, assigns 4 when zW.PB_auto
+   disagrees with the matching HMI selector input; Err_Stop is tested first.
+   Thus saved MB code 4 means mode not confirmed / mode-selection mismatch,
+   rather than an inferred idle state. Confirm that the running project uses
+   this rule and the preferred operator wording. Supply the UB code-4 network
+   or meaning separately; the same semantics cannot yet be asserted for UB.
+   MB selector groups in the saved source:
+     HMI1 MB140-MB170; HMI2 MB180-MB220; HMI3 MB230;
+     HMI4 MB240-MB260; HMI5 MB270.
+   Exact selector names are HMIx_IN_SA1_AutoButton and
+   HMIx_IN_SA1_ManualButton, compared with Stn.STN[i].zW.PB_auto.
+
+6. Auxiliary equipment, if it should show live state.
+   HMI 1/2/3/5, VDP 1/2/3/4, MCP/PDP and BS W165L/W165R are currently static
+   layout labels. They have no status bindings in the GWM screen. Provide each
+   asset's exact identity/location, owning PLC, and available online/ready,
+   auto/manual, running and fault tags (plus fault text/code mapping). Repeated
+   HMI/VDP labels need unique asset identities to avoid binding the wrong unit.
+   Also confirm RUN_FWD is visually right on the upper row and left on the lower
+   row, and identify exceptions. Direction BOOLs are already readable; this is
+   a physical layout convention to confirm, not a missing direction signal.
+
+Preferred format for the information
+------------------------------------
+One row per signal or message:
+  Station/asset | PLC name | Exact PLC symbol and/or OPC NodeId | Data type |
+  PLC array bounds and station index | OPC array index if known |
+  Meaning of TRUE / FALSE or numeric codes | HMI message text |
+  Scope (station or shared cell) | Stop cause or prompt | Source/screenshot.
+
+For a message word add word number and bit number. For a CARID add the occupancy
+gate, pointer base/range and identifier-valid rule. For an unavailable signal,
+state whether it is unexposed through OPC, missing in metadata, or simply not
+defined yet. A FALSE value, empty transport, retained history and a failed read
+must remain distinct. Existing files/screenshots/tables are sufficient to start;
+a new TIA export would require separate explicit authorization.

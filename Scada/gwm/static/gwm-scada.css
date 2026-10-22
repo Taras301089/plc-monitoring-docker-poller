@@ -5,10 +5,10 @@
   --fs-small: 13px;
   --fs-large: 16px;
   --fs-title: 22px;
-  --bg-page: #11161c;
-  --bg-primary: #191f27;
-  --bg-secondary: #1f2731;
-  --bg-field: #141a22;
+  --bg-page: #14161b;
+  --bg-primary: #1c1f26;
+  --bg-secondary: #242831;
+  --bg-field: #14161b;
   --text: #e8edf4;
   --text-secondary: #a5afbf;
   --text-muted: #758297;
@@ -1237,6 +1237,31 @@ h3 {
 
 [hidden] {
   display: none !important;
+}
+
+/* The PMM shell already provides branding, navigation and the theme switch. */
+html[data-embedded="true"] .standalone-only,
+html[data-embedded="true"] .app-header,
+html[data-embedded="true"] .overview .eyebrow {
+  display: none;
+}
+
+html[data-embedded="true"] .scada-app {
+  padding: 12px;
+}
+
+html[data-embedded="true"] .overview {
+  padding: 0 0 12px;
+  gap: 10px 20px;
+}
+
+html[data-embedded="true"] .overview > div:first-child {
+  margin-right: auto;
+}
+
+html[data-embedded="true"] .header-meta {
+  width: auto;
+  gap: 8px;
 }
 
 @keyframes motion-pulse {

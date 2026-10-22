@@ -44,7 +44,7 @@ from comments import ensure_comments_schema, router as comments_router
 from backups import router as backups_router
 from trends import ensure_trends_schema, router as trends_router
 from alarms import ensure_alarms_schema, router as alarms_router
-from Scada.gwm import mount as mount_gwm_scada
+from Scada import STATIC_DIR as SCADA_STATIC_DIR, mount as mount_scada
 from tia import router as tia_router
 from why import router as why_router
 from lift_cycles import router as lift_cycles_router
@@ -349,7 +349,7 @@ app.include_router(activity_router)
 app.include_router(backups_router)
 app.include_router(trends_router)
 app.include_router(alarms_router)
-mount_gwm_scada(app)
+mount_scada(app)
 app.include_router(tia_router)
 app.include_router(why_router)
 app.include_router(lift_cycles_router)
@@ -382,7 +382,7 @@ async def no_stale_pages(request, call_next):
     return response
 
 
-_ASSET = re.compile(r'(/static/[\w.\-]+\.(?:js|css))"')
+_ASSET = re.compile(r'((?:/static/|/scada/static/)[\w.\-]+\.(?:js|css))"')
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -391,7 +391,9 @@ async def index() -> HTMLResponse:
     html = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
 
     def versioned(m: re.Match[str]) -> str:
-        path = STATIC_DIR / m.group(1).removeprefix("/static/")
+        url = m.group(1)
+        root = SCADA_STATIC_DIR if url.startswith("/scada/static/") else STATIC_DIR
+        path = root / url.rsplit("/", 1)[-1]
         return f'{m.group(1)}?v={int(path.stat().st_mtime) if path.is_file() else 0}"'
 
     return HTMLResponse(_ASSET.sub(versioned, html))

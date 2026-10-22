@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="/static/theme.js"></script>
   <title>Справка — PMM</title>
   <style>
     :root {
@@ -183,6 +184,9 @@ C:\plc-monitoring-docker-poller/
 ├── pg_data/                    ← Данные PostgreSQL (том Docker)
 ├── n8n_data/                   ← Конфиги N8N (том Docker)
 ├── grafana_data/               ← Дашборды Grafana (том Docker)
+├── Scada/
+│   ├── static/scada-navigation.js, .css ← Вкладка SCADA: GWM, Changan, Chery и Main Layout; меню и выбор схемы
+│   └── gwm/                    ← API только чтения, схема UB/MB, карта аварий и тесты GWM
 ├── fastapi-api/
 │   ├── main.py                 ← REST API для браузера
 │   ├── auth.py                 ← Пользователи, вход, роли
@@ -207,6 +211,7 @@ C:\plc-monitoring-docker-poller/
 │   ├── requirements.txt
 │   └── static/
 │       ├── index.html          ← Браузер переменных ПЛК
+│       ├── theme.js            ← Общая светлая/тёмная тема PMM, SCADA и справки; синхронизация вкладок и встроенных схем
 │       ├── auth.js, auth.css   ← Вход и страница «Пользователи»
 │       ├── dictionary.js       ← Вкладка «Справочники» (админ и начальники)
 │       ├── downtime.js, .css   ← Колонка «Простой» и панель описания на экранах Andon
@@ -822,6 +827,7 @@ C:\plc-monitoring-docker-poller/
     <section style="background: #f9fafb; border-left: 4px solid #536471;">
       <p><small>📝 Журнал изменений справки (новые записи сверху)</small></p>
       <ul id="changelog">
+        <li data-date="2026-10-22">Вкладка «SCADA» в верхнем меню открывает схемы производства. В выпадающем меню и слева доступны GWM, Changan, Chery и Main Layout; GWM показывает 27 станций UB/MB с режимами, датчиками, направлением движения, CARID и диагностикой выбранной станции. Остальные схемы пока ожидают привязки. Светлая/тёмная тема единая для PMM, SCADA и справки: меняется сразу во встроенной схеме и других открытых вкладках. Самостоятельный экран GWM доступен по прежнему адресу.</li>
         <li data-date="2026-10-21">«Простые названия сигналов» (S-12): на вкладке «Справочники» под разделом «Названия» новая таблица «сигнал ПЛК → простое название и где смотреть» для ответов бота слесарям-КИПовцам (например, «датчик положения кузова на выдаче; станция MB130»). Столбцы: ПЛК, Сигнал (технический), Простое название, Где смотреть, Статус (черновик / проверено), Исходный комментарий, Автор; сортировка, фильтры, копирование, ширина столбцов, кнопка «Excel» с теми же столбцами. Строки правят администратор, начальник цеха, начальник участка, мастер и ТО (вкладка «Справочники» теперь видна и мастеру с ТО, справочники простоев для них только чтение), удаляет автор строки и администратор, история «кто, когда, было, стало» сохраняется (кнопка «История»). Кнопка «Создать заготовки для оборудования» берёт из файла логики ПЛК (<code>logic/&lt;проект&gt;.json</code>) входные сигналы, от которых зависит выбранный выход (например, <code>OPMode08_DB.EL300.Goto3rd</code>), и кладёт черновики без названий; «Заготовки из аварий» добавляет 20 самых частых сообщений журнала аварий за 7 дней. Новые таблицы <code>signal_names</code> и <code>signal_names_log</code>; функция <code>friendly(pool, plc_id, tag)</code> в <code>signalnames.py</code> отдаёт название и место для бота; тесты <code>test_signal_names.py</code>. Рядом раздел «Аварии: что делать»: для каждой аварии журнала (номер как в словаре аварий) исходный текст, «Что случилось», «Частые причины», «Что сделать» и статус; правка в окне, Excel, история и права как у сигналов; кнопка «Заготовки из частых аварий» берёт 20 самых частых аварий ПЛК за 7 дней; таблицы <code>alarm_help</code> и <code>alarm_help_log</code>, функция <code>alarm_help_for(pool, plc_id, bit_index)</code> в <code>alarmhelp.py</code>, тесты <code>test_alarm_help.py</code></li>
         <li data-date="2026-10-21">ИИ-помощник для киповцев, часть 2 (S-8): новый модуль <code>why.py</code> и два запроса для вошедших пользователей: <code>GET /api/why/output?plc_id=&amp;output=</code> («почему оборудование стоит»: условия включения выхода из логики ПЛК, значения всех сигналов читаются одним запросом через поллер, только чтение, тайм-аут 6 с; ответ называет, чего не хватает, где смотреть и сколько минут уже так) и <code>GET /api/why/alarm?plc_id=&amp;bit=</code> («что за авария»: источник аварии находится в логике GWM UB по адресу в заголовке сети, показаны что её держит сейчас, справка по устранению, сколько раз была за 7 дней и за сколько обычно снимается). Ответ приходит и данными, и готовым текстом до 6 строк без имён сигналов. Часть логики (SCL, фронты, строковые функции) не угадывается: ответ «часть логики не разобрана». Простые названия и справка берутся из таблиц <code>signal_names</code> и <code>alarm_help</code> (S-12), пока их нет, показывается техническое имя и «инструкции пока нет». В ПЛК ничего не пишется.</li>
         <li data-date="2026-10-20">выгрузка проекта TIA: новый проект выбирают в окне, а не вписывают в файл. «ПЛК» (у кого есть проект, помечен «— проект: папка»), «Проект (папка)» из файлов <code>.ap17</code>, найденных службой в разрешённых папках (<code>roots</code> в <code>tia-projects.json</code>, список <code>found-projects.json</code> раз в минуту), строка «ПЛК … ↔ проект …» перед запуском. Сайт передаёт службе только имя ПЛК и ключ найденного файла, служба проверяет путь и сама записывает пару в <code>tia-projects.json</code> (прежний путь в history). Колонка «ПЛК» в таблице не переносит имя посреди слова. После выкладки перезапустить задачу «PMM TIA bridge»</li>
@@ -921,25 +927,6 @@ C:\plc-monitoring-docker-poller/
   <script src="/static/vendor/mermaid.min.js" defer></script>
   <script src="/static/scheme.js" defer></script>
   <script>
-function initTheme() {
-      const saved = localStorage.getItem('theme');
-      const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const theme = saved || (dark ? 'dark' : 'light');
-      document.documentElement.setAttribute('data-theme', theme);
-      updateThemeButton();
-    }
-    function updateThemeButton() {
-      const theme = document.documentElement.getAttribute('data-theme');
-      document.querySelector('#theme-toggle').textContent = theme === 'dark' ? '☀️' : '🌙';
-    }
-    document.querySelector('#theme-toggle').addEventListener('click', () => {
-      const current = document.documentElement.getAttribute('data-theme') || 'light';
-      const next = current === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('theme', next);
-      updateThemeButton();
-    });
-    initTheme();
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('.copy-btn');
       if (!btn) return;

@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="/static/theme.js"></script>
   <title>PMM — Production Monitoring &amp; Management</title>
   <style>
     :root {
@@ -794,10 +795,12 @@
   <link rel="stylesheet" href="/static/alarms.css">
   <link rel="stylesheet" href="/static/tia.css">
   <link rel="stylesheet" href="/static/tg.css">
+  <link rel="stylesheet" href="/scada/static/scada-navigation.css">
 </head>
 <body>
   <nav class="tabs">
     <button class="tab active" data-tab="andon" title="Dashboard. Информационная панель Andon / KPI: почасовые счётчики кузовов, Takt Time и показатели производства в реальном времени. Наведите, чтобы выбрать бренд и участок">📺 Andon / KPI <span class="tab-caret">▾</span></button>
+    <button class="tab" data-tab="scada" id="tab-scada" aria-haspopup="menu" aria-expanded="false" aria-controls="scada-menu" title="Открыть схемы станций: выберите GWM, Changan, Chery или общий план производства">SCADA <span class="tab-caret">▾</span></button>
     <button class="tab" data-tab="charts" title="Графики по линии за период: план и факт, простои, причины и станции; каждый график можно выгрузить в Excel" data-ui-label="tab_charts" data-ui-title="tab_charts" data-ui-prefix="📈 ">📈 Графики</button>
     <button class="tab" data-tab="trends" title="Технические графики за период: связь с ПЛК (когда связь была и когда пропадала), выгрузка в Excel" data-ui-label="tab_trends" data-ui-title="tab_trends" data-ui-prefix="📉 ">📉 Тренды</button>
     <button class="tab" data-tab="reports" id="tab-reports" title="Отчёт дня по линии: график план/факт и таблица как в файле Excel, выбор дня и скачивание; администратор здесь же настраивает автосохранение отчётов в папку" data-ui-label="tab_reports" data-ui-title="tab_reports" data-ui-prefix="📁 ">📁 Отчёты</button>
@@ -813,12 +816,15 @@
       <div id="auth-box" class="auth-wrap"></div>
       <span id="env-badge" class="env-badge" hidden title="Это среда разработки: запись в ПЛК отключена, данные могут отличаться от рабочей системы. На сервере (рабочая среда) этой метки нет">Среда: разработка</span>
       <button id="theme-toggle" class="theme-toggle" title="Переключить между тёмной и светлой темой (сохраняется автоматически)">🌙</button>
-      <a href="/scada/gwm/gwm-scada.html" class="tab" style="text-decoration: none; display: flex; align-items: center;" title="Открыть схему станций GWM: текущие режимы, датчики, направление движения, CARID кузова и активные аварии">GWM</a>
       <a href="reference.html" class="tab" style="text-decoration: none; display: flex; align-items: center;" title="Справочная информация о системе, архитектуре и развёртывании">📖 Справка</a>
     </div>
   </nav>
 
   <main>
+    <section id="scada" class="tab-content" aria-label="Схемы производства">
+      <nav id="scada-screens" class="scada-sidebar" aria-label="Выбор схемы производства"></nav>
+      <div id="scada-content" class="scada-content"></div>
+    </section>
     <!-- TAB 1: PLC Variables Browser -->
     <div id="browser" class="tab-content">
       <!-- PLC Selection & Actions -->
@@ -2971,26 +2977,6 @@
       document.body.appendChild(modal);
     });
 
-    // Theme toggle
-    function initTheme() {
-      const saved = localStorage.getItem('theme');
-      const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const theme = saved || (dark ? 'dark' : 'light');
-      document.documentElement.setAttribute('data-theme', theme);
-      updateThemeButton();
-    }
-    function updateThemeButton() {
-      const theme = document.documentElement.getAttribute('data-theme');
-      document.querySelector('#theme-toggle').textContent = theme === 'dark' ? '☀️' : '🌙';
-    }
-    document.querySelector('#theme-toggle').addEventListener('click', () => {
-      const current = document.documentElement.getAttribute('data-theme') || 'light';
-      const next = current === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('theme', next);
-      updateThemeButton();
-    });
-    initTheme();
     // Метка среды: показывается, когда APP_ENV не prod (среда разработки; запись в ПЛК отключена)
     fetch('/api/env', { signal: AbortSignal.timeout(6000) }).then(r => r.ok ? r.json() : null).then(d => {
       if (d && d.env !== 'prod') document.getElementById('env-badge').hidden = false;
@@ -3023,5 +3009,6 @@
   <script src="/static/comments.js"></script>
   <script src="/static/tgnotify.js"></script>
   <script src="/static/authtabs.js"></script>
+  <script src="/scada/static/scada-navigation.js"></script>
 </body>
 </html>

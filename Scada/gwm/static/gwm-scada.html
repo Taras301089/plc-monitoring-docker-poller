@@ -1,9 +1,11 @@
 <!doctype html>
-<html lang="ru" data-theme="dark">
+<html lang="ru">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
+  <script src="/static/theme.js"></script>
+  <script>if (new URLSearchParams(location.search).get('embedded') === '1') document.documentElement.dataset.embedded = 'true';</script>
   <title>GWM · Схема станций UB / MB</title>
   <link rel="stylesheet" href="gwm-scada.css">
   <script src="gwm-scada.js" defer></script>
@@ -11,12 +13,12 @@
 <body>
   <div class="scada-app">
     <header class="app-header">
-      <div class="brand"><strong>GWM</strong><div>PRODUCTION MONITORING<span>Кузовное производство · UB / MB</span></div></div>
+      <div class="brand standalone-only"><strong>GWM</strong><div>PRODUCTION MONITORING<span>Кузовное производство · UB / MB</span></div></div>
       <div class="header-meta">
-        <a href="/#andon" title="Вернуться на главную страницу локального PMM к панели мониторинга Andon и показателям производства">← PMM</a>
+        <a class="standalone-only" href="/#scada" title="Вернуться на главную страницу локального PMM к выбору схем производства в разделе SCADA">← SCADA</a>
         <span class="demo-badge" id="data-source" aria-live="polite">ПОДКЛЮЧЕНИЕ К ПЛК</span>
         <button id="live-refresh" type="button" title="Повторно прочитать текущие состояния, CARID и аварии станций GWM без записи в ПЛК">Обновить</button>
-        <button class="theme-toggle" id="theme-toggle" type="button" title="Переключить светлую и тёмную тему для просмотра схемы на вашем экране">Светлая тема</button>
+        <button class="theme-toggle standalone-only" id="theme-toggle" data-theme-label="text" type="button" title="Переключить светлую и тёмную тему одновременно на экранах PMM и SCADA">Светлая тема</button>
       </div>
     </header>
 
