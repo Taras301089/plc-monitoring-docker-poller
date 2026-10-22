@@ -24,6 +24,8 @@ from pydantic import BaseModel, Field
 
 from auth import require_admin
 from readonly import READ_ONLY
+import alarm_map
+import alarm_map_db
 import tia_logic
 
 router = APIRouter(prefix="/api/tia", tags=["tia"])
@@ -220,6 +222,40 @@ def _logic_paths(project_id: str) -> tuple[Path, Path]:
     return d / f"{project_id}.json", d / f"{project_id}.status.json"
 
 
+def _build_alarm_map(project_id: str, zip_name: str, logic: tia_logic.TiaLogic, out: Path) -> dict[str, Any]:
+    """Карта аварий (alarm_map.py): файл <проект>.alarms.json рядом с логикой и версия в таблице alarm_source_map.
+    Любая ошибка только попадает в состояние «alarms»: основной JSON логики уже записан и не страдает."""
+    try:
+        plc_name = next((p["plc"] for p in load_projects() if p["id"] == project_id), None)
+        pool = alarm_map_db.bound_pool()
+        plc_id, catalog, notes = None, {}, []
+        if plc_name and pool is not None:
+            try:
+                plc_id, catalog = alarm_map_db.run_sync(alarm_map_db.fetch_catalog(pool, plc_name))
+            except Exception as ex:      # noqa: BLE001 - без каталога карта строится, но без сверки текста
+                notes.append("каталог аварий не прочитан: " + (str(ex) or ex.__class__.__name__)[:120])
+        built_at = datetime.now(timezone.utc)
+        data = alarm_map.build_map(logic, catalog, built_from=zip_name)
+        data["meta"].update({"plc_id": plc_id, "plc_name": plc_name, "project": project_id, "built_at": built_at.isoformat()})
+        target = out.with_name(f"{project_id}.alarms.json")
+        tmp = target.with_name(target.name + ".tmp")
+        tmp.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        os.replace(tmp, target)
+        s = data["stats"]
+        res: dict[str, Any] = {"state": "ready", "file": target.name, "mapped": s["mapped_bits"], "confirmed": s["text_confirmed"],
+                               "with_text": s["catalog_with_text"]}
+        if plc_id is not None and pool is not None:
+            try:
+                res["db_rows"] = alarm_map_db.run_sync(alarm_map_db.save_map(pool, plc_id, data, zip_name, built_at))
+            except Exception as ex:      # noqa: BLE001 - файл карты есть, таблица обновится при следующей сборке
+                res["db_error"] = (str(ex) or ex.__class__.__name__)[:200]
+        if notes:
+            res["notes"] = notes
+        return res
+    except Exception as ex:              # noqa: BLE001
+        return {"state": "error", "error": (str(ex) or ex.__class__.__name__)[:300]}
+
+
 def build_logic(project_id: str, zip_name: str) -> None:
     """Собирает файл логики из ZIP выгрузки; старый файл заменяется атомарно (временный файл + replace)."""
     if not ID_RE.match(project_id):
@@ -244,8 +280,9 @@ def build_logic(project_id: str, zip_name: str) -> None:
         out.parent.mkdir(parents=True, exist_ok=True)
         tmp.write_bytes(data)
         os.replace(tmp, out)
+        alarms = _build_alarm_map(project_id, zip_name, logic, out)
         _write_json(st_path, {"state": "ready", "started_at": started, "finished_at": datetime.now(timezone.utc).isoformat(), "zip": zip_name,
-                              "size": len(data), "blocks": len(logic.blocks), "writes": logic.stats()["writes"]})
+                              "size": len(data), "blocks": len(logic.blocks), "writes": logic.stats()["writes"], "alarms": alarms})
     except Exception as ex:      # noqa: BLE001 - любая причина показывается в окне, старый файл остаётся нетронутым
         try:
             _write_json(st_path, {"state": "error", "started_at": started, "finished_at": datetime.now(timezone.utc).isoformat(),
@@ -310,7 +347,7 @@ def _logic_state(project_id: str, last: dict[str, Any] | None, now: datetime | N
             st = {"state": "building", "zip": last["file"], "started_at": datetime.now(timezone.utc).isoformat()}
     if not st:
         return {"state": "none"}
-    return {k: st.get(k) for k in ("state", "finished_at", "size", "blocks", "writes", "error", "zip")}
+    return {k: st.get(k) for k in ("state", "finished_at", "size", "blocks", "writes", "error", "zip", "alarms")}
 
 
 class ExportBody(BaseModel):

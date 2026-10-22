@@ -28,6 +28,7 @@ import labels
 from labels import ensure_labels_schema, router as labels_router
 from signalnames import ensure_signal_names_schema, router as signalnames_router
 from alarmhelp import ensure_alarm_help_schema, router as alarmhelp_router
+from alarm_map_db import ensure_alarm_map_schema, bind as bind_alarm_map, router as alarm_map_router
 from period import router as period_router
 from responsibility import router as responsibility_router
 from dtresponse import router as dtresponse_router
@@ -304,6 +305,8 @@ async def lifespan(app: FastAPI):
     await ensure_labels_schema(app.state.pool)
     await ensure_signal_names_schema(app.state.pool)
     await ensure_alarm_help_schema(app.state.pool)
+    await ensure_alarm_map_schema(app.state.pool)
+    bind_alarm_map(app.state.pool, asyncio.get_running_loop())
     await ensure_tg_schema(app.state.pool)
     reports_task = asyncio.create_task(reports_loop(app))
     tg_stop = asyncio.Event()
@@ -331,6 +334,7 @@ app.include_router(colwidths_router)
 app.include_router(labels_router)
 app.include_router(signalnames_router)
 app.include_router(alarmhelp_router)
+app.include_router(alarm_map_router)
 app.include_router(period_router)
 app.include_router(responsibility_router)
 app.include_router(dtresponse_router)

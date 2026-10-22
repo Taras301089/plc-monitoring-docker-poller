@@ -1,0 +1,1542 @@
+0	Device profinet （Equipment ID)1 lost
+1	Device profinet （Equipment ID)2 lost UB_PLC
+2	Device profinet （Equipment ID)3 lost UB10_HMI1
+3	Device profinet （Equipment ID)4 lost UB50_HMI1
+4	Device profinet （Equipment ID)5 lost MB110_HMI1
+5	Device profinet （Equipment ID)6 lost MB130_HMI1
+6	Device profinet （Equipment ID)7 lost
+7	Device profinet （Equipment ID)8 lost
+8	Device profinet （Equipment ID)9 Loss of UBMCP_IM1
+9	Device profinet （Equipment ID)10 lost UB10_HMI1_IM1
+10	Device profinet （Equipment ID)11 lost UB50_HMI1_IM1
+11	Device profinet （Equipment ID)12 lost MB110_HMI1_IM1
+12	Device profinet （Equipment ID)13 lost MB130_HMI1_IM1
+13	Device profinet （Equipment ID)14 lost
+14	Device profinet （Equipment ID)15 lost
+15	Device profinet （Equipment ID)16 lost
+16	Device profinet （Equipment ID)17 Lost
+17	Device profinet （Equipment ID)18 lost
+18	Device profinet （Equipment ID)19 lost
+19	Device profinet （Equipment ID)20 lost
+20	Device profinet （Equipment ID)21 lost
+21	Device profinet （Equipment ID)22 lost UB010JB1_IM1
+22	Device profinet （Equipment ID)23 lost UB050JB1_IM1
+23	Device profinet （Equipment ID)24 lost UB090JB1_IM1
+24	Device profinet （Equipment ID)25 lost MB100JB1_IM1
+25	Device profinet （Equipment ID)26 lost MB110JB1_IM1
+26	Device profinet （Equipment ID)27 lost MB130JB1_IM1
+27	Device profinet （Equipment ID)28 lost MCP_EX1
+28	Device profinet （Equipment ID)29 Lost MCP_EX2
+29	Device profinet （Equipment ID)30 Lost MCP_EX3
+30	Device profinet （Equipment ID)31 lost VDP1_EX1
+31	Device profinet （Equipment ID)32 lost VDP2_EX1
+32	Device profinet （Equipment ID)33 lost VDP3_EX1
+33	Device profinet （Equipment ID)34 lost VDP4_EX1
+34	Device profinet （Equipment ID)35 lost
+35	Device profinet （Equipment ID)36 lost
+36	Device profinet （Equipment ID)37 Lost
+37	Device profinet （Equipment ID)38 Lost
+38	Device profinet （Equipment ID)39 Lost
+39	Device profinet （Equipment ID)40 lost
+40	Device profinet （Equipment ID)41 lost
+41	Device profinet （Equipment ID)42 lost VDP1_IM1
+42	Device profinet （Equipment ID)43 lost VDP2_IM1
+43	Device profinet （Equipment ID)44 lost VDP3_IM1
+44	Device profinet （Equipment ID)45 lost VDP4_IM1
+45	Device profinet （Equipment ID)46 Lost
+46	Device profinet （Equipment ID)47 Lost
+47	Device profinet （Equipment ID)48 lost UB20_W001_SI
+48	Device profinet （Equipment ID)49 Lost UB40_W001_SI
+49	Device profinet （Equipment ID)50 lost MB100_W001_SI
+50	Device profinet （Equipment ID)51 lost MB100_W002_SI
+51	Device profinet （Equipment ID)52 lost MB110_W001_SI
+52	Device profinet （Equipment ID)53 lost MB110_W002_SI
+53	Device profinet （Equipment ID)54 Lost
+54	Device profinet （Equipment ID)55 Lost UB20_W002_DIO1
+55	Device profinet （Equipment ID)56 Lost UB40_W002_DIO1
+56	Device profinet （Equipment ID)57 Lost UB60_W001_DIO1
+57	Device profinet （Equipment ID)58 Lost UB60_W002_DIO1
+58	Device profinet （Equipment ID)59 Lost UB80_W001_DIO1
+59	Device profinet （Equipment ID)60 Lost UB60_W002_DIO2
+60	Device profinet （Equipment ID)61 lost MB100_W001_DIO1
+61	Device profinet （Equipment ID)62 lost MB120_W001_DIO1
+62	Device profinet （Equipment ID)63 lost MB130_W001_DIO1
+63	Device profinet （Equipment ID)64 lost MB120_W002_DIO1
+64	Device profinet （Equipment ID)65 Lost UB70_W001_DIO1
+65	Device profinet （Equipment ID)66 Lost UB70_W001_DIO2
+66	Device profinet （Equipment ID)67 Lost
+67	Device profinet （Equipment ID)68 Lost
+68	Device profinet （Equipment ID)69 Lost
+69	Device profinet （Equipment ID)70 lost
+70	Device profinet （Equipment ID)71 Lost
+71	Device profinet （Equipment ID)72 Lost
+72	Device profinet （Equipment ID)73 Lost
+73	Device profinet （Equipment ID)74 Lost
+74	Device profinet （Equipment ID)75 Lost
+75	Device profinet （Equipment ID)76 Lost
+76	Device profinet （Equipment ID)77 Lost
+77	Device profinet （Equipment ID)78 Lost
+78	Device profinet （Equipment ID)79 Lost
+79	Device profinet （Equipment ID)80 lost
+80	Device profinet （Equipment ID)81 Lost
+81	Device profinet （Equipment ID)82 lost
+82	Device profinet （Equipment ID)83 Lost
+83	Device profinet （Equipment ID)84 Lost
+84	Device profinet （Equipment ID)85 Lost
+85	Device profinet （Equipment ID)86 Lost
+86	Device profinet （Equipment ID)87 Lost
+87	Device profinet （Equipment ID)88 is lost
+88	Device profinet （Equipment ID)89 Lost
+89	Device profinet （Equipment ID)90 lost
+90	Device profinet （Equipment ID)91 Lost
+91	Device profinet （Equipment ID)92 lost
+92	Device profinet （Equipment ID)93 Lost
+93	Device profinet （Equipment ID)94 Lost
+94	Device profinet （Equipment ID)95 Lost
+95	Device profinet （Equipment ID)96 Lost
+96	Device profinet （Equipment ID)97 Lost
+97	Device profinet （Equipment ID)98 lost
+98	Device profinet （Equipment ID)99 lost UB20_EJ1_DIO1
+99	Device profinet （Equipment ID)100 missing UB30_EJ1_DIO1
+100	Device profinet （Equipment ID)101 lost UB40_EJ1_DIO1
+101	Device profinet （Equipment ID)102 lost UB50_EJ1_DIO1
+102	Device profinet （Equipment ID)103 missing UB60_EJ1_DIO1
+103	Device profinet （Equipment ID)104 lost UB70_EJ1_DIO1
+104	Device profinet （Equipment ID)105 lost UB80_EJ1_DIO1
+105	Device profinet （Equipment ID)106 lost MB100_EJ1_DIO1
+106	Device profinet （Equipment ID)107 lost MB110_EJ1_DIO1
+107	Device profinet （Equipment ID)108 lost MB120_EJ1_DIO1
+108	Device profinet （Equipment ID)109 Lost
+109	Device profinet （Equipment ID)110 lost
+110	Device profinet （Equipment ID)111 is lost
+111	Device profinet （Equipment ID)112 lost
+112	Device profinet （Equipment ID)113 Lost
+113	Device profinet （Equipment ID)114 Lost
+114	Device profinet （Equipment ID)115 lost CP11_MB130_TO_MB140
+115	Device profinet （Equipment ID)116 lost CP12_UB10_FORM_MB270
+116	Device profinet （Equipment ID)117 Lost
+117	Device profinet （Equipment ID)118 is lost
+118	Device profinet （Equipment ID)119 Lost
+119	Device profinet （Equipment ID)120 lost UB020SCAN_K1
+120	Device profinet （Equipment ID)121 is lost
+121	Device profinet （Equipment ID)122 is lost
+122	Device profinet （Equipment ID)123 is lost
+123	Device profinet （Equipment ID)124 lost UB020RFID_IC
+124	Device profinet （Equipment ID)125 lost
+125	Device profinet （Equipment ID)126 Lost
+126	Device profinet （Equipment ID)127 Lost
+127	Device profinet （Equipment ID)128 lost
+128	Device profinet （Equipment ID)129 Lost
+129	Device profinet （Equipment ID)130 Lost
+130	Device profinet （Equipment ID)131 Lost
+131	Device profinet （Equipment ID)132 Lost
+132	Device profinet （Equipment ID)133 Lost
+133	Device profinet （Equipment ID)134 Lost
+134	Device profinet （Equipment ID)135 Lost
+135	Device profinet （Equipment ID)136 Lost
+136	Device profinet （Equipment ID)137 Lost
+137	Device profinet （Equipment ID)138 Lost
+138	Device profinet （Equipment ID)139 Lost
+139	Device profinet （Equipment ID)140 Lost
+140	Device profinet （Equipment ID)141 Lost
+141	Device profinet （Equipment ID)142 Lost
+142	Device profinet （Equipment ID)143 Lost
+143	Device profinet （Equipment ID)144 lost VDP1_UB20_VFD1_Lift
+144	Device profinet （Equipment ID)145 Lost VDP1_UB20_VFD2_Trans
+145	Device profinet （Equipment ID)146 lost VDP1_UB30_VFD3_Lift
+146	Device profinet （Equipment ID)147 Lost VDP1_UB30_VFD4_Trans
+147	Device profinet （Equipment ID)148 lost VDP1_UB40_VFD5_Lift
+148	Device profinet （Equipment ID)149 Lost VDP1_UB40_VFD6_Trans
+149	Device profinet （Equipment ID)150 Lost VDP2_UB50_VFD1_Lift
+150	Device profinet （Equipment ID)151 Lost VDP2_UB50_VFD2_Trans
+151	Device profinet （Equipment ID)152 Lost VDP2_UB60_VFD3_Lift
+152	Device profinet （Equipment ID)153 Lost VDP2_UB60_VFD4_Trans
+153	Device profinet （Equipment ID)154 Lost VDP3_UB70_VFD1_Lift
+154	Device profinet （Equipment ID)155 Lost VDP3_UB70_VFD2_Trans
+155	Device profinet （Equipment ID)156 Lost VDP3_UB80_VFD3_Trans
+156	Device profinet （Equipment ID)157 Lost VDP3_UB90_VFD4_Trans
+157	Device profinet （Equipment ID)158 lost VDP3_MB100_VFD5_Lift
+158	Device profinet （Equipment ID)159 Lost VDP3_MB100_VFD6_Trans
+159	Device profinet （Equipment ID)160 lost VDP4_MB110_VFD1_Lift
+160	Device profinet （Equipment ID)161 Lost VDP4_MB110_VFD2_Trans
+161	Device profinet （Equipment ID)162 Lost VDP4_MB130_VFD3_Lift
+162	Device profinet （Equipment ID)163 Lost VDP4_MB120_VFD4_Trans
+163	Device profinet （Equipment ID)164 lost MB130_TV1
+164	Device profinet （Equipment ID)165 Lost
+165	Device profinet （Equipment ID)166 Lost
+166	Device profinet （Equipment ID)167 Lost
+167	Device profinet （Equipment ID)168 lost
+168	Device profinet （Equipment ID)169 Lost
+169	Device profinet （Equipment ID)170 Lost
+170	Device profinet （Equipment ID)171 Lost
+171	Device profinet （Equipment ID)172 Lost
+172	Device profinet （Equipment ID)173 Lost
+173	Device profinet （Equipment ID)174 Lost
+174	Device profinet （Equipment ID)175 Lost
+175	Device profinet （Equipment ID)176 Lost
+176	Device profinet （Equipment ID)177 Lost
+177	Device profinet （Equipment ID)178 Lost
+178	Device profinet （Equipment ID)179 Lost
+179	Device profinet （Equipment ID)180 lost
+180	Device profinet （Equipment ID)181 Lost
+181	Device profinet （Equipment ID)182 Lost
+182	Device profinet （Equipment ID)183 Lost
+183	Device profinet （Equipment ID)184 Lost
+184	Device profinet （Equipment ID)185 Lost
+185	Device profinet （Equipment ID)186 Lost
+186	Device profinet （Equipment ID)187 Lost
+187	Device profinet （Equipment ID)188 lost
+188	Device profinet （Equipment ID)189 Lost
+189	Device profinet （Equipment ID)190 Lost
+190	Device profinet （Equipment ID)191 Lost
+191	Device profinet （Equipment ID)192 Lost
+192	Device profinet （Equipment ID)193 Lost
+193	Device profinet （Equipment ID)194 Lost
+194	Device profinet （Equipment ID)195 Lost
+195	Device profinet （Equipment ID)196 Lost
+196	Device profinet （Equipment ID)197 Lost
+197	Device profinet （Equipment ID)198 Lost
+198	Device profinet （Equipment ID)199 Lost
+199	Device profinet （Equipment ID)200 lost
+200	Device profinet （Equipment ID)201 lost
+201	Device profinet （Equipment ID)202 lost
+202	Device profinet （Equipment ID)203 lost
+203	Device profinet （Equipment ID)204 lost
+204	Device profinet （Equipment ID)205 lost
+205	Device profinet （Equipment ID)206 lost
+206	Device profinet （Equipment ID)207 Lost
+207	Device profinet （Equipment ID)208 lost
+208	Device profinet （Equipment ID)209 Lost
+209	Device profinet （Equipment ID)210 lost
+210	Device profinet （Equipment ID)211 lost
+211	Device profinet （Equipment ID)212 lost
+212	Device profinet （Equipment ID)213 Lost
+213	Device profinet （Equipment ID)214 Lost
+214	Device profinet （Equipment ID)215 Lost
+215	Device profinet （Equipment ID)216 Lost
+216	Device profinet （Equipment ID)217 Lost
+217	Device profinet （Equipment ID)218 lost
+218	Device profinet （Equipment ID)219 Lost
+219	Device profinet （Equipment ID)220 lost
+220	Device profinet （Equipment ID)221 lost
+221	Device profinet （Equipment ID)222 lost
+222	Device profinet （Equipment ID)223 lost
+223	Device profinet （Equipment ID)224 lost
+224	Device profinet （Equipment ID)225 Lost
+225	Device profinet （Equipment ID)226 Lost
+226	Device profinet （Equipment ID)227 Lost
+227	Device profinet （Equipment ID)228 lost
+228	Device profinet （Equipment ID)229 Lost
+229	Device profinet （Equipment ID)230 lost
+230	Device profinet （Equipment ID)231 Lost
+231	Device profinet （Equipment ID)232 lost
+232	Device profinet （Equipment ID)233 lost
+233	Device profinet （Equipment ID)234 lost
+234	Device profinet （Equipment ID)235 Lost
+235	Device profinet （Equipment ID)236 lost
+236	Device profinet （Equipment ID)237 Lost
+237	Device profinet （Equipment ID)238 Lost
+238	Device profinet （Equipment ID)239 Lost
+239	Device profinet （Equipment ID)240 lost
+240	Device profinet （Equipment ID)241 Lost
+241	Device profinet （Equipment ID)242 Lost
+242	Device profinet （Equipment ID)243 Lost
+243	Device profinet （Equipment ID)244 Lost
+244	Device profinet （Equipment ID)245 Lost
+245	Device profinet （Equipment ID)246 Lost
+246	Device profinet （Equipment ID)247 Lost
+247	Device profinet （Equipment ID)248 Lost
+248	Device profinet （Equipment ID)249 Lost
+249	Device profinet （Equipment ID)250 lost
+250	Device profinet （Equipment ID)251 Lost
+251	Device profinet （Equipment ID)252 Lost
+252	Device profinet （Equipment ID)253 Lost
+253	Device profinet （Equipment ID)254 lost
+254	Device profinet （Equipment ID)255 lost
+255	Device profinet （Equipment ID)256 lost
+256	Device profinet （Equipment ID)1 Error
+257	Device profinet （Equipment ID)2 Error UB_PLC
+258	Device profinet （Equipment ID)3 Error UB10_HMI1
+259	Device profinet （Equipment ID)4 Error UB50_HMI1
+260	Device profinet （Equipment ID)5 Error MB110_HMI1
+261	Device profinet （Equipment ID)6 Error MB130_HMI1
+262	Device profinet （Equipment ID)7 Error
+263	Device profinet （Equipment ID)8 Error
+264	Device profinet （Equipment ID)9 Error UBMCP_IM1
+265	Device profinet （Equipment ID)10 Error UB10_HMI1_IM1
+266	Device profinet （Equipment ID)11 Error UB50_HMI1_IM1
+267	Device profinet （Equipment ID)12 Error MB110_HMI1_IM1
+268	Device profinet （Equipment ID)13 Error MB130_HMI1_IM1
+269	Device profinet （Equipment ID)14 Error
+270	Device profinet （Equipment ID)15 Error
+271	Device profinet （Equipment ID)16 Error
+272	Device profinet （Equipment ID)17 Error
+273	Device profinet （Equipment ID)18 Error
+274	Device profinet （Equipment ID)19 Error
+275	Device profinet （Equipment ID)20 Error
+276	Device profinet （Equipment ID)21 Error
+277	Device profinet （Equipment ID)22 Error UB010JB1_IM1
+278	Device profinet （Equipment ID)23 Error UB050JB1_IM1
+279	Device profinet （Equipment ID)24 Error UB090JB1_IM1
+280	Device profinet （Equipment ID)25 Error MB100JB1_IM1
+281	Device profinet （Equipment ID)26 Error MB110JB1_IM1
+282	Device profinet （Equipment ID)27 Error MB130JB1_IM1
+283	Device profinet （Equipment ID)28 Error MCP_EX1
+284	Device profinet （Equipment ID)29 Error MCP_EX2
+285	Device profinet （Equipment ID)30 Error MCP_EX3
+286	Device profinet （Equipment ID)31 Error VDP1_EX1
+287	Device profinet （Equipment ID)32 Error VDP2_EX1
+288	Device profinet （Equipment ID)33 Error VDP3_EX1
+289	Device profinet （Equipment ID)34 Error VDP4_EX1
+290	Device profinet （Equipment ID)35 Error
+291	Device profinet （Equipment ID)36 Error
+292	Device profinet （Equipment ID)37 Error
+293	Device profinet （Equipment ID)38 Error
+294	Device profinet （Equipment ID)39 Error
+295	Device profinet （Equipment ID)40 Error
+296	Device profinet （Equipment ID)41 Error
+297	Device profinet （Equipment ID)42 Error VDP1_IM1
+298	Device profinet （Equipment ID)43 Error VDP2_IM1
+299	Device profinet （Equipment ID)44 Error VDP3_IM1
+300	Device profinet （Equipment ID)45 Error VDP4_IM1
+301	Device profinet （Equipment ID)46 Error
+302	Device profinet （Equipment ID)47 Error
+303	Device profinet （Equipment ID)48 Error UB20_W001_SI
+304	Device profinet （Equipment ID)49 Error UB40_W001_SI
+305	Device profinet （Equipment ID)50 Error MB100_W001_SI
+306	Device profinet （Equipment ID)51 Error MB100_W002_SI
+307	Device profinet （Equipment ID)52 Error MB110_W001_SI
+308	Device profinet （Equipment ID)53 Error MB110_W002_SI
+309	Device profinet （Equipment ID)54 Error
+310	Device profinet （Equipment ID)55 Error UB20_W002_DIO1
+311	Device profinet （Equipment ID)56 Error UB40_W002_DIO1
+312	Device profinet （Equipment ID)57 Error UB60_W001_DIO1
+313	Device profinet （Equipment ID)58 Error UB60_W002_DIO1
+314	Device profinet （Equipment ID)59 Error UB80_W001_DIO1
+315	Device profinet （Equipment ID)60 Error UB60_W002_DIO2
+316	Device profinet （Equipment ID)61 Error MB100_W001_DIO1
+317	Device profinet （Equipment ID)62 Error MB120_W001_DIO1
+318	Device profinet （Equipment ID)63 Error MB130_W001_DIO1
+319	Device profinet （Equipment ID)64 Error MB120_W002_DIO1
+320	Device profinet （Equipment ID)65 Error UB70_W001_DIO1
+321	Device profinet （Equipment ID)66 Error UB70_W001_DIO2
+322	Device profinet （Equipment ID)67 Error
+323	Device profinet （Equipment ID)68 Error
+324	Device profinet （Equipment ID)69 Error
+325	Device profinet （Equipment ID)70 Error
+326	Device profinet （Equipment ID)71 Error
+327	Device profinet （Equipment ID)72 Error
+328	Device profinet （Equipment ID)73 Error
+329	Device profinet （Equipment ID)74 Error
+330	Device profinet （Equipment ID)75 Error
+331	Device profinet （Equipment ID)76 Error
+332	Device profinet （Equipment ID)77 Error
+333	Device profinet （Equipment ID)78 Error
+334	Device profinet （Equipment ID)79 Error
+335	Device profinet （Equipment ID)80 Error
+336	Device profinet （Equipment ID)81 Error
+337	Device profinet （Equipment ID)82 Error
+338	Device profinet （Equipment ID)83 Error
+339	Device profinet （Equipment ID)84 Error
+340	Device profinet （Equipment ID)85 Error
+341	Device profinet （Equipment ID)86 Error
+342	Device profinet （Equipment ID)87 Error
+343	Device profinet （Equipment ID)88 Error
+344	Device profinet （Equipment ID)89 Error
+345	Device profinet （Equipment ID)90 Error
+346	Device profinet （Equipment ID)91 Error
+347	Device profinet （Equipment ID)92 Error
+348	Device profinet （Equipment ID)93 Error
+349	Device profinet （Equipment ID)94 Error
+350	Device profinet （Equipment ID)95 Error
+351	Device profinet （Equipment ID)96 Error
+352	Device profinet （Equipment ID)97 Error
+353	Device profinet （Equipment ID)98 Error
+354	Device profinet （Equipment ID)99 Error UB20_EJ1_DIO1
+355	Device profinet （Equipment ID)100 Error UB30_EJ1_DIO1
+356	Device profinet （Equipment ID)101 Error UB40_EJ1_DIO1
+357	Device profinet （Equipment ID)102 Error UB50_EJ1_DIO1
+358	Device profinet （Equipment ID)103 Error UB60_EJ1_DIO1
+359	Device profinet （Equipment ID)104 Error UB70_EJ1_DIO1
+360	Device profinet （Equipment ID)105 Error UB80_EJ1_DIO1
+361	Device profinet （Equipment ID)106 Error MB100_EJ1_DIO1
+362	Device profinet （Equipment ID)107 Error MB110_EJ1_DIO1
+363	Device profinet （Equipment ID)108 Error MB120_EJ1_DIO1
+364	Device profinet （Equipment ID)109 Error
+365	Device profinet （Equipment ID)110 Error
+366	Device profinet （Equipment ID)111 Error
+367	Device profinet （Equipment ID)112 Error
+368	Device profinet （Equipment ID)113 Error
+369	Device profinet （Equipment ID)114 Error
+370	Device profinet （Equipment ID)115 Error CP11_MB130_TO_MB140
+371	Device profinet （Equipment ID)116 Error CP12_UB10_FORM_MB270
+372	Device profinet （Equipment ID)117 Error
+373	Device profinet （Equipment ID)118 Error
+374	Device profinet （Equipment ID)119 Error
+375	Device profinet （Equipment ID)120 Error UB020SCAN_K1
+376	Device profinet （Equipment ID)121 Error
+377	Device profinet （Equipment ID)122 Error
+378	Device profinet （Equipment ID)123 Error
+379	Device profinet （Equipment ID)124 Error UB020RFID_IC
+380	Device profinet （Equipment ID)125 Error
+381	Device profinet （Equipment ID)126 Error
+382	Device profinet （Equipment ID)127 Error
+383	Device profinet （Equipment ID)128 Error
+384	Device profinet （Equipment ID)129 Error
+385	Device profinet （Equipment ID)130 Error
+386	Device profinet （Equipment ID)131 Error
+387	Device profinet （Equipment ID)132 Error
+388	Device profinet （Equipment ID)133 Error
+389	Device profinet （Equipment ID)134 Error
+390	Device profinet （Equipment ID)135 Error
+391	Device profinet （Equipment ID)136 Error
+392	Device profinet （Equipment ID)137 Error
+393	Device profinet （Equipment ID)138 Error
+394	Device profinet （Equipment ID)139 Error
+395	Device profinet （Equipment ID)140 Error
+396	Device profinet （Equipment ID)141 Error
+397	Device profinet （Equipment ID)142 Error
+398	Device profinet （Equipment ID)143 Error
+399	Device profinet （Equipment ID)144 Error VDP1_UB20_VFD1_Lift
+400	Device profinet （Equipment ID)145 Error VDP1_UB20_VFD2_Trans
+401	Device profinet （Equipment ID)146 Error VDP1_UB30_VFD3_Lift
+402	Device profinet （Equipment ID)147 Error VDP1_UB30_VFD4_Trans
+403	Device profinet （Equipment ID)148 Error VDP1_UB40_VFD5_Lift
+404	Device profinet （Equipment ID)149 Error VDP1_UB40_VFD6_Trans
+405	Device profinet （Equipment ID)150 Error VDP2_UB50_VFD1_Lift
+406	Device profinet （Equipment ID)151 Error VDP2_UB50_VFD2_Trans
+407	Device profinet （Equipment ID)152 Error VDP2_UB60_VFD3_Lift
+408	Device profinet （Equipment ID)153 Error VDP2_UB60_VFD4_Trans
+409	Device profinet （Equipment ID)154 Error VDP3_UB70_VFD1_Lift
+410	Device profinet （Equipment ID)155 Error VDP3_UB70_VFD2_Trans
+411	Device profinet （Equipment ID)156 Error VDP3_UB80_VFD3_Trans
+412	Device profinet （Equipment ID)157 Error VDP3_UB90_VFD4_Trans
+413	Device profinet （Equipment ID)158 Error VDP3_MB100_VFD5_Lift
+414	Device profinet （Equipment ID)159 Error VDP3_MB100_VFD6_Trans
+415	Device profinet （Equipment ID)160 Error VDP4_MB110_VFD1_Lift
+416	Device profinet （Equipment ID)161 Error VDP4_MB110_VFD2_Trans
+417	Device profinet （Equipment ID)162 Error VDP4_MB130_VFD3_Lift
+418	Device profinet （Equipment ID)163 Error VDP4_MB120_VFD4_Trans
+419	Device profinet （Equipment ID)164 Error MB130_TV1
+420	Device profinet （Equipment ID)165 Error
+421	Device profinet （Equipment ID)166 Error
+422	Device profinet （Equipment ID)167 Error
+423	Device profinet （Equipment ID)168 Error
+424	Device profinet （Equipment ID)169 Error
+425	Device profinet （Equipment ID)170 Error
+426	Device profinet （Equipment ID)171 Error
+427	Device profinet （Equipment ID)172 Error
+428	Device profinet （Equipment ID)173 Error
+429	Device profinet （Equipment ID)174 Error
+430	Device profinet （Equipment ID)175 Error
+431	Device profinet （Equipment ID)176 Error
+432	Device profinet （Equipment ID)177 Error
+433	Device profinet （Equipment ID)178 Error
+434	Device profinet （Equipment ID)179 Error
+435	Device profinet （Equipment ID)180 Error
+436	Device profinet （Equipment ID)181 Error
+437	Device profinet （Equipment ID)182 Error
+438	Device profinet （Equipment ID)183 Error
+439	Device profinet （Equipment ID)184 Error
+440	Device profinet （Equipment ID)185 Error
+441	Device profinet （Equipment ID)186 Error
+442	Device profinet （Equipment ID)187 Error
+443	Device profinet （Equipment ID)188 Error
+444	Device profinet （Equipment ID)189 Error
+445	Device profinet （Equipment ID)190 Error
+446	Device profinet （Equipment ID)191 Error
+447	Device profinet （Equipment ID)192 Error
+448	Device profinet （Equipment ID)193 Error
+449	Device profinet （Equipment ID)194 Error
+450	Device profinet （Equipment ID)195 Error
+451	Device profinet （Equipment ID)196 Error
+452	Device profinet （Equipment ID)197 Error
+453	Device profinet （Equipment ID)198 Error
+454	Device profinet （Equipment ID)199 Error
+455	Device profinet （Equipment ID)200 Error
+456	Device profinet （Equipment ID)201 Error
+457	Device profinet （Equipment ID)202 Error
+458	Device profinet （Equipment ID)203 Error
+459	Device profinet （Equipment ID)204 Error
+460	Device profinet （Equipment ID)205 Error
+461	Device profinet （Equipment ID)206 Error
+462	Device profinet （Equipment ID)207 Error
+463	Device profinet （Equipment ID)208 Error
+464	Device profinet （Equipment ID)209 Error
+465	Device profinet （Equipment ID)210 Error
+466	Device profinet （Equipment ID)211 Error
+467	Device profinet （Equipment ID)212 Error
+468	Device profinet （Equipment ID)213 Error
+469	Device profinet （Equipment ID)214 Error
+470	Device profinet （Equipment ID)215 Error
+471	Device profinet （Equipment ID)216 Error
+472	Device profinet （Equipment ID)217 Error
+473	Device profinet （Equipment ID)218 Error
+474	Device profinet （Equipment ID)219 Error
+475	Device profinet （Equipment ID)220 Error
+476	Device profinet （Equipment ID)221 Error
+477	Device profinet （Equipment ID)222 Error
+478	Device profinet （Equipment ID)223 Error
+479	Device profinet （Equipment ID)224 Error
+480	Device profinet （Equipment ID)225 Error
+481	Device profinet （Equipment ID)226 Error
+482	Device profinet （Equipment ID)227 Error
+483	Device profinet （Equipment ID)228 Error
+484	Device profinet （Equipment ID)229 Error
+485	Device profinet （Equipment ID)230 Error
+486	Device profinet （Equipment ID)231 Error
+487	Device profinet （Equipment ID)232 Error
+488	Device profinet （Equipment ID)233 Error
+489	Device profinet （Equipment ID)234 Error
+490	Device profinet （Equipment ID)235 Error
+491	Device profinet （Equipment ID)236 Error
+492	Device profinet （Equipment ID)237 Error
+493	Device profinet （Equipment ID)238 Error
+494	Device profinet （Equipment ID)239 Error
+495	Device profinet （Equipment ID)240 Error
+496	Device profinet （Equipment ID)241 Error
+497	Device profinet （Equipment ID)242 Error
+498	Device profinet （Equipment ID)243 Error
+499	Device profinet （Equipment ID)244 Error
+500	Device profinet （Equipment ID)245 Error
+501	Device profinet （Equipment ID)246 Error
+502	Device profinet （Equipment ID)247 Error
+503	Device profinet （Equipment ID)248 Error
+504	Device profinet （Equipment ID)249 Error
+505	Device profinet （Equipment ID)250 Error
+506	Device profinet （Equipment ID)251 Error
+507	Device profinet （Equipment ID)252 Error
+508	Device profinet （Equipment ID)253 Error
+509	Device profinet （Equipment ID)254 Error
+510	Device profinet （Equipment ID)255 Error
+511	Device profinet （Equipment ID)256 Error
+640	MCP Ethernet switch power supply auxiliary contact
+800	MB100-OPB5 emergency stop alarm
+801	MB100-OPB6 emergency stop alarm
+802	MB100-OPB7 emergency stop alarm
+803	MB100-OPB8 emergency stop alarm
+804	MB110-OPB5 emergency stop alarm
+805	MB110-OPB6 emergency stop alarm
+806	MB110-OPB7 emergency stop alarm
+807	MB110-OPB8 emergency stop alarm
+808	MB140_E_Stop alarm
+809	MB140_SGB alarm
+810	Fault:MB140_LC alarm
+811	MB270_E_Stop alarm
+812	MB270_SGB alarm
+813	Fault:MB270_LC1 alarm
+814	Fault:MB270_LC2 alarm
+815	HMI1 E_Stop alarm
+816	HMI2 E_Stop alarm
+817	HMI3 E_Stop alarm
+818	HMI4 E_Stop alarm
+819	Fault:UB20 Station Safety GD alarm
+820	Fault:UB20 Station Safety GD alarm
+821	Fault:UB30 Station Safety GD alarm
+822	Fault:UB30 Station Safety GD alarm
+823	Fault:UB40 Station Safety GD alarm
+824	Fault:UB40 Station Safety GD alarm
+825	Fault:UB50 Station Safety GD alarm
+826	Fault:UB50 Station Safety GD alarm
+827	Fault:UB60 Station Safety GD alarm
+828	Fault:UB60 Station Safety GD alarm
+829	Fault:UB70 Station Safety GD alarm
+830	Fault:UB70 Station Safety GD alarm
+831	Fault:UB80 Station Safety GD alarm
+832	Fault:UB80 Station Safety GD alarm
+833	Fault:UB90 Station Safety GD alarm
+834	Fault:UB90 Station Safety GD alarm
+835	Fault:MB100 Station Safety GD alarm
+836	Fault:MB100 Station Safety GD alarm
+837	Fault:MB110 Station Safety GD alarm
+838	Fault:MB110 Station Safety GD alarm
+839	Fault:MB120 Station Safety GD alarm
+840	Fault:MB120 Station Safety GD alarm
+841	Fault:UB90 or MB100 Station Safety GD alarm
+842	Fault:UB90 or MB100 Station Safety GD alarm
+843	Fault:MB100 or MB110 Station Safety GD alarm
+844	Fault:MB100 or MB110 Station Safety GD alarm
+845	Fault:MB100L_LSC1alarm
+846	Fault:MB100R_LSC2 alarm
+847	Fault:MB110L_LSC1 alarm
+848	Fault:MB110R_LSC2 alarm
+946	Tip:
+960	UB020 air-pressure detection fault at the station.
+961	UB040air-pressure detection fault at the station.
+962	MB100Lair-pressure detection fault at the station.
+963	MB100Rair-pressure detection fault at the station.
+964	MB110Lair-pressure detection fault at the station.
+965	MB110Rair-pressure detection fault at the station.
+992	Fault:UB010 station is not in automatic mode
+993	Fault:UB020 station is not in automatic mode
+994	Fault:UB030 station is not in automatic mode
+995	Fault:UB040 station is not in automatic mode
+996	Fault:UB050 station is not in automatic mode
+997	Fault:UB060 station is not in automatic mode
+998	Fault:UB070 station is not in automatic mode
+999	Fault:UB080 station is not in automatic mode
+1000	Fault:MB090 station is not in automatic mode
+1001	Fault:MB100 station is not in automatic mode
+1002	Fault:MB110 station is not in automatic mode
+1003	Fault:MB120 station is not in automatic mode
+1004	Fault:MB130 station is not in automatic mode
+1005	Fault:MB100_W31L positioning slide station is not in automatic mode
+1006	Fault:MB100_W32L left side enclosure station is not in automatic mode
+1007	Fault:MB100_W31R positioning slide station is not in automatic mode
+1008	Fault:MB100_W32R right side enclosure station is not in automatic mode
+1009	Fault:MB110_W31L positioning slide station is not in automatic mode
+1010	Fault:MB110_W32L left side enclosure station is not in automatic mode
+1011	Fault:MB110_W31R positioning slide station is not in automatic mode
+1012	Fault:MB110_W32 right side enclosure station is not in automatic mode
+1013	Fault:MB100/MB110 3D-gun from the right side is not in automatic mode
+1014	Fault:MB100/MB110 3D-gun from the left side is not in automatic mode
+1015	Warning: The function of turning off all indicator lights in the area has been enabled
+1016	Warning:Temporary debug point M666.6 is enabled and conditionally blocked
+1024	MES receiving data timeout
+1025	UB020 has body detail but no model information.
+1026	UB040 has body detail but no model information.
+1027	UB060 has body detail but no model information.
+1028	UB070 has body detail but no model information.
+1029	MB100 has body detail but no model information.
+1030	MB110 has body detail but no model information.
+1031	MB100 left positioning platform has body detail but no model information.
+1032	MB100 left side clamp has body detail but no model information.
+1033	MB100 right positioning platform has body detail but no model information.
+1034	MB100 right side clamp has body detail but no model information.
+1035	MB110 left positioning platform has body detail but no model information.
+1036	MB110 left side clamp has body detail but no model information.
+1037	MB110 right positioning platform has body detail but no model information.
+1038	MB110 right side clamp has body detail but no model information.
+1039	Fault:The information of MB130 and MB140 models is inconsistent
+1040	Prompt: UB, MB communication timeout
+1041	Fault:MB100/MB110 Left 3D-gun welding failure
+1042	Fault:MB100/MB110 Right 3D-gun welding failure
+1043	Warning: CarID has an Unknown configuration error(Brand)
+1044	Warning: CarID has an Unknown configuration error(Model)
+1045	Warning: CarID has an Unknown configuration error(Model Year)
+1046	Warning: CarID has an Unknown configuration error(Engine)
+1047	Warning: CarID has an Unknown configuration error(Transmission)
+1048	Warning: CarID has an Unknown configuration error(Drive)
+1049	Warning: CarID has an Unknown configuration error(Sunroof)
+1050	Warning: CarID has an Unknown configuration error(Spec.)
+1051	Warning: CarID has an Unknown configuration error(Interior color)
+1052	Warning: CarID has an Unknown configuration error(Color)
+1053	Warning: CarID has an Unknown configuration error(Body second color)
+1106	1107
+1120	UB010 body detail alarm
+1121	UB020 body detail alarm
+1122	UB030 body detail alarm
+1123	UB040 body detail alarm
+1124	UB050 body detail alarm
+1125	UB060 body detail alarm
+1126	UB070 body detail alarm
+1127	UB080 body detail alarm
+1128	UB090 body detail alarm
+1129	MB100 body detail alarm
+1130	MB110 body detail alarm
+1131	MB120 body detail alarm
+1132	MB130 body detail alarm
+1133	:MB100 left positioning platform body detail alarm
+1134	MB100 left side clamp body detail alarm
+1135	MB100 right positioning platform body detail alarm
+1136	MB100 right side clamp body detail alarm
+1137	MB110 left positioning platform body detail alarm
+1138	MB110 left side clamp body detail alarm
+1139	MB110 right positioning platform body detail alarm
+1140	MB110 right side clamp body detail alarm
+1141	Tip:
+1142	Fault:UB20 roller bed lifting out of position
+1143	Fault:UB30 roller bed lifting out of position
+1144	Fault:UB40 roller bed lifting out of position
+1145	Fault:UB50 roller bed lifting out of position
+1146	Fault:UB60 roller bed lifting out of position
+1147	Fault:UB70 roller bed lifting out of position
+1148	Fault:MB100 roller bed lifting out of position
+1149	Fault:MB110 roller bed lifting out of position
+1150	Fault:MB120 roller bed lifting out of position
+1155	1156
+1156	1157
+1280	Alert Notification: UB20 station RFID is blocked
+1281	UB20 station RFID error
+1282	No code chip during UB20 station RFID reading and writing process
+1283	UB20 station RFID models are inconsistent
+1312	Warning:UB20 body-detail sensor is blocked
+1313	Warning:UB40 body-detail sensor is blocked
+1314	Warning:UB60 body-detail sensor is blocked
+1315	Warning:UB70 body-detail sensor is blocked
+1316	Warning:MB100/left positioning slide/left side fixture body-detail sensor is blocked
+1317	Warning:MB100 right positioning slide/right side fixture body-detail sensor is blocked
+1318	Warning:MB110/left positioning slide/left side fixture body-detail sensor is blocked
+1319	Warning:MB110 right positioning slide/right side fixture body-detail sensor is blocked
+1320	Warning:UB10 model is blocked warning
+1321	Warning:MB130 model is blocked warning
+1322	Fault:MB100L_W031 C1 signal is missing
+1323	Fault:MB100L_W031 C2 signal is missing
+1324	Fault:MB100L_W031 C3 signal is missing
+1325	Fault:MB100R_W031 C1 signal is missing
+1326	Fault:MB100R_W031 C2 signal is missing
+1327	Fault:MB100R_W031 C3 signal is missing
+1328	Fault:MB110L_W031 C1 signal is missing
+1329	Fault:MB110L_W031 C2 signal is missing
+1330	Fault:MB110L_W031 C3 signal is missing
+1331	Fault:MB110R_W031 C1 signal is missing
+1332	Fault:MB110R_W031 C2 signal is missing
+1333	Fault:MB110R_W031 C3 signal is missing
+1334	Fault:The vehicle model at the UB60 station does not match the station’s cylinders.
+1335	Fault:The vehicle model at the UB70 station does not match the station’s cylinders.
+1344	Emergency Stop alarm
+1345	Emergency Stop alarm
+1346	Emergency Stop alarm
+1347	Emergency Stop alarm
+1408	UB010_SOB1 Emergency stop alarm
+1412	UB020_SOB1 Emergency stop alarm
+1414	UB10-UB20 station isolation photoelectric 1 is triggered
+1415	UB10-UB20 station isolation photoelectric 2 is triggered
+1416	UB020_SOB2 Emergency stop alarm
+1418	UB10-UB20 station isolation photoelectric 1 is triggered
+1419	UB10-UB20 station isolation photoelectric 2 is triggered
+1420	UB020_SOB3 Emergency stop alarm
+1424	UB020_SOB4 Emergency stop alarm
+1428	UB030_SOB1 Emergency stop alarm
+1430	UB20-UB30 station isolation photoelectric 1 is triggered
+1431	UB20-UB30 station isolation photoelectric 2 is triggered
+1432	UB040_SOB1 Emergency stop alarm
+1434	UB30-UB40 station isolation photoelectric 1 is triggered
+1435	UB30-UB40 station isolation photoelectric 2 is triggered
+1436	UB040-SOB2 Emergency stop alarm
+1438	UB30-UB40 station isolation photoelectric 1 is triggered
+1439	UB30-UB40 station isolation photoelectric 2 is triggered
+1440	UB040-SOB3 Emergency stop alarm
+1444	UB050-SOB1 Emergency stop alarm
+1446	UB40-UB50 station isolation photoelectric 1 is triggered
+1447	UB40-UB50 station isolation photoelectric 2 is triggered
+1448	UB060-SOB1 Emergency stop alarm
+1450	UB50-UB60 station isolation photoelectric 1 is triggered
+1451	UB50-UB60 station isolation photoelectric 2 is triggered
+1452	UB060-SOB2 Emergency stop alarm
+1454	UB50-UB60 station isolation photoelectric 1 is triggered
+1455	UB50-UB60 station isolation photoelectric 2 is triggered
+1456	UB070_SOB1 Emergency stop alarm
+1458	UB60-UB70 station isolation photoelectric 1 is triggered
+1459	UB60-UB70 station isolation photoelectric 2 is triggered
+1460	UB070-SOB2 Emergency stop alarm
+1462	UB60-UB70 station isolation photoelectric 1 is triggered
+1463	UB60-UB70 station isolation photoelectric 2 is triggered
+1464	UB080-SOB1 Emergency stop alarm
+1466	UB70-UB80 station isolation photoelectric 1 is triggered
+1467	UB70-UB80 station isolation photoelectric 2 is triggered
+1468	UB080-SOB2 Emergency stop alarm
+1470	UB70-UB80 station isolation photoelectric 1 is triggered
+1471	UB70-UB80 station isolation photoelectric 2 is triggered
+1472	SGB1 emergency stop alarm
+1473	SGB1 Security door alarm
+1474	SGB1 Stop robot alarm
+1475	SGB1 tip alarm
+1476	UB10_LC1 light curtain-CELL1
+1477	UB10_LC2 light curtain-CELL1
+1478	UB10_LC3 light curtain-CELL1
+1479	MB130_LC1 light curtain-CELL4
+1480	MB130_LC2 light curtain-CELL4
+1481	MB130_LC3 light curtain-CELL4
+1482	MB130_LC4 light curtain-CELL4
+1483	MB130_LS1 light curtain-CELL4
+1484	MB130_LS2 light curtain-CELL4
+1600	Warning: The MB100L-3D gun needs to be dressed
+1601	Warning: The MB100L-3D gun needs to change the tip.
+1602	Warning: The MB100R-3D gun needs to be dressed
+1603	Warning: The MB100R-3D gun needs to change the tip.
+1604	Warning: The MB110L-3D gun needs to be dressed
+1605	Warning: The MB110L-3D gun needs to change the tip.
+1606	Warning: The MB110R-3D gun needs to be dressed
+1607	Warning: The MB110R-3D gun needs to change the tip.
+1608	Warning: HMI1/HMI2 are not on the main screen.
+1609	Warning: HMI1/HMI3 are not on the main screen.
+1610	Warning: HMI1/HMI4 are not on the main screen.
+1611	Warning: HMI2/HMI3 are not on the main screen.
+1612	Warning: HMI2/HMI4 are not on the main screen.
+1613	Warning: HMI3/HMI4 are not on the main screen.
+1614	MB100 Transf Alarm. welding mode incative or no power suuply
+1615	MB110 Transf Alarm. welding mode incative or no power suuply
+1920	UB090-SOB1 Emergency stop alarm
+1922	UB80-UB90 station optical sensor 1 is triggered
+1923	UB80-UB90 station optical sensor 2 is triggered
+1924	UB090-SOB2 Emergency stop alarm
+1925	1926
+1926	UB80-UB90 station optical sensor 1 is triggered
+1927	UB80-UB90 station optical sensor 2 is triggered
+1928	MB100-SOB1 emergency stop alarm
+1929	1930
+1930	UB90-MB100 station optical sensor 1 is triggered
+1931	UB90-MB100 station optical sensor 2 is triggered
+1932	MB100-SOB2 emergency stop alarm
+1933	1934
+1934	UB90-MB100 station optical sensor 1 is triggered
+1935	UB90-MB100 station optical sensor 2 is triggered
+1936	MB100-SOB3 emergency stop alarm
+1937	1938
+1938	1939
+1939	1940
+1940	MB100-SOB4 emergency stop alarm
+1941	1942
+1942	1943
+1943	1944
+1944	MB110-SOB1 emergency stop alarm
+1945	1946
+1946	MB100-MB110 station optical sensor 1 is triggered
+1947	MB100-MB110 station optical sensor 2 is triggered
+1948	MB110-SOB2 emergency stop alarm
+1949	1950
+1950	MB110-MB120 station optical sensor 1 is triggered
+1951	MB110-MB120 station optical sensor 2 is triggered
+1952	MB110-SOB3 emergency stop alarm
+1953	1954
+1954	1955
+1955	1956
+1956	MB110-SOB4 emergency stop alarm
+1957	1958
+1958	1959
+1959	1960
+1960	MB120-SOB1 emergency stop alarm
+1961	1962
+1962	MB120-MB130 station optical sensor 1 is triggered
+1963	MB120-MB130 station optical sensor 2 is triggered
+1964	UB20-OPB1 alarm during operation
+1965	UB20-OPB1 bypass alarm
+1966	UB20-OPB2 alarm during operation
+1967	UB20-OPB2 bypass alarm
+1968	UB20-OPB3 alarm during operation
+1969	UB20-OPB3 bypass alarm
+1970	UB20-OPB4 alarm during operation
+1971	UB20-OPB4 bypass alarm
+1972	UB40-OPB1 alarm during operation
+1973	UB40-OPB1 bypass alarm
+1974	UB40-OPB2 alarm during operation
+1975	UB40-OPB2 bypass alarm
+1976	UB40-OPB3 alarm during operation
+1977	UB40-OPB3 bypass alarm
+1978	MB100-OPB1 alarm during operation
+1979	MB100-OPB1 bypass alarm
+1980	MB100-OPB2 alarm during operation
+1981	MB100-OP2 bypass alarm
+1982	MB100-OPB3 alarm during operation
+1983	MB100-OPB3 bypass alarm
+1984	MB100-OPB4 alarm during operation
+1985	MB100-OPB4 bypass alarm
+1986	MB100-OPB5 alarm during operation
+1987	MB100-OPB5 bypass alarm
+1988	MB100-OPB6 alarm during operation
+1989	MB100-OPB6 bypass alarm
+1990	MB100-OPB7 alarm during operation
+1991	MB100-OPB7 bypass alarm
+1992	MB100-OPB8 alarm during operation
+1993	MB100-OPB8 bypass alarm
+1994	MB110-OPB1 alarm during operation
+1995	MB110-OPB1 bypass alarm
+1996	MB110-OPB2 alarm during operation
+1997	MB110-OPB2 bypass alarm
+1998	MB110-OPB3 alarm during operation
+1999	MB110-OP3 bypass alarm
+2000	MB110-OPB4 alarm during operation
+2001	MB110-OPB4 bypass alarm
+2002	MB110-OPB5 alarm during operation
+2003	MB110-OPB5 bypass alarm
+2004	MB110-OPB6 alarm during operation
+2005	MB110-OPB6 bypass alarm
+2006	MB110-OPB7 alarm during operation
+2007	MB110-OPB7 bypass alarm
+2008	MB110-OPB8 alarm during operation
+2009	MB110-OPB8 bypass alarm
+3200	UB020 Horizontal motor communication failure
+3201	UB020 Horizontal motor is not in bus control mode
+3202	UB020 Horizontal Motor Driver Warning
+3203	UB020 horizontal motor driver alarm
+3204	UB020 horizontal motor driver is not powered on
+3205	UB020 horizontal motor driver maintenance switch open
+3206	UB020 Horizontal motor main contactor feedback timeout
+3207	UB020 Horizontal motor brake contactor feedback timeout
+3208	UB020 Skid overshoot alarm
+3209	Warning:UB020 Skid Overshoot Tip
+3210	UB020 skid front safety switch always 1
+3211	UB020 Sled rear safety switch is always 1
+3212	UB020 Sled front safety switch always 0
+3213	UB020 Sled rear safety switch always 0
+3214	Warning: UB020 Forward conveying timeout
+3216	UB020 Lifting motor communication failure
+3217	UB020 Lifting motor is not in bus control mode
+3218	UB020 lifting motor driver warning
+3219	UB020 lifting motor driver alarm
+3220	UB020 Lifting Motor Driver is not powered on
+3221	UB020 Lifting Motor Driver Maintenance Switch Open
+3222	UB020 Lifting motor main contactor feedback timeout
+3223	UB020 Lifting motor brake contactor feedback timeout
+3224	UB020 Lifting motor chain 1 signal lost
+3225	UB020 Lifting motor chain 2 signal lost
+3232	UB020W001-C1.1 Clamping timeout or no signal error when opening clamping
+3233	UB020W001-C1.2 Clamping timeout or no signal error when opening clamping
+3240	UB020W001-C1.1 Opening timeout or no signal error when opening/clamping
+3241	UB020W001-C1.2 Opening timeout or no signal error when opening/clamping
+3248	UB020W001-C2.1 Clamping timeout or no signal error when opening clamping
+3249	UB020W001-C2.2 Clamping timeout or no signal error when opening clamping
+3256	UB020W001-C2.1 Opening timeout or no signal error when opening/clamping
+3257	UB020W001-C2.2 Opening timeout or no signal error when opening/clamping
+3264	UB020W001-C3.1 Clamping timeout or no signal error when opening clamping
+3265	UB020W001-C3.2 Clamping timeout or no signal error when opening clamping
+3272	UB020W001-C3.1 Opening timeout or no signal error when opening/clamping
+3273	UB020W001-C3.2 Opening timeout or no signal error when opening/clamping
+3280	UB020W001-C4.1 clamping timeout or no signal error when opening clamping
+3281	UB020W001-C4.2 Clamping timeout or no signal error when opening clamping
+3288	UB020W001-C4.1 Opening timeout or no signal error when opening/clamping
+3289	UB020W001-C4.2 Opening timeout or no signal error when opening/clamping
+3296	UB020W001-C5.1 clamping timeout or no signal error when opening clamping
+3297	UB020W001-C5.2 Clamping timeout or no signal error when opening clamping
+3298	UB020W001-C5.3 Clamping timeout or no signal error when opening clamping
+3299	UB020W001-C5.4 Clamping timeout or no signal error when opening clamping
+3300	UB020W001-C5.5 clamping timeout or no signal error when opening clamping
+3301	UB020W001-C5.6 Clamping timeout or no signal error when opening clamping
+3304	UB020W001-C5.1 Opening timeout or no signal error when opening/clamping
+3305	UB020W001-C5.2 Opening timeout or no signal error when opening/clamping
+3306	UB020W001-C5.3 Opening timeout or no signal error when opening/clamping
+3307	UB020W001-C5.4 Opening timeout or no signal error when opening/clamping
+3308	UB020W001-C5.5 Opening timeout or no signal error when opening/clamping
+3309	UB020W001-C5.6 Opening timeout or no signal error when opening/clamping
+3312	UB20W001-C6.1 clamping timeout or no signal error when opening clamping
+3313	UB20W001-C6.2 clamping timeout or no signal error when opening clamping
+3314	UB20W001-C6.3 clamping timeout or no signal error when opening clamping
+3315	UB20W001-C6.4 clamping timeout or no signal error when opening clamping
+3316	UB20W001-C6.5 clamping timeout or no signal error when opening clamping
+3317	UB20W001-C6.6 clamping timeout or no signal error when opening clamping
+3320	UB20W001-C6.1 Opening timeout or no signal error when opening/clamping
+3321	UB20W001-C6.2 Opening timeout or no signal error when opening/clamping
+3322	UB20W001-C6.3 Opening timeout or no signal error when opening/clamping
+3323	UB20W001-C6.4 Opening timeout or no signal error when opening/clamping
+3324	UB20W001-C6.5 Opening timeout or no signal error when opening/clamping
+3325	UB20W001-C6.6 Opening timeout or no signal error when opening/clamping
+3328	UB20W001-C7.1 clamping timeout or no signal error when opening clamping
+3329	UB20W001-C7.2 clamping timeout or no signal error when opening clamping
+3330	UB20W001-C7.3 clamping timeout or no signal error when opening clamping
+3331	UB20W001-C7.4 clamping timeout or no signal error when opening clamping
+3332	UB20W001-C7.5 clamping timeout or no signal error when opening clamping
+3333	UB20W001-C7.6 clamping timeout or no signal error when opening clamping
+3336	UB20W001-C7.1 Opening timeout or no signal error when opening/clamping
+3337	UB20W001-C7.2 Opening timeout or no signal error when opening/clamping
+3338	UB20W001-C7.3 Opening timeout or no signal error when opening/clamping
+3339	UB20W001-C7.4 Opening timeout or no signal error when opening/clamping
+3340	UB20W001-C7.5 Opening timeout or no signal error when opening/clamping
+3341	UB20W001-C7.6 Opening timeout or no signal error when opening/clamping
+3344	UB20W001-C8.1 clamping timeout or no signal error when opening clamping
+3345	UB20W001-C8.2 clamping timeout or no signal error when opening clamping
+3346	UB20W001-C8.3 clamping timeout or no signal error when opening clamping
+3347	UB20W001-C8.4 clamping timeout or no signal error when opening clamping
+3348	UB20W001-C8.5 clamping timeout or no signal error when opening clamping
+3349	UB20W001-C8.6 clamping timeout or no signal error when opening clamping
+3352	UB20W001-C8.1 Opening timeout or no signal error when opening/clamping
+3353	UB20W001-C8.2 Opening timeout or no signal error when opening/clamping
+3354	UB20W001-C8.3 Opening timeout or no signal error when opening/clamping
+3355	UB20W001-C8.4 Opening timeout or no signal error when opening/clamping
+3356	UB20W001-C8.5 Opening timeout or no signal error when opening/clamping
+3357	UB20W001-C8.6 Opening timeout or no signal error when opening/clamping
+3360	UB20W001-C9.1 clamping timeout or no signal error when opening clamping
+3361	UB20W001-C9.2 clamping timeout or no signal error when opening clamping
+3368	UB20W001-C9.1 Opening timeout or no signal error when opening/clamping
+3369	UB20W001-C9.2 Opening timeout or no signal error when opening/clamping
+3376	UB20W001-C10.1 clamping timeout or no signal error when opening clamping
+3377	UB20W001-C10.2 clamping timeout or no signal error when opening clamping
+3384	UB20W001-C10.1 Opening timeout or no signal error when opening/clamping
+3385	UB20W001-C10.2 Opening timeout or no signal error when opening/clamping
+3392	UB20 Position_Pin clamping timeout or no signal error when opening clamping
+3400	UB20 Position_Pin opening timeout or no signal error when opening clamping
+3520	UB030 Horizontal motor communication failure
+3521	UB030 Horizontal motor is not in bus control mode
+3522	UB030 Horizontal motor driver alarm
+3523	UB030 horizontal motor driver alarm
+3524	UB030 horizontal motor driver is not powered on
+3525	UB030 Horizontal motor driver maintenance turned on
+3526	UB030 Horizontal motor main contactor feedback timeout
+3527	UB030 Horizontal motor brake contactor feedback timeout
+3528	UB030 skid overshoot alarm
+3529	Warning:UB030 skid overshoot alarm
+3530	UB030 Sled front safety switch always 1
+3531	UB030 Sled rear safety switch is always 1
+3532	UB030 Sled front safety switch always 0
+3533	UB030 Sled rear safety switch always 0
+3534	Warning:UB030 Forward conveying timeout
+3536	UB030 Lifting motor communication failure
+3537	UB030 Lifting motor is not in bus control mode
+3538	UB030 lifting motor driver warning
+3539	UB030 lifting motor driver alarm
+3540	UB030 Lifting motor driver is not powered on
+3541	UB030 Lifting motor driver maintenance switch open
+3542	UB030 Lifting motor main contactor feedback timeout
+3543	UB030 Lifting motor brake contactor feedback timeout
+3544	UB030 Lifting motor chain detection 1 signal lost
+3545	UB030 Lifting motor chain detection 2 signal lost
+3552	UB030 Position_Pin clamping timeout or no signal error when opening clamping
+3560	UB030 Position_Pin opening timeout or no signal error when opening clamping
+3840	UB040 Horizontal motor communication failure
+3841	UB040 Horizontal motor is not in bus control mode
+3842	UB040 Horizontal Motor Driver Warning
+3843	UB040 horizontal motor driver alarm
+3844	UB040 horizontal motor driver is not powered on
+3845	UB040 horizontal motor driver maintenance switch open
+3846	UB040 Horizontal motor main contactor feedback timeout
+3847	UB040 Horizontal motor brake contactor feedback timeout
+3848	UB040 Sled overshoot alarm
+3849	Warning:UB040 Sled Overshoot Tip
+3850	UB040 Sled front safety switch always 1
+3851	UB040 Sled rear safety switch is always 1
+3852	UB040 Sled front safety switch always 0
+3853	UB040 Sled rear safety switch always 0
+3854	Warning:UB040 Forward conveying timeout
+3856	UB040 Lifting motor communication failure
+3857	UB040 Lifting motor is not in bus control mode
+3858	UB040 lifting motor driver warning
+3859	UB040 lifting motor driver alarm
+3860	UB040 Lifting motor driver is not powered on
+3861	UB040 Lifting motor driver maintenance switch open
+3862	UB040 Lifting motor main contactor feedback timeout
+3863	UB040 Lifting motor brake contactor feedback timeout
+3864	UB040 Lifting motor chain 1 signal lost
+3865	UB040 Lifting motor chain 2 signal lost
+3872	UB040W003-C1.1 Clamping timeout or no signal error when opening clamping
+3873	UB040W003-C1.2 Clamping timeout or no signal error when opening clamping
+3874	UB040W003-C1.3 Clamping timeout or no signal error when opening clamping
+3875	UB040W003-C1.4 Clamping timeout or no signal error when opening clamping
+3880	UB040W003-C1.1 Opening timeout or no signal error when opening/clamping
+3881	UB040W003-C1.2 Opening timeout or no signal error when opening/clamping
+3882	UB040W003-C1.3 Opening timeout or no signal error when opening/clamping
+3883	UB040W003-C1.4 Opening timeout or no signal error when opening/clamping
+3888	UB040W003-C2.1 Clamping timeout or no signal error when opening clamping
+3889	UB040W003-C2.2 Clamping timeout or no signal error when opening clamping
+3890	UB040W003-C2.3 Clamping timeout or no signal error when opening clamping
+3891	UB040W003-C2.4 Clamping timeout or no signal error when opening clamping
+3892	UB040W003-C2.5 clamping timeout or no signal error when opening clamping
+3893	UB040W003-C2.6 Clamping timeout or no signal error when opening clamping
+3896	UB040W003-C2.1 Opening timeout or no signal error when opening/clamping
+3897	UB040W003-C2.2 Opening timeout or no signal error when opening/clamping
+3898	UB040W003-C2.3 Opening timeout or no signal error when opening/clamping
+3899	UB040W003-C2.4 Opening timeout or no signal error when opening/clamping
+3900	UB040W003-C2.5 Opening timeout or no signal error when opening/clamping
+3901	UB040W003-C2.6 Opening timeout or no signal error when opening/clamping
+3904	UB040W003-C3.1 Clamping timeout or no signal error when opening clamping
+3905	UB040W003-C3.2 Clamping timeout or no signal error when opening clamping
+3906	UB040W003-C3.3 Clamping timeout or no signal error when opening clamping
+3907	UB040W003-C3.4 Clamping timeout or no signal error when opening clamping
+3912	UB040W003-C3.1 Opening timeout or no signal error when opening/clamping
+3913	UB040W003-C3.2 Opening timeout or no signal error when opening/clamping
+3914	UB040W003-C3.3 Opening timeout or no signal error when opening/clamping
+3915	UB040W003-C3.4 Opening timeout or no signal error when opening/clamping
+3920	UB040W003-C4.1 Clamping timeout or no signal error when opening clamping
+3921	UB040W003-C4.2 Clamping timeout or no signal error when opening clamping
+3922	UB040W003-C4.3 Clamping timeout or no signal error when opening clamping
+3923	UB040W003-C4.4 Clamping timeout or no signal error when opening clamping
+3928	UB040W003-C4.1 Opening timeout or no signal error when opening/clamping
+3929	UB040W003-C4.2 Opening timeout or no signal error when opening/clamping
+3930	UB040W003-C4.3 Opening timeout or no signal error when opening/clamping
+3931	UB040W003-C4.4 Opening timeout or no signal error when opening/clamping
+3936	UB040W003-C5.1 Clamping timeout or no signal error when opening/clamping
+3937	UB040W003-C5.2 Clamping timeout or no signal error when opening/clamping
+3938	UB040W003-C5.3 Clamping timeout or no signal error when opening/clamping
+3939	UB040W003-C5.4 Clamping timeout or no signal error when opening/clamping
+3944	UB040W003-C5.1 Opening timeout or no signal error when opening/clamping
+3945	UB040W003-C5.2 Opening timeout or no signal error when opening/clamping
+3946	UB040W003-C5.3 Opening timeout or no signal error when opening/clamping
+3947	UB040W003-C5.4 Opening timeout or no signal error when opening/clamping
+3952	UB040W003-C6.1 Clamping timeout or no signal error when opening/clamping
+3953	UB040W003-C6.2 Clamping timeout or no signal error when opening/clamping
+3960	UB040W003-C5.1 Opening timeout or no signal error when opening/clamping
+3961	UB040W003-C5.2 Opening timeout or no signal error when opening/clamping
+3968	The UB040 Position_Pin clamping timeout or no signal error when opening clamping
+3976	The UB040 Position_Pin opening timeout or no signal error when opening clamping
+4160	UB050 Horizontal motor communication failure
+4161	UB050 Horizontal motor is not in bus control mode
+4162	UB050 Horizontal Motor Driver Warning
+4163	UB050 horizontal motor driver alarm
+4164	UB050 horizontal motor driver is not powered on
+4165	UB050 horizontal motor driver maintenance switch open
+4166	UB050 Horizontal motor main contactor feedback timeout
+4167	UB050 horizontal motor brake contactor feedback timeout
+4168	UB050 Sled overshoot alarm
+4169	Warning:UB050 skid overshoot alarm
+4170	UB050 Sled front safety switch always 1
+4171	UB050 Sled rear safety switch is always 1
+4172	UB050 Sled front safety switch always 0
+4173	UB050 Sled rear safety switch is always 0
+4174	Warning:UB050 Forward conveying timeout
+4176	UB050 Lifting motor communication failure
+4177	UB050 Lifting motor is not in bus control mode
+4178	UB050 lifting motor driver warning
+4179	UB050 lifting motor driver alarm
+4180	UB050 lifting motor driver is not powered on
+4181	UB050 Lifting Motor Driver Maintenance Switch Open
+4182	UB050 Lifting motor main contactor feedback timeout
+4183	UB050 Lifting motor brake contactor feedback timeout
+4184	UB050 Lifting motor chain 1 signal lost
+4185	UB050 Lifting motor chain 2 signal lost
+4192	UB050 Position_Pin clamping timeout or no signal error when opening clamping
+4200	UB050 Position_Pin opening timeout or no signal error when opening clamping
+4480	UB060 Horizontal motor communication failure
+4481	UB060 Horizontal motor is not in bus control mode
+4482	UB060 Horizontal Motor Driver Warning
+4483	UB060 horizontal motor driver alarm
+4484	UB060 horizontal motor driver is not powered on
+4485	UB060 horizontal motor driver maintenance switch open
+4486	UB060 Horizontal motor main contactor feedback timeout
+4487	UB060 Horizontal motor brake contactor feedback timeout
+4488	UB060 Sled overshoot alarm
+4489	Warning: UB060 Sled Overshoot Tip
+4490	UB060 Sled front safety switch always 1
+4491	UB060 Sled rear safety switch is always 1
+4492	UB060 Sled front safety switch always 0
+4493	UB060 Sled rear safety switch always 0
+4494	Warning: UB060 Forward conveying timeout
+4496	UB060 Lifting motor communication failure
+4497	UB060 Lifting motor is not in bus control mode
+4498	UB060 lifting motor driver warning
+4499	UB060 lifting motor driver alarm
+4500	UB060 Lifting Motor Driver is not powered on
+4501	UB060 Lifting motor driver maintenance switch is open
+4502	UB060 Lifting motor main contactor feedback timeout
+4503	UB060 Lifting motor brake contactor feedback timeout
+4504	UB060 Lifting motor chain 1 signal lost
+4505	UB060 Lifting motor chain 2 signal lost
+4512	UB060 Position_Pin clamping timeout or no signal error when opening clamping
+4520	UB060 Position_Pin opening timeout or no signal error when opening clamping
+4800	UB070 Horizontal motor communication failure
+4801	UB070 Horizontal motor is not in bus control mode
+4802	UB070 Horizontal Motor Driver Warning
+4803	UB070 horizontal motor driver alarm
+4804	UB070 horizontal motor driver is not powered on
+4805	UB070 horizontal motor driver maintenance switch open
+4806	UB070 Horizontal motor main contactor feedback timeout
+4807	UB070 Horizontal motor brake contactor feedback timeout
+4808	UB070 Sled overshoot alarm
+4809	Warning: UB070 skid overshoot alarm
+4810	UB070 Sled front safety switch always 1
+4811	UB070 Sled rear safety switch is always 1
+4812	UB070 Sled front safety switch always 0
+4813	UB070 Sled rear safety switch is always 0
+4814	Warning: UB070 Forward conveying timeout
+4816	UB070 Lifting motor communication failure
+4817	UB070 Lifting motor is not in bus control mode
+4818	UB070 lifting motor driver warning
+4819	UB070 lifting motor driver alarm
+4820	UB070 lifting motor driver is not powered on
+4821	UB070 Lifting motor driver maintenance switch open
+4822	UB070 Lifting motor main contactor feedback timeout
+4823	UB070 Lifting motor brake contactor feedback timeout
+4824	UB070 Lifting motor chain 1 signal lost
+4825	UB070 Lifting motor chain 2 signal lost
+4832	UB070 Position_Pin clamping timeout or no signal error when opening clamping
+4840	UB070 Position_Pin opening timeout or no signal error when opening clamping
+5120	UB080 Horizontal motor communication failure
+5121	UB080 Horizontal motor is not in bus control mode
+5122	UB080 Horizontal Motor Driver Warning
+5123	UB080 horizontal motor driver alarm
+5124	UB080 horizontal motor driver is not powered on
+5125	UB080 horizontal motor driver maintenance switch open
+5126	UB080 Horizontal motor main contactor feedback timeout
+5127	UB080 Horizontal motor brake contactor feedback timeout
+5128	UB080 Sled overshoot alarm
+5129	Warning:UB080 skid overshoot alarm
+5130	UB080 Sled front safety switch always 1
+5131	UB080 Sled rear safety switch is always 1
+5132	UB080 Sled front safety switch always 0
+5133	UB080 Sled rear safety switch is always 0
+5134	Warning:UB080 Forward conveying timeout
+5136	UB080W007-C1.1 clamping timeout or no signal error when opening clamping
+5144	UB080W007-C1.1 Opening timeout or no signal error when opening/clamping
+5152	UB080 Position_Pin clamping timeout or no signal error when opening clamping
+5160	UB080 Position_Pin opening timeout or no signal error when opening clamping
+5440	UB090 Horizontal motor communication failure
+5441	UB090 Horizontal motor is not in bus control mode
+5442	UB090 Horizontal Motor Driver Warning
+5443	UB090 horizontal motor driver alarm
+5444	UB090 horizontal motor driver is not powered on
+5445	UB090 horizontal motor driver maintenance switch open
+5446	UB090 Horizontal motor main contactor feedback timeout
+5447	UB090 Horizontal motor brake contactor feedback timeout
+5448	UB090 Sled overshoot alarm
+5449	Warning:UB090 skid overshoot
+5450	UB090 skid front safety switch always 1
+5451	UB090 skid rear safety switch is always 1
+5452	UB090 skid front safety switch always 0
+5453	UB090 skid rear safety switch always 0
+5454	Warning:UB090 Forward conveying timeout
+5456	UB090 Position_Pin clamping timeout or no signal error when opening clamping
+5464	UB090 Position_Pin opening timeout or no signal error when opening clamping
+5760	MB100 horizontal motor communication failure
+5761	MB100 horizontal motor is not in bus control mode
+5762	MB100 horizontal motor driver warning
+5763	MB100 horizontal motor driver alarm
+5764	MB100 horizontal motor driver is not powered on
+5765	MB100 horizontal motor driver maintenance switch open
+5766	MB100 horizontal motor main contactor feedback timeout
+5767	MB100 horizontal motor brake contactor feedback timeout
+5768	MB100 skid overshoot alarm
+5769	Warning: MB100 skid overshoot tip
+5770	MB100 Sled front safety switch always 1
+5771	MB100 skid rear safety switch always 1
+5772	MB100 Sled front safety switch always 0
+5773	MB100 skid rear safety switch always 0
+5774	Warning:MB100 forward conveying timeout
+5775	5776
+5776	MB100 lifting motor communication failure
+5777	MB100 lift motor is not in bus control mode
+5778	MB100 lift motor driver warning
+5779	MB100 lifting motor driver alarm
+5780	MB100 lift motor driver is not powered on
+5781	MB100 lift motor driver maintenance switch open
+5782	MB100 lifting motor main contactor feedback timeout
+5783	MB100 lifting motor brake contactor feedback timeout
+5784	MB100 lifting motor chain 1 signal lost
+5785	MB100 lifting motor chain 2 signal lost
+5786	5787
+5787	5788
+5788	5789
+5789	5790
+5790	5791
+5791	5792
+5792	MB100_C11.1 Clamping timeout or no signal error when opening clamping
+5793	MB100_C11.2 Clamping timeout or no signal error when opening clamping
+5794	MB100_C11.3 Clamping timeout or no signal error when opening clamping
+5795	MB100_C11.4 Clamping timeout or no signal error when opening clamping
+5796	MB100_C11.5/C11.10 Clamping timeout or no signal error when opening clamping
+5797	MB100_C11.6 Clamping timeout or no signal error when opening clamping
+5798	MB100_C11.7 Clamping timeout or no signal error when opening clamping
+5799	MB100_C11.8/C11.9 Clamping timeout or no signal error when opening clamping
+5800	MB100_C11.1 Opening timeout or no signal error when opening/clamping
+5801	MB100_C11.2 Opening timeout or no signal error when opening/clamping
+5802	MB100_C11.3 Opening timeout or no signal error when opening/clamping
+5803	MB100_C11.4 Opening timeout or no signal error when opening/clamping
+5804	MB100_C11.5/C11.10 Opening timeout or no signal error when opening/clamping
+5805	MB100_C11.6 Opening timeout or no signal error when opening/clamping
+5806	MB100_C11.7 Opening timeout or no signal error when opening/clamping
+5807	MB100_C11.8/C11.9 Opening timeout or no signal error when opening/clamping
+5808	MB100 Position_Pin Clamping timeout or no signal error when opening clamping
+5816	MB100 Position_Pin Openping timeout or no signal error when opening clamping
+6080	MB110 horizontal motor communication failure
+6081	MB110 horizontal motor is not in bus control mode
+6082	MB110 horizontal motor driver warning
+6083	MB110 horizontal motor driver alarm
+6084	MB110 horizontal motor driver is not powered on
+6085	MB110 horizontal motor driver maintenance switch open
+6086	MB110 horizontal motor main contactor feedback timeout
+6087	MB110 horizontal motor brake contactor feedback timeout
+6088	MB110 Sled overshoot alarm
+6089	Warning:MB110 Sled Overshoot Tip
+6090	MB110 Sled front safety switch 1
+6091	MB110 skid rear safety switch always 1
+6092	MB110 Sled front safety switch always 0
+6093	MB110 skid rear safety switch always 0
+6094	Warning: MB110 forward conveying timeout
+6096	MB110 lifting motor communication failure
+6097	MB110 lift motor is not in bus control mode
+6098	MB110 lift motor driver warning
+6099	MB110 lifting motor driver alarm
+6100	MB110 lifting motor driver is not powered on
+6101	MB110 lift motor driver maintenance switch open
+6102	MB110 lifting motor main contactor feedback timeout
+6103	MB110 lifting motor brake contactor feedback timeout
+6104	MB110 lifting motor chain 1 signal lost
+6105	MB110 lifting motor chain 2 signal lost
+6112	MB110C9.1 Clamping timeout or no signal error when opening clamping
+6113	MB110C9.2 Clamping timeout or no signal error when opening clamping
+6114	MB110C9.3 Clamping timeout or no signal error when opening clamping
+6115	MB110C9.4 Clamping timeout or no signal error when opening clamping
+6116	MB110C9.5 Clamping timeout or no signal error when opening clamping
+6117	MB110C9.6 Clamping timeout or no signal error when opening clamping
+6118	MB110C9.7 Clamping timeout or no signal error when opening clamping
+6119	MB101C9.8 Clamping timeout or no signal error when opening clamping
+6120	MB110C9.1 opening timeout or no signal error when opening clamping
+6121	MB110C9.2 opening timeout or no signal error when opening clamping
+6122	MB110C9.3 opening timeout or no signal error when opening clamping
+6123	MB110C9.4 opening timeout or no signal error when opening clamping
+6124	MB110C9.5 opening timeout or no signal error when opening clamping
+6125	MB110C9.6 opening timeout or no signal error when opening clamping
+6126	MB110C9.7 opening timeout or no signal error when opening clamping
+6127	MB110C9.8 opening timeout or no signal error when opening clamping
+6128	MB110 Position_Pin Clamping timeout or no signal error when opening clamping
+6136	MB110 Position_Pin opening timeout or no signal error when opening clamping
+6400	MB120 horizontal motor communication failure
+6401	MB120 horizontal motor is not in bus control mode
+6402	MB120 horizontal motor driver warning
+6403	MB120 horizontal motor driver alarm
+6404	MB120 horizontal motor driver is not powered on
+6405	MB120 horizontal motor driver maintenance switch open
+6406	MB120 horizontal motor main contactor feedback timeout
+6407	MB120 horizontal motor brake contactor feedback timeout
+6408	MB120 skid overshoot alarm
+6409	Warning: MB120 skid overshoot tip
+6410	MB120 Sled front safety switch 1
+6411	MB120 skid rear safety switch always 1
+6412	MB120 Sled front safety switch always 0
+6413	MB120 skid rear safety switch always 0
+6414	Warning:MB120 forward conveying timeout
+6416	MB120 lifting motor communication failure
+6417	MB120 lift motor is not in bus control mode
+6418	MB120 lift motor driver warning
+6419	MB120 lifting motor driver alarm
+6420	MB120 lift motor driver is not powered on
+6421	MB120 lift motor driver maintenance switch open
+6422	MB120 lifting motor main contactor feedback timeout
+6423	MB120 lifting motor brake contactor feedback timeout
+6424	MB120 lifting motor chain 1 signal lost
+6425	MB120 lifting motor chain 2 signal lost
+6432	MB120 Position_Pin clamping timeout or no signal error when opening clamping
+6440	MB120 Position_Pin opening timeout or no signal error when opening clamping
+6720	MB130 horizontal motor communication failure
+6721	MB130 horizontal motor is not in bus control mode
+6722	Alert Notification: MB130 horizontal motor driver warning
+6723	MB130 horizontal motor driver alarm
+6724	MB130 horizontal motor driver is not powered on
+6725	MB130 horizontal motor driver maintenance switch open
+6726	MB130 horizontal motor main contactor feedback timeout
+6727	MB130 horizontal motor brake contactor feedback timeout
+6728	MB130 Sled overshoot alarm
+6729	Warning:MB130 skid оvershoot tip
+6730	MB130 skid not in position or detection switch signal lost
+6731	Warning:MB130 skid not in position or detection switch signal lost
+6732	Alert Notification: MB130 forward conveying timeout
+6736	MB130 shuttle overspeed fault
+6737	MB130 shuttle frequency converter fault
+6738	MB130 shuttle drive is not powered
+6739	MB130 transverse machine drive is not powered on
+6740	MB130 traverse machine main contactor feedback timeout
+6741	MB130 transverse machine brake contactor feedback timeout
+6742	MB130 transverse machine reverse limit protection trigger
+6743	MB130 transverse machine forward limit protection trigger
+6744	Alert Notification: MB130 transverse machine inverter ready signal OFF (check 380V, 24V, safety control power supply)
+7040	MB100131L_C1.1 Clamping timeout or no signal error when opening/clamping
+7048	MB100131L _C1.1 opening timeout or no signal error when opening/clamping
+7056	MB100131L_C2.1 Clamping timeout or no signal error when opening/clamping
+7057	MB100131L _C2.2 Clamping timeout or no signal error when opening/clamping
+7064	MB100131L_C2.1 opening timeout or no signal error when opening/clamping
+7065	MB100131L_C2.2 opening timeout or no signal error when opening/clamping
+7072	MB100131L_C3.1 Clamping timeout or no signal error when opening/clamping
+7073	MB100131L_C3.2 Clamping timeout or no signal error when opening/clamping
+7080	MB100131L_C3.1 opening timeout or no signal error when opening/clamping
+7081	MB100131L_C3.2 opening timeout or no signal error when opening/clamping
+7360	MB100_W32L_C1.1 clamping timeout or no signal error when opening clamping
+7361	MB100_W32L_C1.2 clamping timeout or no signal error when opening clamping
+7368	MB100_W32L_C1.1 Opening timeout or no signal error when opening/clamping
+7369	MB100_W32L_C1.2 Opening timeout or no signal error when opening/clamping
+7376	MB100_W32L_C2.1 clamping timeout or no signal error when opening clamping
+7377	MB100_W32L_C2.2 clamping timeout or no signal error when opening clamping
+7378	MB100_W32L_C2.3 clamping timeout or no signal error when opening clamping
+7379	MB100_W32L_C2.4 clamping timeout or no signal error when opening clamping
+7380	MB100_W32L_C2.5 clamping timeout or no signal error when opening clamping
+7381	MB100_W32L_C2.6 clamping timeout or no signal error when opening clamping
+7382	MB100_W32L_C2.7 clamping timeout or no signal error when opening clamping
+7383	MB100_W32L_C2.8 clamping timeout or no signal error when opening clamping
+7384	MB100_W32L_C2.1 Opening timeout or no signal error when opening/clamping
+7385	MB100_W32L_C2.2 Opening timeout or no signal error when opening/clamping
+7386	MB100_W32L_C2.3 Opening timeout or no signal error when opening/clamping
+7387	MB100_W32L_C2.4 Opening timeout or no signal error when opening/clamping
+7388	MB100_W32L_C2.5 Opening timeout or no signal error when opening/clamping
+7389	MB100_W32L_C2.6 Opening timeout or no signal error when opening/clamping
+7390	MB100_W32L_C2.7 Opening timeout or no signal error when opening/clamping
+7391	MB100_W32L_C2.8 Opening timeout or no signal error when opening/clamping
+7392	MB100_W32L_C3.1 clamping timeout or no signal error when opening clamping
+7393	MB100_W32L_C3.2 clamping timeout or no signal error when opening clamping(C5.2 change to C3.2)
+7400	MB100_W32L_C3.1 Opening timeout or no signal error when opening/clamping
+7401	MB100_W32L_C3.2 Opening timeout or no signal error when opening/clamping(C5.2 change to C3.2)
+7408	MB100_W32L_C4.1 clamping timeout or no signal error when opening clamping
+7409	MB100_W32L_C4.2 clamping timeout or no signal error when opening clamping
+7410	MB100_W32L_C4.3 clamping timeout or no signal error when opening clamping
+7411	MB100_W32L_C4.4 clamping timeout or no signal error when opening clamping
+7412	MB100_W32L_C4.5 clamping timeout or no signal error when opening clamping
+7413	MB100_W32L_C4.6 clamping timeout or no signal error when opening clamping
+7414	MB100_W32L_C4.7 clamping timeout or no signal error when opening clamping
+7415	MB100_W32L_C4.8 clamping timeout or no signal error when opening clamping
+7416	MB100_W32L_C4.1 Opening timeout or no signal error when opening/clamping
+7417	MB100_W32L_C4.2 Opening timeout or no signal error when opening/clamping
+7418	MB100_W32L_C4.3 Opening timeout or no signal error when opening/clamping
+7419	MB100_W32L_C4.4 Opening timeout or no signal error when opening/clamping
+7420	MB100_W32L_C4.5 Opening timeout or no signal error when opening/clamping
+7421	MB100_W32L_C4.6 Opening timeout or no signal error when opening/clamping
+7422	MB100_W32L_C4.7 Opening timeout or no signal error when opening/clamping
+7423	MB100_W32L_C4.8 Opening timeout or no signal error when opening/clamping
+7424	MB100_W32L_C5.1 clamping timeout or no signal error when opening clamping
+7425	MB100_W32L_C5.2 clamping timeout or no signal error when opening clamping
+7432	MB100_W32L_C5.1 Opening timeout or no signal error when opening/clamping
+7433	MB100_W32L_C5.2 Opening timeout or no signal error when opening/clamping
+7440	MB100_W32L_C6.1 clamping timeout or no signal error when opening clamping
+7448	MB100_W32L_C6.1 Opening timeout or no signal error when opening/clamping
+7456	MB100_W32L_C7.1 clamping timeout or no signal error when opening clamping
+7464	MB100_W32L_C7.1 Opening timeout or no signal error when opening/clamping
+7472	MB100_W32L_C8.1 clamping timeout or no signal error when opening clamping
+7473	MB100_W32L_C8.2 clamping timeout or no signal error when opening clamping
+7480	MB100_W32L_C8.1 Opening timeout or no signal error when opening/clamping
+7481	MB100_W32L_C8.2 Opening timeout or no signal error when opening/clamping
+7680	MB100_W31R _C.1 clamping timeout or no signal error when opening clamping
+7688	MB100_W31R _C1.1 Opening timeout or no signal error when opening/clamping
+7696	MB100_W31R _C2.1 clamping timeout or no signal error when opening clamping
+7697	MB100_W31R _C2.2 clamping timeout or no signal error when opening clamping
+7704	MB100_W31R_C2.1 Opening timeout or no signal error when opening/clamping
+7705	MB100_W31R_C2.2 Opening timeout or no signal error when opening/clamping
+7712	MB100_W31R _C3.1 clamping timeout or no signal error when opening clamping
+7713	MB100_W31R _C3.2 clamping timeout or no signal error when opening clamping
+7720	MB100_W31R _C3.1 Opening timeout or no signal error when opening/clamping
+7721	MB100_W31R _C3.2 Opening timeout or no signal error when opening/clamping
+8000	MB100W32R _C1.2 clamping timeout or no signal error when opening clamping
+8008	MB100W32R _C1.2 Opening timeout or no signal error when opening/clamping
+8016	MB100W32R _C2.1 clamping timeout or no signal error when opening clamping
+8017	MB100W32R _C2.2 clamping timeout or no signal error when opening clamping
+8018	MB100W32R _C2.3 clamping timeout or no signal error when opening clamping
+8019	MB100W32R _C2.4 clamping timeout or no signal error when opening clamping
+8020	MB100W32R _C2.5 clamping timeout or no signal error when opening clamping
+8021	MB100W32R _C2.6 clamping timeout or no signal error when opening clamping
+8022	MB100W32R _C2.7 clamping timeout or no signal error when opening clamping
+8023	MB100W32R _C1.1 clamping timeout or no signal error when opening clamping(Air route C1 changed to C2)
+8024	MB100W32R _C2.1 Opening timeout or no signal error when opening/clamping
+8025	MB100W32R _C2.2 Opening timeout or no signal error when opening/clamping
+8026	MB100W32R _C2.3 Opening timeout or no signal error when opening/clamping
+8027	MB100W32R _C2.4 Opening timeout or no signal error when opening/clamping
+8028	MB100W32R _C2.5 Opening timeout or no signal error when opening/clamping
+8029	MB100W32R _C2.6 Opening timeout or no signal error when opening/clamping
+8030	MB100W32R _C2.7 Opening timeout or no signal error when opening/clamping
+8031	MB100W32R _C1.1 Opening timeout or no signal error when opening/clamping(Air route C1 changed to C2)
+8032	MB100W32R _C3.1 clamping timeout or no signal error when opening clamping
+8033	MB100W32R _C3.2 clamping timeout or no signal error when opening clamping(C5.2 change to C3.2)
+8040	MB100W32R _C3.1 Opening timeout or no signal error when opening/clamping
+8041	MB100W32R _C3.2 Opening timeout or no signal error when opening/clamping(C5.2 change to C3.2)
+8048	MB100W32R _C4.1 clamping timeout or no signal error when opening clamping
+8049	MB100W32R _C4.2 clamping timeout or no signal error when opening clamping
+8050	MB100W32R _C4.3 clamping timeout or no signal error when opening clamping
+8051	MB100W32R _C4.4 clamping timeout or no signal error when opening clamping
+8052	MB100W32R _C4.5 clamping timeout or no signal error when opening clamping
+8053	MB100W32R _C4.6 clamping timeout or no signal error when opening clamping
+8054	MB100W32R _C4.7 clamping timeout or no signal error when opening clamping
+8055	MB100W32R _C4.8 clamping timeout or no signal error when opening clamping
+8056	MB100W32R _C4.1 Opening timeout or no signal error when opening/clamping
+8057	MB100W32R _C4.2 Opening timeout or no signal error when opening/clamping
+8058	MB100W32R _C4.3 Opening timeout or no signal error when opening/clamping
+8059	MB100W32R _C4.4 Opening timeout or no signal error when opening/clamping
+8060	MB100W32R _C4.5 Opening timeout or no signal error when opening/clamping
+8061	MB100W32R _C4.6 Opening timeout or no signal error when opening/clamping
+8062	MB100W32R _C4.7 Opening timeout or no signal error when opening/clamping
+8063	MB100W32R _C4.8 Opening timeout or no signal error when opening/clamping
+8064	MB100W32R _C5.1 clamping timeout or no signal error when opening clamping
+8065	MB100W32R _C5.2 clamping timeout or no signal error when opening clamping
+8072	MB100W32R _C5.1 Opening timeout or no signal error when opening/clamping
+8073	MB100W32R _C5.2 Opening timeout or no signal error when opening/clamping
+8080	MB100W32R _C6.1 clamping timeout or no signal error when opening clamping
+8088	MB100W32R _C6.1 Opening timeout or no signal error when opening/clamping
+8096	MB100W32R _C7.1 clamping timeout or no signal error when opening clamping
+8104	MB100W32R _C7.1 Opening timeout or no signal error when opening/clamping
+8112	MB100W32R _C8.1 clamping timeout or no signal error when opening clamping
+8113	MB100W32R _C8.2 clamping timeout or no signal error when opening clamping
+8120	MB100W32R _C8.1 Opening timeout or no signal error when opening/clamping
+8121	MB100W32R _C8.2 Opening timeout or no signal error when opening/clamping
+8320	MB110_W31L_C1.1 clamping timeout or no signal error when opening clamping
+8321	MB110_W31L_C1.2 clamping timeout or no signal error when opening clamping
+8328	MB110_W31L_C1.1 Opening timeout or no signal error when opening/clamping
+8329	MB110_W31L_C1.2 Opening timeout or no signal error when opening/clamping
+8336	MB110_W31L_C2.1 clamping timeout or no signal error when opening clamping
+8344	MB110_W31L_C2.1 Opening timeout or no signal error when opening/clamping
+8352	MB110_W31L_C3.1 clamping timeout or no signal error when opening clamping
+8360	MB110_W31L_C3.1 Opening timeout or no signal error when opening/clamping
+8640	MB110W32L_C1.1 Clamping timeout or no signal error when opening/clamping
+8648	MB110W32L_C1.1 Opening timeout or no signal error when opening/clamping
+8656	MB110W32L_C2.1 Clamping timeout or no signal error when opening/clamping
+8657	MB110W32L_C2.2 Clamping timeout or no signal error when opening/clamping
+8658	MB110W32L_C2.3 Clamping timeout or no signal error when opening/clamping
+8659	MB110W32L_C2.4 Clamping timeout or no signal error when opening/clamping
+8660	MB110W32L_C2.5 Clamping timeout or no signal error when opening/clamping
+8664	MB110W32L_C2.1 Opening timeout or no signal error when opening/clamping
+8665	MB110W32L_C2.2 Opening timeout or no signal error when opening/clamping
+8666	MB110W32L_C2.3 Opening timeout or no signal error when opening/clamping
+8667	MB110W32L_C2.4 Opening timeout or no signal error when opening/clamping
+8668	MB110W32L_C2.5 Opening timeout or no signal error when opening/clamping
+8672	MB110W32L_C3.1 Clamping timeout or no signal error when opening/clamping
+8680	MB110W32L_C3.1 Opening timeout or no signal error when opening/clamping
+8688	MB110W32L_C4.1 Clamping timeout or no signal error when opening/clamping
+8689	MB110W32L_C4.2 Clamping timeout or no signal error when opening/clamping
+8690	MB110W32L_C4.3 Clamping timeout or no signal error when opening/clamping
+8696	MB110W32L_C4.1 Opening timeout or no signal error when opening/clamping
+8697	MB110W32L_C4.2 Opening timeout or no signal error when opening/clamping
+8698	MB110W32L_C4.3 Opening timeout or no signal error when opening/clamping
+8704	MB110W32L_C5.1 Clamping timeout or no signal error when opening/clamping
+8705	MB110W32L_C5.2 Clamping timeout or no signal error when opening/clamping
+8706	MB110W32L_C5.3 Clamping timeout or no signal error when opening/clamping
+8707	MB110W32L_C5.4 Clamping timeout or no signal error when opening/clamping
+8712	MB110W32L_C5.1 Opening timeout or no signal error when opening/clamping
+8713	MB110W32L_C5.2 Opening timeout or no signal error when opening/clamping
+8714	MB110W32L_C5.3 Opening timeout or no signal error when opening/clamping
+8715	MB110W32L_C5.4 Opening timeout or no signal error when opening/clamping
+8720	MB110W32L_C6.1 Clamping timeout or no signal error when opening/clamping
+8721	MB110W32L_C6.2 Clamping timeout or no signal error when opening/clamping
+8722	MB110W32L_C6.3 Clamping timeout or no signal error when opening/clamping
+8723	MB110W32L_C6.4 Clamping timeout or no signal error when opening/clamping
+8728	MB110W32L_C6.1 Opening timeout or no signal error when opening/clamping
+8729	MB110W32L_C6.2 Opening timeout or no signal error when opening/clamping
+8730	MB110W32L_C6.3 Opening timeout or no signal error when opening/clamping
+8731	MB110W32L_C6.4 Opening timeout or no signal error when opening/clamping
+8736	MB110W32L_C7.1 Clamping timeout or no signal error when opening/clamping
+8744	MB110W32L_C7.1 Opening timeout or no signal error when opening/clamping
+8752	MB110W32L_C8.1 Clamping timeout or no signal error when opening/clamping
+8753	MB110W32L_C8.2 Clamping timeout or no signal error when opening/clamping
+8760	MB110W32L_C8.1 Opening timeout or no signal error when opening/clamping
+8761	MB110W32L_C8.2 Opening timeout or no signal error when opening/clamping
+8784	MB110W32L_C11.1 Clamping timeout or no signal error when opening/clamping
+8785	MB110W32L_C11.2 Clamping timeout or no signal error when opening/clamping(C2.2 changed to C11.2)
+8792	MB110W32L_C11.1 Opening timeout or no signal error when opening/clamping
+8793	MB110W32L_C11.2 Opening timeout or no signal error when opening/clamping(C2.2 changed to C11.2)
+8800	MB110W32L_C12.1 Clamping timeout or no signal error when opening/clamping
+8808	MB110W32L_C12.1 Opening timeout or no signal error when opening/clamping
+8960	MB110_W31R _C1.1 Clamping timeout or no signal error when opening/clamping
+8961	MB110_W31R _C1.2 Clamping timeout or no signal error when opening/clamping
+8968	MB110_W31R _C1.1 Opening timeout or no signal error when opening/clamping
+8969	MB110_W31R _C1.2 Opening timeout or no signal error when opening/clamping
+8976	MB110_W31R _C2.1 Clamping timeout or no signal error when opening/clamping
+8984	MB110_W31R _C2.1 Opening timeout or no signal error when opening/clamping
+8992	MB110_W31R _C3.1 Clamping timeout or no signal error when opening/clamping
+9000	MB110_W31R _C3.1 Opening timeout or no signal error when opening/clamping
+9280	MB110_W32R _C1.1 Clamping timeout or no signal error when opening/clamping
+9288	MB110_W32R _C1.1 Opening timeout or no signal error when opening/clamping
+9296	MB110_W32R _C2.1 Clamping timeout or no signal error when opening/clamping
+9297	MB110_W32R _C2.3 Clamping timeout or no signal error when opening/clamping
+9298	MB110_W32R _C2.4 Clamping timeout or no signal error when opening/clamping
+9299	MB110_W32R _C2.5 Clamping timeout or no signal error when opening/clamping
+9300	MB110_W32R _C2.5 Clamping timeout or no signal error when opening/clamping
+9304	MB110_W32R _C2.1 Opening timeout or no signal error when opening/clamping
+9305	MB110_W32R _C2.3 Opening timeout or no signal error when opening/clamping
+9306	MB110_W32R _C2.4 Opening timeout or no signal error when opening/clamping
+9307	MB110_W32R _C2.5 Opening timeout or no signal error when opening/clamping
+9308	MB110_W32R _C2.5 Opening timeout or no signal error when opening/clamping
+9312	MB110_W32R _C3.1 Clamping timeout or no signal error when opening/clamping
+9320	MB110_W32R _C3.1 Opening timeout or no signal error when opening/clamping
+9328	MB110_W32R _C4.1 Clamping timeout or no signal error when opening/clamping
+9329	MB110_W32R _C4.2 Clamping timeout or no signal error when opening/clamping
+9330	MB110_W32R _C4.3 Clamping timeout or no signal error when opening/clamping
+9336	MB110_W32R _C4.1 Opening timeout or no signal error when opening/clamping
+9337	MB110_W32R _C4.2 Opening timeout or no signal error when opening/clamping
+9338	MB110_W32R _C4.3 Opening timeout or no signal error when opening/clamping
+9344	MB110_W32R _C5.1 Clamping timeout or no signal error when opening/clamping
+9345	MB110_W32R _C5.2 Clamping timeout or no signal error when opening/clamping
+9346	MB110_W32R _C5.3 Clamping timeout or no signal error when opening/clamping
+9347	MB110_W32R _C5.4 Clamping timeout or no signal error when opening/clamping
+9352	MB110_W32R _C5.1 Opening timeout or no signal error when opening/clamping
+9353	MB110_W32R _C5.2 Opening timeout or no signal error when opening/clamping
+9354	MB110_W32R _C5.3 Opening timeout or no signal error when opening/clamping
+9355	MB110_W32R _C5.4 Opening timeout or no signal error when opening/clamping
+9360	MB110_W32R _C6.1 Clamping timeout or no signal error when opening/clamping
+9361	MB110_W32R _C6.2 Clamping timeout or no signal error when opening/clamping
+9362	MB110_W32R _C6.3 Clamping timeout or no signal error when opening/clamping
+9363	MB110_W32R _C6.4 Clamping timeout or no signal error when opening/clamping
+9368	MB110_W32R _C6.1 Opening timeout or no signal error when opening/clamping
+9369	MB110_W32R _C6.2 Opening timeout or no signal error when opening/clamping
+9370	MB110_W32R _C6.3 Opening timeout or no signal error when opening/clamping
+9371	MB110_W32R _C6.4 Opening timeout or no signal error when opening/clamping
+9376	MB110_W32R _C7.1 Clamping timeout or no signal error when opening/clamping
+9384	MB110_W32R _C7.1 Opening timeout or no signal error when opening/clamping
+9392	MB110_W32R _C8.1 Clamping timeout or no signal error when opening/clamping
+9393	MB110_W32R _C8.2 Clamping timeout or no signal error when opening/clamping
+9400	MB110_W32R _C8.1 Opening timeout or no signal error when opening/clamping
+9401	MB110_W32R _C8.2 Opening timeout or no signal error when opening/clamping
+9424	MB110_W32R _C10.1 Clamping timeout or no signal error when opening/clamping
+9425	MB110_W32R _C10.2 Clamping timeout or no signal error when opening/clamping（C2.2 change to C10.2）
+9432	MB110_W32R _C10.1 Opening timeout or no signal error when opening/clamping
+9433	MB110_W32R _C10.2 Opening timeout or no signal error when opening/clamping（C2.2 change to C10.2）
+9440	MB110_W32R _C11.1 Clamping timeout or no signal error when opening/clamping
+9448	MB110_W32R _C11.1 Opening timeout or no signal error when opening/clamping
