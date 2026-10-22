@@ -144,6 +144,191 @@ def _not(x: Any) -> Any:
     return {"not": x}
 
 
+# --- Общие разборщики имён и вызовов (LAD, SCL, STL) ---
+def _sym_text(holder: ET.Element) -> str:
+    sym = _kid(holder, "Symbol")
+    comps = _kids(sym, "Component") if sym is not None else _kids(holder, "Component")
+    parts = []
+    for c in comps:
+        s = _q(c.get("Name") or "")
+        idx = [_const_txt(a) for a in _kids(c, "Access")]
+        if idx:
+            s += "[" + ",".join(idx) + "]"
+        parts.append(s)
+    return ".".join(parts)
+
+
+def _const_txt(a: ET.Element) -> str:
+    if a.get("Scope") in ("LiteralConstant", "TypedConstant"):
+        cv = a.find(".//{*}ConstantValue")
+        return (cv.text or "") if cv is not None else ""
+    return _sym_text(a) if _kid(a, "Symbol") is not None else "?"
+
+
+def _blk_name_from_inst(inst: ET.Element) -> str:
+    """У FC в SCL имя вызываемого блока лежит в Instance/Component (без кавычек)."""
+    return ".".join(split_name(_sym_text(inst)))
+
+
+def _scl_text(el: ET.Element, out: list[str] | None = None) -> str:
+    """Текст SCL-фрагмента: знаки, имена, числа и пробелы в порядке записи (комментарий строки сохраняется как //...)."""
+    top = out is None
+    out = [] if out is None else out
+    t = _ln(el.tag)
+    if t == "Token":
+        out.append(el.get("Text") or "")
+    elif t == "Blank":
+        out.append(" " * int(el.get("Num") or 1))
+    elif t == "NewLine":
+        out.append("\n" * int(el.get("Num") or 1))
+    elif t == "ConstantValue":
+        out.append(el.text or "")
+    elif t in ("LineComment", "Comment"):
+        out.append("//" + "".join((x.text or "") for x in el.iter() if _ln(x.tag) == "Text"))
+        return "".join(out) if top else ""
+    elif t == "Component":
+        out.append(el.get("Name") or "")
+    elif t == "Parameter" and el.get("Name"):
+        out.append(el.get("Name") or "")
+    elif t == "CallInfo":
+        inst = _kid(el, "Instance")
+        if inst is not None:
+            out.append(_blk_name_from_inst(inst) if el.get("BlockType") == "FC" else _sym_text(inst))
+        for c in el:
+            if _ln(c.tag) != "Instance":
+                _scl_text(c, out)
+        return "".join(out) if top else ""
+    for c in el:
+        _scl_text(c, out)
+    return "".join(out) if top else ""
+
+
+def _acc_node(e: ET.Element) -> dict[str, Any]:
+    """Значение параметра вызова: переменная {v}, константа {k}, иначе выражение {expr: текст}."""
+    sc = e.get("Scope") or ""
+    if sc in ("GlobalVariable", "LocalVariable"):
+        node: dict[str, Any] = {"v": _sym_text(e)}
+        if sc == "LocalVariable":
+            node["l"] = 1
+        return node
+    if sc in ("LiteralConstant", "TypedConstant"):
+        return {"k": _const_txt(e)}
+    if sc in ("GlobalConstant", "LocalConstant"):
+        return {"k": _sym_text(e)}
+    return {"expr": _scl_text(e).strip()}
+
+
+def _param_node(p: ET.Element) -> dict[str, Any] | None:
+    """Параметр вызова в SCL (Имя := ...) и STL/LAD (Parameter с вложенным Access); пустой параметр -> None."""
+    accs = _kids(p, "Access")
+    extra = [t for t in _kids(p, "Token") if (t.get("Text") or "") not in (":=", "=>")]
+    if len(accs) == 1 and not extra:
+        return _acc_node(accs[0])
+    if not accs and not extra:
+        return None
+    txt = "".join(_scl_text(c) for c in p if _ln(c.tag) != "Token" or (c.get("Text") or "") not in (":=", "=>")).strip()
+    return {"expr": txt} if txt else None
+
+
+def _call_entry(access: ET.Element, ci: ET.Element, src: str, cnd: bool) -> dict[str, Any]:
+    """Вызов из SCL/STL: blk (если известен), type, inst, loc (экземпляр локальный), args {формальный параметр: значение}."""
+    inst_el = _kid(ci, "Instance")
+    typ = ci.get("BlockType")
+    ent: dict[str, Any] = {"blk": ci.get("Name"), "type": typ, "src": src}
+    if inst_el is not None:
+        if ent["blk"] is None and typ == "FC":
+            ent["blk"] = _blk_name_from_inst(inst_el)
+        else:
+            ent["inst"] = _sym_text(inst_el)
+            if inst_el.get("Scope") == "LocalVariable":
+                ent["loc"] = 1
+    args: dict[str, Any] = {}
+    outs = []
+    for p in _kids(ci, "Parameter"):
+        n = _param_node(p)
+        if n is not None:
+            args[p.get("Name") or "?"] = n
+        if any(t.get("Text") == "=>" for t in _kids(p, "Token")):
+            outs.append(p.get("Name"))
+    ent["args"] = args
+    if outs:
+        ent["outs"] = outs
+    if src == "SCL":
+        ent["txt"] = _scl_text(access).strip()[:600]
+    if cnd:
+        ent["cnd"] = 1
+    return ent
+
+
+_SCL_OPEN = {"IF", "CASE", "FOR", "WHILE", "REPEAT"}
+_SCL_CLOSE = {"END_IF", "END_CASE", "END_FOR", "END_WHILE", "END_REPEAT"}
+
+
+_FOR_RE = re.compile(r"(\w+)\s*:=\s*(-?\d+)\s*TO\s*(-?\d+)(?:\s*BY\s*(-?\d+))?", re.I)
+
+
+def _stext_calls(holder: ET.Element, src: str) -> list[dict[str, Any]]:
+    """Вызовы блоков в SCL/STL в порядке записи; cnd=1: вызов внутри IF/CASE/FOR (выполняется не всегда);
+    loop {var, from, to, by}: вызов внутри цикла FOR с числовыми границами (самый внутренний)."""
+    res: list[dict[str, Any]] = []
+    depth = [0]
+    loops: list[dict[str, Any] | None] = []        # стек циклов FOR (None: границы не числа)
+    head: list[str] = []                           # текст заголовка FOR до DO
+    in_head = [False]
+
+    def walk(el: ET.Element) -> None:
+        t = _ln(el.tag)
+        if t == "Token":
+            tx = (el.get("Text") or "").upper()
+            if in_head[0]:
+                if tx == "DO":
+                    in_head[0] = False
+                    m = _FOR_RE.search("".join(head))
+                    loops.append({"var": m.group(1), "from": int(m.group(2)), "to": int(m.group(3)), "by": int(m.group(4) or 1)} if m else None)
+                else:
+                    head.append(el.get("Text") or "")
+            if tx in _SCL_OPEN:
+                depth[0] += 1
+                if tx == "FOR":
+                    in_head[0], head[:] = True, []
+            elif tx in _SCL_CLOSE:
+                depth[0] = max(0, depth[0] - 1)
+                if tx == "END_FOR" and loops:
+                    loops.pop()
+            return
+        if in_head[0]:
+            head.append(_scl_text(el))
+            return
+        if t == "Access" and el.get("Scope") == "Call":
+            ci = _kid(el, "CallInfo")
+            if ci is not None:
+                ent = _call_entry(el, ci, src, depth[0] > 0)
+                lp = next((x for x in reversed(loops) if x), None)
+                if lp:
+                    ent["loop"] = lp
+                res.append(ent)
+            return
+        for c in el:
+            walk(c)
+
+    walk(holder)
+    return res
+
+
+def _fix_local_calls(nets: list[dict[str, Any]], top: dict[str, list[list[str]]]) -> None:
+    """У мультиинстанса (Static-член блока) тип FB берётся из интерфейса вызывающего блока."""
+    static: dict[str, str] = {}
+    for sec in ("Static", "InOut", "Input"):
+        for m in top.get(sec, []):
+            static.setdefault(norm_name(m[0]), m[1])
+    for net in nets:
+        for c in net.get("calls", {}).values():
+            if not c.get("blk") and c.get("inst") and c.get("loc"):
+                dt = static.get(norm_name(_root(c["inst"])))
+                if dt:
+                    c["blk"] = ".".join(split_name(dt))
+
+
 # --- Разбор одной сети (FlgNet) ---
 class _Net:
     """Граф одной сети: элементы, переменные, провода; значение выхода элемента считается рекурсивно с запоминанием."""
@@ -195,22 +380,10 @@ class _Net:
 
     # -- переменные --
     def _symbol(self, holder: ET.Element) -> str:
-        sym = _kid(holder, "Symbol")
-        comps = _kids(sym, "Component") if sym is not None else _kids(holder, "Component")
-        parts = []
-        for c in comps:
-            s = _q(c.get("Name") or "")
-            idx = [self._const_text(a) for a in _kids(c, "Access")]
-            if idx:
-                s += "[" + ",".join(idx) + "]"
-            parts.append(s)
-        return ".".join(parts)
+        return _sym_text(holder)
 
     def _const_text(self, a: ET.Element) -> str:
-        if a.get("Scope") in ("LiteralConstant", "TypedConstant"):
-            cv = a.find(".//{*}ConstantValue")
-            return (cv.text or "") if cv is not None else ""
-        return self._symbol(a) if _kid(a, "Symbol") is not None else "?"
+        return _const_txt(a)
 
     def _access(self, e: ET.Element) -> dict[str, Any]:
         sc = e.get("Scope") or ""
@@ -233,7 +406,12 @@ class _Net:
             return
         inst = _kid(ci, "Instance")
         params = [{"name": p.get("Name"), "sec": p.get("Section")} for p in _kids(ci, "Parameter")]
-        self.calls[uid] = {"blk": ci.get("Name"), "type": ci.get("BlockType"), "inst": self._symbol(inst) if inst is not None else None, "params": params}
+        ent: dict[str, Any] = {"blk": ci.get("Name"), "type": ci.get("BlockType"), "inst": self._symbol(inst) if inst is not None else None, "params": params}
+        if inst is not None and ci.get("Name") is None and ci.get("BlockType") == "FC":
+            ent["blk"], ent["inst"] = _blk_name_from_inst(inst), None
+        elif inst is not None and inst.get("Scope") == "LocalVariable":
+            ent["loc"] = 1
+        self.calls[uid] = ent
         self.parts[uid] = {"name": "Call", "neg": set(), "inst": None}
         self.order.append(uid)
 
@@ -409,6 +587,8 @@ class _Net:
             node = {"blk": c["blk"], "type": c["type"]}
             if c["inst"]:
                 node["inst"] = c["inst"]
+            if c.get("loc"):
+                node["loc"] = 1
             en = self.inp(uid, "en")
             if en is not None:
                 node["en"] = en
@@ -474,6 +654,11 @@ def parse_block(root: ET.Element) -> dict[str, Any] | None:
                 ("STL" if src_holder is not None and src_holder.find(".//{*}StatementList") is not None else "пусто")
             if kind != "пусто":
                 net["u"] = [kind]
+                calls = {f"c{i}": c for i, c in enumerate(_stext_calls(src_holder, kind), 1)}
+                if calls:
+                    net["calls"] = calls
+                if kind == "SCL":
+                    net["scl"] = _scl_text(src_holder).strip()[:4000]
                 nets.append(net)
             continue
         gnet = _Net(flg)
@@ -487,17 +672,33 @@ def parse_block(root: ET.Element) -> dict[str, Any] | None:
             net["u"] = gnet.unparsed
         if w or calls or gnet.unparsed:
             nets.append(net)
+    _fix_local_calls(nets, top)
     out["nets"] = nets
     return out
+
+
+def parse_instance_db(root: ET.Element) -> tuple[str, str] | None:
+    """Экземплярный DB: (имя DB, имя FB, от которого он создан); нужен, чтобы по имени DB в вызове найти FB."""
+    for c in root:
+        if _ln(c.tag) == "SW.Blocks.InstanceDB":
+            al = _kid(c, "AttributeList")
+            if al is None:
+                return None
+            nm, fb = _kid(al, "Name"), _kid(al, "InstanceOfName")
+            if nm is not None and fb is not None and nm.text and fb.text:
+                return nm.text, fb.text
+    return None
 
 
 # --- Проект ---
 class TiaLogic:
     """Логика проекта: блоки, индекс выходов, цепочки и раскрытие вызовов."""
 
-    def __init__(self, blocks: dict[str, dict[str, Any]], plc: str = "") -> None:
+    def __init__(self, blocks: dict[str, dict[str, Any]], plc: str = "", idb: dict[str, str] | None = None) -> None:
         self.blocks = blocks
         self.plc = plc
+        self.idb: dict[str, str] = idb or {}                       # имя экземплярного DB -> имя FB
+        self._resolve_global_instances()
         self.index: dict[str, list[tuple[str, int, int]]] = {}
         self.instances: dict[str, tuple[str, str, int, str]] = {}   # имя экземпляра -> (FB, блок вызова, индекс сети, uid вызова)
         self._build_index()
@@ -508,13 +709,19 @@ class TiaLogic:
         """ZIP или папка выгрузки (как делает tia-export.ps1); читаются только .xml блоков."""
         p = Path(path)
         blocks: dict[str, dict[str, Any]] = {}
+        idb: dict[str, str] = {}
         plc = ""
 
         def add(data: bytes, where: str) -> None:
             if b"SW.Blocks." not in data:
                 return
             try:
-                b = parse_block(ET.fromstring(data))
+                root = ET.fromstring(data)
+                b = parse_block(root)
+                if b is None:
+                    db = parse_instance_db(root) if b"InstanceDB" in data else None
+                    if db:
+                        idb[db[0]] = db[1]
             except ET.ParseError:
                 return
             if b and b["name"]:
@@ -536,11 +743,24 @@ class TiaLogic:
                 m = re.search(r"/([^/]+)/Blocks/", "/" + f.relative_to(p).as_posix())
                 if m:
                     plc = m.group(1)
-        return cls(blocks, plc)
+        return cls(blocks, plc, idb)
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> "TiaLogic":
-        return cls(data["blocks"], data.get("plc", ""))
+        return cls(data["blocks"], data.get("plc", ""), data.get("idb"))
+
+    def _resolve_global_instances(self) -> None:
+        """Вызов FB через глобальный экземплярный DB без имени блока: имя FB берётся из таблицы DB -> FB."""
+        if not self.idb:
+            return
+        by_norm = {norm_name(k): v for k, v in self.idb.items()}
+        for b in self.blocks.values():
+            for net in b["nets"]:
+                for c in net.get("calls", {}).values():
+                    if not c.get("blk") and c.get("inst") and not c.get("loc"):
+                        fb = by_norm.get(norm_name(c["inst"]))
+                        if fb:
+                            c["blk"] = fb
 
     # -- индекс --
     def _build_index(self) -> None:
@@ -549,12 +769,15 @@ class TiaLogic:
                 for wi, w in enumerate(net.get("w", [])):
                     self.index.setdefault(norm_name(w["o"]), []).append((bname, ni, wi))
                 for uid, c in net.get("calls", {}).items():
-                    if c.get("inst") and c.get("type") == "FB":
+                    if c.get("inst") and c.get("type") == "FB" and c.get("blk"):
                         self.instances.setdefault(norm_name(c["inst"]), (c["blk"], bname, ni, uid))
 
     # -- вывод --
     def to_dict(self) -> dict[str, Any]:
-        return {"plc": self.plc, "blocks": self.blocks, "stats": self.stats()}
+        d: dict[str, Any] = {"plc": self.plc, "blocks": self.blocks, "stats": self.stats()}
+        if self.idb:
+            d["idb"] = self.idb
+        return d
 
     def to_json(self, path: str | Path | None = None) -> str:
         s = json.dumps(self.to_dict(), ensure_ascii=False, separators=(",", ":"))
@@ -738,6 +961,8 @@ def to_text(node: Any, top: bool = True) -> str:
     if "call" in node:
         c = node["call"]
         return f"{c.get('blk')}.{c.get('p')}" if isinstance(c, dict) else f"вызов#{c}"
+    if "expr" in node:
+        return str(node["expr"])
     if "unparsed" in node:
         return f"[не разобрано: {node['unparsed']}]"
     return json.dumps(node, ensure_ascii=False)
