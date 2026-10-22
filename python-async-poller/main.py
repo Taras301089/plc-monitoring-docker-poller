@@ -403,7 +403,9 @@ async def _async_main() -> None:
         if client is None:
             return web.json_response({"detail": "PLC is not active"}, status=404)
         try:
-            return web.json_response(await client.browse_children(node_id))
+            return web.json_response(await client.browse_children(
+                node_id, inspect_children=request.query.get("shallow", "false").lower() != "true"
+            ))
         except Exception as exc:
             log.exception("Чтение дочерних узлов завершилось ошибкой")
             return web.json_response({"detail": f"{exc.__class__.__name__}: {exc}"}, status=502)

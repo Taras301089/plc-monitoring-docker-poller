@@ -5,7 +5,9 @@ name: pmm-test
 
 services:
   fastapi-api-test:
-    build: ./fastapi-api
+    build:
+      context: .
+      dockerfile: fastapi-api/Dockerfile
     container_name: pmm_test_api
     restart: "no"
     environment:

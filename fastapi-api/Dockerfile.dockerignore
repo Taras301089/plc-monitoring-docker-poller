@@ -1,0 +1,19 @@
+# The API builds from the repository root. Send only its runtime sources.
+# TIA exports, credentials, Git history, tests and local data stay outside context.
+**
+!fastapi-api/
+fastapi-api/**
+!fastapi-api/*.py
+!fastapi-api/requirements.txt
+!fastapi-api/static/
+!fastapi-api/static/**
+!Scada/
+Scada/**
+!Scada/__init__.py
+!Scada/gwm/
+Scada/gwm/**
+!Scada/gwm/*.py
+!Scada/gwm/static/
+!Scada/gwm/static/**
+**/__pycache__/
+**/*.pyc

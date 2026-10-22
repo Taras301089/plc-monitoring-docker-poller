@@ -4,6 +4,7 @@ import asyncio
 import json
 import re
 import os
+import sys
 import time
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
@@ -17,6 +18,12 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+
+# Feature packages are siblings of fastapi-api in a checkout and live in /app
+# alongside this module in the Docker image.
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if (_PROJECT_ROOT / "Scada").is_dir():
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
 from readonly import READ_ONLY, blocked
 from auth import current_user, ensure_auth_schema, require_admin, require_editor, require_user, router as auth_router
@@ -35,6 +42,7 @@ from comments import ensure_comments_schema, router as comments_router
 from backups import router as backups_router
 from trends import ensure_trends_schema, router as trends_router
 from alarms import ensure_alarms_schema, router as alarms_router
+from Scada.gwm import mount as mount_gwm_scada
 from tia import router as tia_router
 from lift_cycles import router as lift_cycles_router
 from tgnotify import TgSender, TgUpdatesPoller, ensure_tg_schema, router as tgnotify_router
@@ -334,6 +342,7 @@ app.include_router(activity_router)
 app.include_router(backups_router)
 app.include_router(trends_router)
 app.include_router(alarms_router)
+mount_gwm_scada(app)
 app.include_router(tia_router)
 app.include_router(lift_cycles_router)
 app.include_router(tgnotify_router)

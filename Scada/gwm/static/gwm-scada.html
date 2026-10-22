@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>GWM · Схема станций UB / MB</title>
+  <link rel="stylesheet" href="gwm-scada.css">
+  <script src="gwm-scada.js" defer></script>
+</head>
+<body>
+  <div class="scada-app">
+    <header class="app-header">
+      <div class="brand"><strong>GWM</strong><div>PRODUCTION MONITORING<span>Кузовное производство · UB / MB</span></div></div>
+      <div class="header-meta">
+        <a href="/#andon" title="Вернуться на главную страницу локального PMM к панели мониторинга Andon и показателям производства">← PMM</a>
+        <span class="demo-badge" id="data-source" aria-live="polite">ПОДКЛЮЧЕНИЕ К ПЛК</span>
+        <button id="live-refresh" type="button" title="Повторно прочитать текущие состояния, CARID и аварии станций GWM без записи в ПЛК">Обновить</button>
+        <button class="theme-toggle" id="theme-toggle" type="button" title="Переключить светлую и тёмную тему для просмотра схемы на вашем экране">Светлая тема</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="overview" aria-label="Обзор линии">
+        <div><p class="eyebrow">ОБЗОР ЛИНИИ</p><h1>Схема станций</h1><p class="overview-note">27 станций · выберите станцию для просмотра CARID и аварий</p></div>
+        <div class="summary" id="summary" aria-label="Количество станций по режимам"></div>
+      </section>
+
+      <div class="toolbar">
+        <div class="legend" aria-label="Легенда режимов">
+          <span class="mode-auto"><i class="swatch"></i>3 · Auto Mode</span>
+          <span class="mode-manual"><i class="swatch"></i>2 · Manual Mode</span>
+          <span class="mode-error"><i class="swatch"></i>1 · Error</span>
+          <span class="mode-undefined" title="Голубой цвет соответствует коду четыре; назначение этого состояния пока требуется уточнить"><i class="swatch"></i>4 · Не уточнено</span>
+        </div>
+        <div class="tools"><label for="station-picker">К станции</label><select id="station-picker" title="Выбрать станцию линии и открыть текущий CARID кузова и причины аварийной остановки"></select></div>
+      </div>
+
+      <div class="workspace">
+        <section class="diagram-panel" aria-label="Схема конвейера GWM">
+          <div class="diagram-heading"><span>UB / MB <span class="muted">· план линии</span></span><span class="muted">Режим · движение · датчики</span></div>
+          <div class="line-scroll" id="line-scroll" tabindex="0" title="Прокрутить схему по горизонтали на небольшом экране, чтобы увидеть все станции">
+            <div class="line-canvas">
+              <svg class="track" viewBox="0 0 1400 490" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M70 138 H1330 V370 H70 Z M80 150 H1320 V358 H80 Z" fill="none" class="rail"/>
+              </svg>
+              <div class="equipment" style="left:12%;top:50px"><span class="equipment-badge">HMI 1</span></div>
+              <div class="equipment" style="left:21%;top:50px"><span class="equipment-badge">VDP 1</span></div>
+              <div class="equipment" style="left:36%;top:50px"><span class="equipment-badge">HMI 2</span></div>
+              <div class="equipment" style="left:51%;top:50px"><span class="equipment-badge">MCP</span></div>
+              <div class="equipment" style="left:66%;top:50px"><span class="equipment-badge">VDP 1</span></div>
+              <div class="robot-zone"><span class="robot-label">BS · W165L / W165R</span><span class="muted">Роботизированный участок</span></div>
+              <div class="station-row top-row" id="top-row"></div>
+              <div class="cell-center"><span class="eyebrow">GWM / BODY SHOP</span><span>UB10 — MB270</span><small>Состояния станций и транспортировка</small></div>
+              <div class="equipment" style="left:51%;top:245px"><span class="equipment-badge">MCP / PDP</span></div>
+              <div class="equipment" style="left:82%;top:245px"><span class="equipment-badge">HMI 3</span></div>
+              <div class="station-row bottom-row" id="bottom-row"></div>
+              <div class="equipment" style="left:12%;top:462px"><span class="equipment-badge">HMI 1</span></div>
+              <div class="equipment" style="left:27%;top:462px"><span class="equipment-badge">VDP 4</span></div>
+              <div class="equipment" style="left:40%;top:462px"><span class="equipment-badge">HMI 3</span></div>
+              <div class="equipment" style="left:47%;top:462px"><span class="equipment-badge">VDP 3</span></div>
+              <div class="equipment" style="left:68%;top:462px"><span class="equipment-badge">VDP 2</span></div>
+              <div class="equipment" style="left:88%;top:462px"><span class="equipment-badge">HMI 5</span></div>
+            </div>
+          </div>
+          <div class="diagram-footer">
+            <span>Датчики: <span><b>1</b> OutLet</span><span><b>2</b> End</span><span><b>3</b> Slow</span><span><b>4</b> Start</span><span><b>5</b> InLet</span></span>
+            <div class="legend"><span><i class="sensor-lamp is-on"></i>1</span><span><i class="sensor-lamp is-off"></i>0</span><span><i class="sensor-lamp is-unknown"></i>Нет данных</span></div>
+          </div>
+        </section>
+
+        <aside class="inspector" aria-label="CARID и аварии выбранной станции" id="inspector"></aside>
+      </div>
+
+      <footer class="page-footer"><span id="source-note">Чтение сигналов GWM_UB / GWM_MB…</span><span>FWD: верхний ряд → · нижний ряд ← <span class="muted">(условно)</span></span></footer>
+    </main>
+    <noscript>Для интерактивной схемы станций необходимо включить JavaScript в браузере.</noscript>
+  </div>
+</body>
+</html>

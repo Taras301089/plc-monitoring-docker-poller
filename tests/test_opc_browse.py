@@ -38,7 +38,7 @@ class FakeClient:
         return FakeNode(self._tree, "ROOT")
 
     def get_node(self, node_id):
-        return FakeNode(self._tree, node_id.to_string())
+        return FakeNode(self._tree, node_id if isinstance(node_id, str) else node_id.to_string())
 
 
 V, O = ua.NodeClass.Variable, ua.NodeClass.Object
@@ -101,3 +101,38 @@ async def test_plain_variable_stays_unknown(scanned):
 async def test_struct_fields_not_stored_up_front(scanned):
     """Поля структуры не раздувают базу: они подгружаются по клику (запрос children)."""
     assert "Voltage L1-N" not in scanned
+
+
+async def test_shallow_large_array_reads_only_one_level_without_probing_each_word():
+    """MSG.W has 1000 children: discovery must not issue 1000 extra OPC browses."""
+    c = PlcOpcClient(Plc(id=1, name="T", opc_endpoint="opc.tcp://x", poll_interval_ms=1000))
+    parent = 'ns=3;s="MSG"."W"'
+    tree = {parent: [_ref(f'"MSG"."W"[{i}]', str(i), V) for i in range(1000)]}
+    c._client = FakeClient(tree)
+
+    async def connected():
+        return True
+
+    async def must_not_probe(*args):
+        raise AssertionError("Shallow discovery must not inspect array elements")
+
+    c._ensure_connected_unlocked = connected
+    c._has_children_batch = must_not_probe
+    rows = await c.browse_children(parent, inspect_children=False)
+    assert len(rows) == 1000
+    assert rows[320]["node_id"] == 'ns=3;s="MSG"."W"[320]'
+    assert all(row["data_type"] == "Unknown" for row in rows)
+
+
+async def test_normal_children_browse_keeps_structure_type_inspection():
+    c = PlcOpcClient(Plc(id=1, name="T", opc_endpoint="opc.tcp://x", poll_interval_ms=1000))
+    c._client = FakeClient(_tree())
+
+    async def connected():
+        return True
+
+    c._ensure_connected_unlocked = connected
+    rows = await c.browse_children('ns=3;s="Energy_DRV_FB_IDB".Inputs')
+    types = {row["variable_name"]: row["data_type"] for row in rows}
+    assert types["Status_Data_I"] == "Structure tag"
+    assert types["Phases"] == "Array"

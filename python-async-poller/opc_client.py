@@ -590,8 +590,8 @@ class PlcOpcClient:
                 "tag_type": "DIGITAL" if variant_type == ua.VariantType.Boolean else "ANALOG",
             }
 
-    async def browse_children(self, node_id: str) -> list[dict[str, Any]]:
-        """Прямые дочерние узлы (для раскрытия структурных тегов); имя, тип и признак вложенности."""
+    async def browse_children(self, node_id: str, *, inspect_children: bool = True) -> list[dict[str, Any]]:
+        """Прямые дочерние узлы; SCADA может пропустить проверку вложенности каждого элемента массива."""
         async with self._lock:
             if not await self._ensure_connected_unlocked():
                 raise ConnectionError("OPC UA connection is unavailable")
@@ -606,7 +606,7 @@ class PlcOpcClient:
                 timeout=10.0,
             )
             refs = [r for r in refs if r.NodeClass in (ua.NodeClass.Variable, ua.NodeClass.Object)]
-            kids = await self._has_children_batch(client, refs)
+            kids = await self._has_children_batch(client, refs) if inspect_children else [""] * len(refs)
             return [
                 {
                     "variable_name": r.BrowseName.Name or "",

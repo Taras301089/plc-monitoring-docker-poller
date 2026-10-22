@@ -40,7 +40,9 @@ services:
         max-file: "3"
 
   fastapi-api:
-    build: ./fastapi-api
+    build:
+      context: .
+      dockerfile: fastapi-api/Dockerfile
     container_name: fastapi_api
     restart: always
     environment:
