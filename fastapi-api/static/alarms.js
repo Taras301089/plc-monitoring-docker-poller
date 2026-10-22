@@ -340,16 +340,19 @@
   // Колонки: порядок от общего к частному; sort = параметр сервера (нет: сортировки на сервере нет)
   const off = () => (data ? data.offset_hours : 5);
   const lostNow = () => failStreak >= 2;
+  // Авария снята во время разрыва связи с ПЛК: показано последнее время, когда она была видна (как «≈» в Excel)
+  const GAP_TIP = 'Точное время снятия неизвестно: связь с ПЛК отсутствовала, показано последнее время, когда авария была видна';
+  const approx = r => (r.closed_in_gap && !r.active ? '≈ ' : '');
   const COLS = [
     { k: 'started', t: 'Появление', sort: 'started_at', tip: 'Когда авария появилась, время завода; сортировка по времени появления', get: r => toPlant(r.started_at, off()) + (r.active_at_start ? ' · была активна при обнаружении' : '') },
-    { k: 'ended', t: 'Снятие', sort: 'ended_at', tip: 'Когда авария снята, время завода; прочерк у ещё активных', get: r => (r.ended_at ? toPlant(r.ended_at, off()) : '—') },
+    { k: 'ended', t: 'Снятие', sort: 'ended_at', tip: 'Когда авария снята, время завода; прочерк у ещё активных', get: r => (r.ended_at ? approx(r) + toPlant(r.ended_at, off()) : '—') },
     { k: 'station', t: 'Станция', sort: 'station', fil: 'station', tip: 'Станция линии, к которой относится авария', get: r => r.station || '—' },
     { k: 'device', t: 'Устройство', fil: 'device', tip: 'Устройство на станции (например, частотный преобразователь); прочерк, если не указано', get: r => r.device || '—' },
     { k: 'code', t: 'Код', sort: 'code', tip: 'Код аварии из справочника HMI или частотника; у аварий самого ПЛК (диагностика) кода нет', get: r => r.code || '—' },
     { k: 'text', t: 'Текст аварии', tip: 'Текст аварии из справочника; у аварий самого ПЛК это сообщение диагностики ПЛК', get: r => r.text || '—' },
     { k: 'src', t: 'Источник / Класс', fil: 'cls', tip: 'Откуда получена авария и к какому классу относится: HMI и класс из справочника или «ПЛК · диагностика» (аварии самого ПЛК: модули, приводы, Profinet)', get: r => `${r.source || '—'} · ${r.class || '—'}` },
     { k: 'state', t: 'Состояние', fil: 'hstate', tip: 'Активна: авария есть сейчас; Снята: авария закончилась', get: r => (r.active ? 'Активна' : 'Снята') },
-    { k: 'dur', t: 'Длительность', sort: 'duration', num: true, tip: 'Сколько длится или длилась авария; у активных растёт каждую секунду', get: r => (lostNow() ? '—' : fmtDuration(r.active ? liveSeconds(r.started_at, data.now, fetchedAt, Date.now()) : r.duration_sec)) + (r.active_at_start ? ' · наблюдение неполное' : '') },
+    { k: 'dur', t: 'Длительность', sort: 'duration', num: true, tip: 'Сколько длится или длилась авария; у активных растёт каждую секунду', get: r => (lostNow() ? '—' : approx(r) + fmtDuration(r.active ? liveSeconds(r.started_at, data.now, fetchedAt, Date.now()) : r.duration_sec)) + (r.active_at_start ? ' · наблюдение неполное' : '') },
   ];
 
   const q = s => pane.querySelector(s);
@@ -699,11 +702,11 @@
     const sub = t => `<div class="al-sub">${esc(t)}</div>`;
     switch (c.k) {
       case 'started': inner = esc(toPlant(r.started_at, off())) + (r.active_at_start ? sub('Была активна при обнаружении') : ''); break;
-      case 'ended': inner = esc(c.get(r)); break;
+      case 'ended': inner = r.closed_in_gap && r.ended_at ? `<span title="${esc(GAP_TIP)}">${esc(c.get(r))}</span>` : esc(c.get(r)); break;
       case 'code': inner = `<span class="al-code" title="Код аварии: ссылка-подсветка, перехода нет">${esc(c.get(r))}</span>`; break;
       case 'src': inner = `${esc(r.source || '—')} · ${esc(r.class || '—')}`; break;
       case 'state': inner = `<span class="${r.active ? 'al-st-on' : 'al-st-off'}"${r.acked_at ? ` title="${esc(ackedTitle(r.acked_at, off()))}"` : ''}>${r.active ? 'Активна' : 'Снята'}</span>`; break;
-      case 'dur': inner = `<span ${r.active && !lost ? `class="al-live" data-start="${esc(r.started_at)}"` : ''}>${esc(lost ? '—' : fmtDuration(r.active ? liveSeconds(r.started_at, data.now, fetchedAt, Date.now()) : r.duration_sec))}</span>${r.active_at_start ? sub('Наблюдение неполное') : ''}`; break;
+      case 'dur': inner = `<span ${r.active && !lost ? `class="al-live" data-start="${esc(r.started_at)}"` : ''}${r.closed_in_gap && !r.active ? ` title="${esc(GAP_TIP)}"` : ''}>${esc(lost ? '—' : approx(r) + fmtDuration(r.active ? liveSeconds(r.started_at, data.now, fetchedAt, Date.now()) : r.duration_sec))}</span>${r.active_at_start ? sub('Наблюдение неполное') : ''}`; break;
       default: inner = esc(c.get(r));
     }
     return `<td data-c="${ci}" class="${c.num ? 'al-num' : ''}${c.k === 'text' ? ' al-text' : ''}">${inner}</td>`;

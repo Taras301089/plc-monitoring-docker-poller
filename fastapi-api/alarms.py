@@ -75,6 +75,8 @@ async def ensure_alarms_schema(pool: asyncpg.Pool) -> None:
         """
     )
     await pool.execute("CREATE INDEX IF NOT EXISTS ix_alarm_events_plc_time ON alarm_events (plc_id, started_at DESC)")
+    # снята во время разрыва связи с ПЛК или остановки поллера: ended_at = последнее время, когда авария была видна (≈); старые записи FALSE
+    await pool.execute("ALTER TABLE alarm_events ADD COLUMN IF NOT EXISTS closed_in_gap BOOLEAN NOT NULL DEFAULT FALSE")
     # одна открытая (не снятая) запись на бит
     await pool.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_alarm_events_open ON alarm_events (plc_id, bit_index) WHERE ended_at IS NULL")
     # Откуда читать аварии: узел массива слов UInt16 и их число (настройка по ПЛК)
@@ -88,6 +90,8 @@ async def ensure_alarms_schema(pool: asyncpg.Pool) -> None:
         )
         """
     )
+    # время последнего удачного чтения массива аварий (сборщик обновляет раз в 30 с): по нему находят разрыв после остановки поллера
+    await pool.execute("ALTER TABLE alarm_sources ADD COLUMN IF NOT EXISTS last_read_at TIMESTAMPTZ")
     # Убрано из статистики аналитики: авария (бит) или станция целиком. Возврат не стирает строку, а ставит restored_at (это и журнал)
     await pool.execute(
         """
@@ -484,6 +488,7 @@ def event_item(r: Any, now: datetime) -> dict[str, Any]:
     origin: "bit" (бит слова аварий HMI, alarm_events) или "ac" (авария самого ПЛК, alarm_ac_events)."""
     started, ended = r["started_at"], r["ended_at"]
     dur = max(0, int(((ended or now) - started).total_seconds()))
+    gap = ended is not None and bool(r["closed_in_gap"])   # время снятия неизвестно: показано последнее, когда авария была видна
     ac = r["kind"] == "ac"
     in_catalog = ac or (bool(r["cat"]) and (r["text"] or "") != "")
     return {
@@ -501,7 +506,8 @@ def event_item(r: Any, now: datetime) -> dict[str, Any]:
         "ended_at": _iso(ended) if ended else None,
         "acked_at": _iso(r["acked_at"]) if r["acked_at"] else None,
         "duration_sec": dur,
-        "duration_text": format_duration(dur),
+        "duration_text": ("≈ " if gap else "") + format_duration(dur),
+        "closed_in_gap": gap,
         "active": ended is None,
         "active_at_start": bool(r["active_at_start"]),
     }
@@ -525,12 +531,12 @@ AC_TEXT_SQL = "COALESCE(NULLIF(a.message, ''), NULLIF(a.condition_name, ''), a.c
 # Единый журнал двух источников: биты слова аварий (со словарём) и аварии ПЛК; $1 = ПЛК, $3/$4 = источник -> станция
 _JOURNAL_SQL = f"""
     SELECT 'bit'::text AS kind, e.id, e.bit_index, NULL::text AS condition_id, e.started_at, e.ended_at, e.active_at_start,
-           NULL::timestamptz AS acked_at, c.plc_id IS NOT NULL AS cat, c.code, c.text, c.class, c.station, c.device
+           e.closed_in_gap, NULL::timestamptz AS acked_at, c.plc_id IS NOT NULL AS cat, c.code, c.text, c.class, c.station, c.device
     FROM alarm_events e LEFT JOIN alarm_catalog c ON c.plc_id = e.plc_id AND c.bit_index = e.bit_index
     WHERE e.plc_id = $1
     UNION ALL
     SELECT 'ac'::text, a.id, NULL::int, a.condition_id, a.started_at, a.ended_at, a.active_at_start,
-           a.acked_at, TRUE, ''::text, {AC_TEXT_SQL}, '{AC_CLASS}'::text, NULLIF(m.station, ''), a.source
+           FALSE, a.acked_at, TRUE, ''::text, {AC_TEXT_SQL}, '{AC_CLASS}'::text, NULLIF(m.station, ''), a.source
     FROM alarm_ac_events a LEFT JOIN unnest($3::text[], $4::text[]) AS m(src, station) ON m.src = a.source
     WHERE a.plc_id = $1
 """
@@ -741,7 +747,10 @@ def build_journal_workbook(plc_name: str, d1: date | None, d2: date | None, stat
     for it in data["items"]:
         r += 1
         ws.write_datetime(r, 0, to_plant(datetime.fromisoformat(it["started_at"].replace("Z", "+00:00"))), f["dt"])
-        if it["ended_at"]:
+        if it["ended_at"] and it["closed_in_gap"]:
+            ended_local = to_plant(datetime.fromisoformat(it["ended_at"].replace("Z", "+00:00")))
+            ws.write(r, 1, "≈ " + ended_local.strftime("%d.%m.%Y %H:%M:%S"), f["dt"])   # как на экране: точное время неизвестно
+        elif it["ended_at"]:
             ws.write_datetime(r, 1, to_plant(datetime.fromisoformat(it["ended_at"].replace("Z", "+00:00"))), f["dt"])
         else:
             ws.write_blank(r, 1, None, f["dt"])

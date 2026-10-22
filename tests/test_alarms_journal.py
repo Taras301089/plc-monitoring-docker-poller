@@ -341,3 +341,28 @@ def test_format_duration():
     assert f(303) == "5 мин 3 с"
     assert f(12) == "12 с"
     assert f(0) == "0 с"
+
+
+# ------------------------------------------------------------------ T-20: «≈» у аварии, снятой во время разрыва связи
+async def test_gap_closed_alarm_marked_on_screen_api_and_excel(anon, pool):
+    from pathlib import Path
+    plc = await _plc(pool, "gapjr")
+    await _cat(pool, plc, 1, "Warning:UB10 test", code="1", station="UB10")
+    s = datetime(2026, 3, 10, 1, 0, tzinfo=timezone.utc)
+    e1 = await _ev(pool, plc, 1, s, s + timedelta(hours=51))
+    await pool.execute("UPDATE alarm_events SET closed_in_gap = TRUE WHERE id = $1", e1)
+    await _ev(pool, plc, 1, s + timedelta(days=3), s + timedelta(days=3, minutes=1))
+    params = {"from": "2026-03-10", "to": "2026-03-14"}
+    api = (await _get(anon, plc, state="all", **params)).json()
+    by = {i["id"]: i for i in api["items"]}
+    assert by[e1]["closed_in_gap"] is True and by[e1]["duration_text"].startswith("≈ ")
+    other = next(i for i in api["items"] if i["id"] != e1)
+    assert other["closed_in_gap"] is False and not other["duration_text"].startswith("≈")
+    r = await anon.get("/api/alarms/events.xlsx", params={"plc_id": plc, "state": "all", **params})
+    _, rows = read_xlsx(r.content)
+    data_rows = [c for c in rows if c.get("G") == "HMI"]
+    assert sorted(c["J"] for c in data_rows) == sorted(i["duration_text"] for i in api["items"])
+    marked = [c for c in data_rows if c["J"].startswith("≈")]
+    assert len(marked) == 1 and marked[0]["B"].startswith("≈ ")
+    js = (Path(__file__).resolve().parent.parent / "fastapi-api" / "static" / "alarms.js").read_text(encoding="utf-8")
+    assert "closed_in_gap" in js and "Точное время снятия неизвестно" in js
