@@ -24,10 +24,12 @@
     }
     return s;
   };
-  // Окно комментария к простою (клик по тексту описания в колонке «Причина»): чистые функции для проверки в node
-  const cmTitle = (idx, timeText) => {
+  // Единое окно строки простоя (клик по тексту описания в «Причине» или по знаку ОТО/ИТО в «Отв.»): чистые функции для проверки в node.
+  // dept: «ОТО» / «ИТО», если в окне виден блок ответа отдела; без него окно остаётся окном «Комментарий»
+  const cmTitle = (idx, timeText, dept) => {
     const t = String(timeText || '').match(/\d{1,2}:\d{2}/g) || [];
-    return `Комментарий — интервал ${idx}${t.length >= 2 ? `, ${t[0]}–${t[1]}` : ''}`;
+    const parts = [idx ? `интервал ${idx}` : '', t.length >= 2 ? `${t[0]}–${t[1]}` : ''].filter(Boolean);
+    return `${dept ? `Ответ отдела ${dept} и комментарии` : 'Комментарий'}${parts.length ? ` — ${parts.join(', ')}` : ''}`;
   };
   // На табло без входа клик не активен; вошедший открывает окно, писать может не «Просмотр»; невошедший вне табло видит окно только для чтения
   const cmAccess = (tv, user) => ({ open: !tv || !!user, write: !!user && user.role !== 'viewer' });
@@ -44,7 +46,7 @@
   const OWNER_AUTOFILL = false;
   const OWNERS = { production: ['ПР', 'Производство'], oto: ['ОТО', 'ОТО'], ito: ['ИТО', 'ИТО'], other: ['ДР', 'Другое (внешние причины)'] };
   const NO_OWNER = ['—', 'Не назначен'];   // отдел ещё не выбран человеком: на Andon ничего не показывается
-  const OWN_STATUS = { pending: ['…', 'ждёт подтверждения'], confirmed: ['✓', 'подтверждено'], disputed: ['!', 'спорно'] };
+  const OWN_STATUS = { pending: ['○', 'ждёт подтверждения'], confirmed: ['●', 'принято полностью'], partial: ['◐', 'принято частично'], disputed: ['!', 'спорно'] };
   const ownStatus = o => (o === 'oto' || o === 'ito' ? 'pending' : 'confirmed');
   const ownLabel = (o, st) => (OWNERS[o] ? `${OWNERS[o][0]} ${OWN_STATUS[st || ownStatus(o)][0]}` : NO_OWNER[0]);
   window.dtOwner = { OWNERS, ownStatus, ownLabel };
@@ -152,7 +154,7 @@
   window.addEventListener('resize', () => document.querySelectorAll('td.why').forEach(fitWhy));
 
   // Колонка «Отв.»: по одному сокращению на каждую причину в том же порядке, что в колонке «Причина» (по убыванию минут).
-  // Статус знаком и цветом без зелёного: «…» серый (ждёт подтверждения), «✓» основной цвет (подтверждено), «!» красный (спорно)
+  // Статус знаком и цветом без зелёного: «…» серый (ждёт подтверждения), «●» основной цвет (принято полностью), «◐» синий (принято частично), «!» красный (спорно)
   function fillOwn(tr, d, screen) {
     const td = tr.querySelector('[data-k="own"]');
     if (!td) return;
@@ -161,7 +163,7 @@
     const R = window.dtResponse;
     const u = (window.authState && window.authState().user) || null;
     const html = its.map(it => {
-      const st = it.owner_status || ownStatus(it.owner);
+      const st = it.owner_mark || it.owner_status || ownStatus(it.owner);
       const o = OWNERS[it.owner];
       const reason = dict ? (dict.reasons.find(r => r.id === it.reason_id) || {}).name : '';
       const can = !!(R && R.canRespond(u, it.owner));
@@ -170,18 +172,13 @@
       return `<span class="own-i own-${st}${can ? ' own-click' : ''}" data-item="${it.id}" title="${esc(tip)}">${esc(o[0])}<b>${OWN_STATUS[st][0]}</b></span>`;
     }).join('');
     if (td.dataset.sig !== html) { td.innerHTML = html; td.dataset.sig = html; }
+    // клик по знаку открывает то же единое окно, что и клик по описанию, сразу на блоке ответа этой причины
     td.onclick = e => {
       const sp = e.target.closest('.own-click');
       const it = sp && d && (d.items || []).find(x => x.id === Number(sp.dataset.item));
       if (!it || !R) return;
       e.stopPropagation();
-      const time = tr.querySelector('[data-k="time"]');
-      R.open({ item: it, time: time ? time.textContent : '', dtMinutes: d.minutes, reason: dict ? (dict.reasons.find(r => r.id === it.reason_id) || {}).name : '',
-        note: it.note || '', onDone: async () => {
-          await load(screen.id, true);
-          if (window.dtApply && andonScreenId === screen.id) window.dtApply(screen, document.querySelector('#andon'));
-          if (window.dtListRefresh) window.dtListRefresh();
-        } });
+      openCommentPanel(screen, d.idx, tr, it.id, 'answer');
     };
   }
 
@@ -241,34 +238,61 @@
     showPanel(screen, d, time ? time.textContent : '', cache[ck(screen.id)].data.scope);
   }
 
-  // Окно комментария к одной причине простоя: список комментариев, поле ввода, «Сохранить» (Ctrl+Enter) и «Отмена» (Esc)
-  async function openCommentPanel(screen, idx, tr, itemId) {
+  // Единое окно одной причины простоя: шапка, блок «Ответ отдела» (только ОТО/ИТО), переписка с полем нового комментария, одна кнопка «Сохранить» (Ctrl+Enter) и «Отмена» (Esc).
+  // Строку, чью причину открыли, определяет клик: по тексту описания (focus «comment») или по знаку ОТО/ИТО (focus «answer»); и ответ, и переписка привязаны к этой строке (item_id)
+  async function openCommentPanel(screen, idx, tr, itemId, focus = 'comment') {
     const u = (window.authState && window.authState().user) || null;
     const acc = cmAccess(document.body.classList.contains('tv-mode'), u);
     if (!acc.open) return;
     await load(screen.id, true);
     const d = ((cache[ck(screen.id)].data || {}).downtimes || []).find(x => x.idx === idx);
     const it = d && d.items.find(x => x.id === itemId);
-    if (!it || !window.dtComments) return;
+    if (!it) return;
     let dd;
     try { dd = await loadDict(); } catch (e) { toast(e.message); return; }
     const time = tr.querySelector('[data-k="time"]');
+    openItemWindow({
+      item: it, idx, timeText: time ? time.textContent : '', dtMinutes: d.minutes, place: cmPlace(dd, it), focus,
+      refresh: async () => {
+        await load(screen.id, true);
+        if (window.dtApply && andonScreenId === screen.id) window.dtApply(screen, document.querySelector('#andon'));
+        if (window.dtListRefresh) window.dtListRefresh();
+      },
+    });
+  }
+
+  // ctx: { item: {id, owner, minutes, note, response}, idx, timeText, dtMinutes, place, focus, refresh }. Вызывается и из списка «Простои» (window.dtItemWindow)
+  function openItemWindow(ctx) {
+    const u = (window.authState && window.authState().user) || null;
+    const acc = cmAccess(document.body.classList.contains('tv-mode'), u);
+    const R = window.dtResponse, it = ctx.item;
+    if (!acc.open || !it || !window.dtComments || !R || document.querySelector('.dt-cm-box')) return;
     const m = document.createElement('div');
     m.className = 'kpi-modal';
-    m.innerHTML = `<div class="kpi-modal-box dt-box dt-cm-box" role="dialog" aria-label="Комментарий">
-      <h3>${esc(cmTitle(idx, time ? time.textContent : ''))}</h3>
-      <p class="dt-cm-what" title="Какой причине простоя относится комментарий: причина, участок и станция">${esc(cmPlace(dd, it))}${it.note ? ` — ${esc(it.note)}` : ''}</p>
-      <div class="dt-comments"></div>
+    m.innerHTML = `<div class="kpi-modal-box dt-box dt-cm-box" role="dialog" aria-label="Ответ отдела и комментарии">
+      <h3></h3>
+      <div class="dt-case">
+        <p class="dt-cm-what" title="Какой причине простоя относится окно: причина, участок и станция, описание">${esc(ctx.place || '')}${it.note ? ` — ${esc(it.note)}` : ''}</p>
+        <p class="dr-head" hidden title="Весь простой интервала и минуты этой строки, за которые отвечает отдел"></p>
+        <div class="dt-comments"></div>
+      </div>
+      <div class="dt-resp"></div>
       <div class="auth-err" hidden></div>
       <div class="kpi-modal-actions">
         <span style="flex:1"></span>
-        <button type="button" data-act="cancel" class="dt-sec" title="Закрыть окно без сохранения набранного комментария (клавиша Esc)">${acc.write ? 'Отмена' : 'Закрыть'}</button>
-        ${acc.write ? '<button type="button" data-act="save" title="Сохранить комментарий: его увидят все на экране Andon, отмеченные через @ получат уведомление (Ctrl+Enter)">Сохранить</button>' : ''}
+        <button type="button" data-act="cancel" class="dt-sec" title="Закрыть окно без сохранения: набранный комментарий и выбранный ответ отдела не сохранятся (клавиша Esc)">${acc.write ? 'Отмена' : 'Закрыть'}</button>
+        ${acc.write ? '<button type="button" data-act="save" title="Сохранить выбранный ответ отдела и новый комментарий: их увидят все на экране Andon, отмеченные через @ получат уведомление (Ctrl+Enter)">Сохранить</button>' : ''}
       </div>
       ${acc.write ? '' : '<p class="dt-hint">Чтобы комментировать, войдите в систему (роль кроме «Просмотр»).</p>'}
     </div>`;
     document.body.appendChild(m);
     const err = m.querySelector('.auth-err'), box = m.querySelector('.dt-comments');
+    const showErr = t => { err.textContent = t; err.hidden = !t; };
+    const total = Number(it.minutes) || 0;
+    const blk = R.mount(m.querySelector('.dt-resp'), { item: it, user: u, showErr, onChange: ctx.refresh });
+    m.querySelector('h3').textContent = cmTitle(ctx.idx, ctx.timeText, blk.visible ? ({ oto: 'ОТО', ito: 'ИТО' }[it.owner] || '') : '');
+    const head = m.querySelector('.dr-head');
+    if (blk.visible) { head.textContent = R.headLine(ctx.dtMinutes, total, it.owner); head.hidden = false; }
     const onKey = e => {
       if (e.key === 'Escape') { e.preventDefault(); close(); }
       else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && save) { e.preventDefault(); save.click(); }
@@ -276,27 +300,39 @@
     const close = () => { document.removeEventListener('keydown', onKey); m.remove(); };
     document.addEventListener('keydown', onKey);
     m.addEventListener('mousedown', e => { if (e.target === m) close(); });
-    const refresh = async () => {
-      await load(screen.id, true);
-      if (window.dtApply && andonScreenId === screen.id) window.dtApply(screen, document.querySelector('#andon'));
-      if (window.dtListRefresh) window.dtListRefresh();
-    };
-    window.dtComments.mount(box, itemId, () => refresh(), { open: true });
+    window.dtComments.mount(box, it.id, () => ctx.refresh(), { open: true, onLoad: list => blk.setThread(list), newBox: blk.can ? blk.newBox : null });
     m.querySelector('[data-act="cancel"]').addEventListener('click', close);
     const save = m.querySelector('[data-act="save"]');
     if (save) save.addEventListener('click', async () => {
-      err.hidden = true;
-      const ta = box.querySelector('.cm-form textarea');
-      if (!ta || !ta.value.trim()) { err.textContent = 'Введите текст комментария'; err.hidden = false; return; }
+      showErr('');
+      const ta = m.querySelector('.cm-new textarea');
+      const text = ta ? ta.value.trim() : '';
+      const plan = R.savePlan({ can: blk.can, changed: blk.changed(), answer: blk.answer(), total, k: blk.minutes(), text });
+      if (plan.error) { showErr(plan.error); return; }
       save.disabled = true;
-      const ok = box._flushDraft ? await box._flushDraft() : false;
-      if (!ok) { save.disabled = false; err.textContent = 'Комментарий не сохранён: проверьте текст и связь'; err.hidden = false; return; }
+      // сначала ответ отдела: если комментарий потом не уйдёт, ответ уже сохранён и это видно в блоке
+      if (plan.response) {
+        try { await blk.save(text); } catch (ex) { showErr(ex.message); save.disabled = false; return; }
+      }
+      if (plan.comment) {
+        const ok = box._flushDraft ? await box._flushDraft() : false;
+        if (!ok) {
+          showErr(plan.response ? 'Ответ отдела сохранён, но комментарий не отправлен: проверьте текст и связь' : 'Комментарий не сохранён: проверьте текст и связь');
+          if (plan.response) await ctx.refresh();
+          save.disabled = false;
+          return;
+        }
+      }
       close();
-      toast('Комментарий сохранён');
-      await refresh();
+      toast(plan.response && plan.comment ? 'Ответ отдела и комментарий сохранены' : plan.response ? 'Ответ отдела сохранён' : 'Комментарий сохранён');
+      await ctx.refresh();
     });
-    setTimeout(() => { const t = box.querySelector('.cm-form textarea'); if (t) t.focus(); }, 300);
+    setTimeout(() => {
+      if (ctx.focus === 'answer' && blk.can) { blk.focus(); return; }
+      const t = m.querySelector('.cm-new textarea'); if (t) t.focus();
+    }, 300);
   }
+  window.dtItemWindow = openItemWindow;
 
   // Открыть простой из уведомления: выбираем его экран и показываем панель
   window.dtOpenById = async (id, itemId = null, stay = false) => {

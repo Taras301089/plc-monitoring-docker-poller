@@ -34,6 +34,13 @@ def _docker_ready() -> bool:
     return r.returncode == 0 and b"true" in r.stdout
 
 
+def _has_alpine_image() -> bool:
+    # backup.ps1 пакует данные n8n и Grafana через локальный образ на alpine; на ПК разработки его может не быть
+    r = subprocess.run(["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"], capture_output=True)
+    have = set(r.stdout.decode("utf-8", "replace").split())
+    return bool(have & {"alpine:latest", "python:3.12-alpine", "node:20-alpine"})
+
+
 def test_syntax_and_bom():
     assert SCRIPT.read_bytes().startswith(b"\xef\xbb\xbf"), "нужен UTF-8 с BOM"
     cmd = (
@@ -96,7 +103,11 @@ def test_config_set_manifest_status_and_targets(tmp_path):
         manifest = z.read("manifest.txt").decode("utf-8-sig")
         assert SECRET.encode() in z.read(".env"), ".env должен лежать в наборе"
     assert {".env", "globals.sql", "manifest.txt"} <= names
-    assert "grafana_data.tgz" in names and "n8n_data.tgz" in names
+    if _has_alpine_image():
+        assert "grafana_data.tgz" in names and "n8n_data.tgz" in names
+    else:
+        assert "ПРОПУЩЕНО  grafana_data.tgz" in manifest and "нет локального образа alpine" in manifest
+        assert "ПРОПУЩЕНО  n8n_data.tgz" in manifest
     assert any(n.startswith("scheduled-tasks/") for n in names) or any(n.startswith("scheduled-tasks\\") for n in names)
     assert "вошло      .env" in manifest and "globals.sql" in manifest
     assert "Не вошло:" in manifest and "tia-bridge" in manifest

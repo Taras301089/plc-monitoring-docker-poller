@@ -3,7 +3,9 @@
 Контейнер Linux не может вызвать TIA Openness (это Windows-программа), поэтому обмен идёт через общую папку (в контейнере /tia-bridge,
 на ПК C:\\tia-bridge): сайт кладёт заявку requests/<id>.json, служба выгружает проект скриптом tia-export.ps1 и пишет jobs/<id>/status.json
 и ZIP в out/ (копия ZIP кладётся в папку, которую администратор указал в поле «Путь сохранения»). Всё только для администратора;
-пути проектов берутся из tia-projects.json, а не от клиента; путь сохранения проверяет сайт (check_target) и ещё раз служба."""
+пути проектов берутся из tia-projects.json, а не от клиента; путь сохранения проверяет сайт (check_target) и ещё раз служба.
+Новый проект выбирают из найденных: служба раз в минуту ищет *.ap17 в разрешённых папках (found-projects.json), сайт принимает только ключ
+из этого файла (не путь), служба ещё раз проверяет путь и сама записывает пару «ПЛК -> проект» в tia-projects.json."""
 from __future__ import annotations
 
 import json
@@ -16,7 +18,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
@@ -29,6 +31,7 @@ router = APIRouter(prefix="/api/tia", tags=["tia"])
 BRIDGE_DIR = Path(os.environ.get("TIA_BRIDGE_DIR", "/tia-bridge"))
 ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
 ZIP_RE = re.compile(r"^TIA_[A-Za-z0-9_-]{1,40}_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}\.zip$")
+FOUND_STALE_SEC = 300               # список найденных проектов старше этого считается устаревшим (служба не обновляет его раз в минуту)
 ALIVE_SEC = 30                      # служба считается работающей, если отметка bridge.json не старше
 ACTIVE = ("queued", "running")
 DEFAULT_TARGET = r"C:\tia-bridge\out"   # папка out службы на ПК сервера: туда ZIP кладётся всегда
@@ -110,6 +113,30 @@ def load_projects() -> list[dict[str, str]]:
     return out
 
 
+def _norm_path(p: Any) -> str:
+    return str(p or "").strip().replace("/", "\\").rstrip("\\").lower()
+
+
+def load_found() -> dict[str, Any]:
+    """Найденные службой файлы .ap17 (found-projects.json): ключ, корень, относительный путь, дата изменения, размер; полный путь клиенту не отдаётся.
+    stale: файла нет, он старше 5 минут или службы нет."""
+    raw = _read_json(BRIDGE_DIR / "found-projects.json")
+    items, when, roots = [], None, []
+    if isinstance(raw, dict):
+        when = raw.get("time")
+        roots = [str(r) for r in (raw.get("roots") or []) if isinstance(r, str)]
+        for it in raw.get("projects") or []:
+            if isinstance(it, dict) and it.get("key") and it.get("path"):
+                items.append({"key": str(it["key"]), "root": str(it.get("root") or ""), "rel": str(it.get("rel") or it["key"]),
+                              "modified": it.get("modified"), "size": it.get("size"), "_path": str(it["path"])})
+    try:
+        age = (datetime.now(timezone.utc) - datetime.fromisoformat(str(when).replace("Z", "+00:00"))).total_seconds()
+    except (TypeError, ValueError):
+        age = None
+    stale = age is None or age > FOUND_STALE_SEC or not bridge_alive()
+    return {"time": when, "stale": stale, "roots": roots, "items": items}
+
+
 def bridge_alive(now: datetime | None = None) -> bool:
     hb = _read_json(BRIDGE_DIR / "bridge.json")
     try:
@@ -163,12 +190,17 @@ def user_label(user: dict[str, Any]) -> str:
 @router.get("/projects", summary="Проекты TIA для выгрузки и состояние службы (только администратор)")
 async def get_projects(_: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
     rows = []
+    found = load_found()
+    by_path = {_norm_path(i["_path"]): i["key"] for i in found["items"]}
     for p in load_projects():
         jobs = _jobs_of(p["id"])
         last = _last_done(jobs)
+        folder = str(p["path"]).replace("/", "\\").rstrip("\\").rsplit("\\", 2)
         rows.append({"id": p["id"], "name": p["name"], "plc": p["plc"], "target": _last_target(jobs),
+                     "folder": folder[-2] if len(folder) >= 2 else "", "found_key": by_path.get(_norm_path(p["path"])),
                      "job": _public_job(jobs[0] if jobs else None), "last": last, "logic": _logic_state(p["id"], last)})
-    return {"alive": bridge_alive(), "default_target": DEFAULT_TARGET, "projects": rows}
+    found["items"] = [{k: v for k, v in i.items() if not k.startswith("_")} for i in found["items"]]
+    return {"alive": bridge_alive(), "default_target": DEFAULT_TARGET, "projects": rows, "found": found}
 
 
 # --- Файл для ИИ: логика ПЛК из последнего ZIP (tia_logic.py), собирает сайт, не служба tia-bridge ---
@@ -282,21 +314,53 @@ def _logic_state(project_id: str, last: dict[str, Any] | None, now: datetime | N
 
 
 class ExportBody(BaseModel):
-    project_ids: list[str] = Field(min_length=1, max_length=20)
+    project_ids: list[str] = Field(default_factory=list, max_length=20)    # уже известные проекты (пары из tia-projects.json)
     target_dir: str | None = Field(default=None, max_length=1000)
+    plc: str | None = Field(default=None, max_length=80)                    # имя ПЛК из PMM; вместе с found_key: «ПЛК -> проект»
+    found_key: str | None = Field(default=None, max_length=400)            # ключ проекта из found-projects.json (не путь)
+
+
+def project_id_for_plc(plc: str) -> str:
+    """Идентификатор проекта для ПЛК: у ПЛК уже есть пара в tia-projects.json: её id (история выгрузок остаётся), иначе имя ПЛК в нижнем регистре."""
+    want = plc.strip().lower()
+    for p in load_projects():
+        if (p["plc"] or "").lower() == want:
+            return p["id"]
+    pid = re.sub(r"[^a-z0-9_-]", "_", want)[:40]
+    if not pid.strip("_"):
+        raise HTTPException(status_code=422, detail="Имя ПЛК не подходит для идентификатора проекта: используйте латиницу, цифры, _ и -")
+    return pid
 
 
 @router.post("/export", summary="Поставить выгрузку проектов TIA в очередь (только администратор)")
-async def start_export(body: ExportBody, user: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
+async def start_export(body: ExportBody, request: Request, user: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
+    if not body.project_ids and not body.found_key:
+        raise HTTPException(status_code=422, detail="Выберите проект для выгрузки")
     try:
         target = check_target(body.target_dir)
     except ValueError as ex:
         raise HTTPException(status_code=422, detail=str(ex)) from None
     if not bridge_alive():
         raise HTTPException(status_code=503, detail="Служба выгрузки TIA не запущена на ПК сервера (задача «PMM TIA bridge»)")
-    known = {p["id"] for p in load_projects()}
+    extra: dict[str, Any] = {}
     wanted = list(dict.fromkeys(body.project_ids))
-    bad = [p for p in wanted if p not in known]
+    if body.found_key:
+        # проект выбран из найденных: принимается только ключ из found-projects.json, путь от клиента не берётся
+        plc = (body.plc or "").strip()
+        if not plc:
+            raise HTTPException(status_code=422, detail="Выберите ПЛК, для которого выгружается проект")
+        if body.found_key not in {i["key"] for i in load_found()["items"]}:
+            raise HTTPException(status_code=404, detail="Проект не найден среди найденных службой: обновите список и выберите проект снова")
+        pool = getattr(request.app.state, "pool", None)
+        if pool is not None:
+            name = await pool.fetchval("SELECT name FROM plcs WHERE lower(name) = lower($1)", plc)
+            if name is None:
+                raise HTTPException(status_code=404, detail="ПЛК не найден в системе: выберите ПЛК из списка")
+            plc = name
+        wanted = [project_id_for_plc(plc)]
+        extra = {"plc": plc, "found_key": body.found_key}
+    known = {p["id"] for p in load_projects()}
+    bad = [p for p in wanted if p not in known and not extra]
     if bad:
         raise HTTPException(status_code=404, detail="Проект не найден в списке разрешённых: " + ", ".join(bad))
     started, skipped = [], []
@@ -308,7 +372,7 @@ async def start_export(body: ExportBody, user: dict[str, Any] = Depends(require_
             continue
         jid = f"{pid}-{now.strftime('%Y%m%d-%H%M%S')}"
         st = {"project": pid, "state": "queued", "requested_by": user_label(user), "requested_at": now.isoformat()}
-        req = {"id": jid, "project": pid, "requested_by": user_label(user)}
+        req = {"id": jid, "project": pid, "requested_by": user_label(user), **extra}
         if target:
             st["target"] = req["target"] = target
         _write_json(BRIDGE_DIR / "jobs" / jid / "status.json", st)

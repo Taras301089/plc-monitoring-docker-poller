@@ -17,7 +17,7 @@
     box.innerHTML = `
       <div class="notif-wrap"><a class="notif-btn" href="index.html" style="text-decoration:none;color:inherit" title="Уведомления: упоминания, ответы на ваши комментарии и запросы к ОТО (откроются на главной странице)">🔔<b class="notif-badge"${unread ? '' : ' hidden'}>${unread > 99 ? '99+' : unread}</b></a></div>
       <a class="auth-btn" href="index.html" style="text-decoration:none" title="Вы вошли в систему. Меню пользователя, смена пароля и выход — на главной странице"><span>${esc(u.last_name + ' ' + u.first_name.charAt(0) + '.')}</span><small>${esc(u.role_name)}</small></a>`;
-    const canSee = ['admin', 'chief', 'area_head'].includes(u.role);
+    const canSee = ['admin', 'chief', 'area_head', 'master', 'maintenance'].includes(u.role);   // мастер и ТО видят справочники и правят «Простые названия сигналов»
     document.querySelector('#tab-users').hidden = u.role !== 'admin';
     ['#tab-browser', '#tab-saved'].forEach(s => { document.querySelector(s).hidden = u.role !== 'admin'; });   // ПЛК и переменные БД: только администратору
     document.querySelector('#tab-dictionary').hidden = !canSee;

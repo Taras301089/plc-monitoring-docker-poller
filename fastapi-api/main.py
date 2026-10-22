@@ -33,6 +33,8 @@ from history import router as history_router
 from colwidths import ensure_colwidths_schema, router as colwidths_router
 import labels
 from labels import ensure_labels_schema, router as labels_router
+from signalnames import ensure_signal_names_schema, router as signalnames_router
+from alarmhelp import ensure_alarm_help_schema, router as alarmhelp_router
 from period import router as period_router
 from responsibility import router as responsibility_router
 from dtresponse import router as dtresponse_router
@@ -44,6 +46,7 @@ from trends import ensure_trends_schema, router as trends_router
 from alarms import ensure_alarms_schema, router as alarms_router
 from Scada.gwm import mount as mount_gwm_scada
 from tia import router as tia_router
+from why import router as why_router
 from lift_cycles import router as lift_cycles_router
 from tgnotify import TgSender, TgUpdatesPoller, ensure_tg_schema, router as tgnotify_router
 from repair import ensure_repair_binding
@@ -307,6 +310,8 @@ async def lifespan(app: FastAPI):
     await ensure_reports_schema(app.state.pool)
     await ensure_colwidths_schema(app.state.pool)
     await ensure_labels_schema(app.state.pool)
+    await ensure_signal_names_schema(app.state.pool)
+    await ensure_alarm_help_schema(app.state.pool)
     await ensure_tg_schema(app.state.pool)
     reports_task = asyncio.create_task(reports_loop(app))
     tg_stop = asyncio.Event()
@@ -332,6 +337,8 @@ app.include_router(dayflags_router)
 app.include_router(history_router)
 app.include_router(colwidths_router)
 app.include_router(labels_router)
+app.include_router(signalnames_router)
+app.include_router(alarmhelp_router)
 app.include_router(period_router)
 app.include_router(responsibility_router)
 app.include_router(dtresponse_router)
@@ -344,6 +351,7 @@ app.include_router(trends_router)
 app.include_router(alarms_router)
 mount_gwm_scada(app)
 app.include_router(tia_router)
+app.include_router(why_router)
 app.include_router(lift_cycles_router)
 app.include_router(tgnotify_router)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

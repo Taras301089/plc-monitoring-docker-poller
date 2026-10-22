@@ -278,4 +278,4 @@ def test_screen_columns_equal_excel_headers():
 
 
 def test_dockerfile_copies_flmodels():
-    assert "COPY *.py ./" in (ROOT / "fastapi-api" / "Dockerfile").read_text(encoding="utf-8")   # flmodels.py попадает в образ общим COPY
+    assert "COPY fastapi-api/*.py ./" in (ROOT / "fastapi-api" / "Dockerfile").read_text(encoding="utf-8")   # flmodels.py попадает в образ общим COPY

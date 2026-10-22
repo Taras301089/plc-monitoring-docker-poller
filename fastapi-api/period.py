@@ -13,7 +13,7 @@ from fastapi.responses import Response
 
 import dayflags
 from labels import label as ui_label
-from downtime import _screen_path, owner_label, owner_status
+from downtime import _screen_path, owner_label, owner_mark
 from history import cumulative_day, download_name, safe_name
 from responsibility import owner_split, write_responsibility
 
@@ -418,7 +418,7 @@ def write_downtime_list(ls, f: dict[str, Any], data: dict[str, Any]) -> None:
         ls.write(r, 4, areas.get(it["area_id"], "—"))
         ls.write(r, 5, stations.get(it["station_id"], "—"))
         ls.write(r, 6, reasons.get(it["reason_id"], "—"))
-        ls.write(r, 7, owner_label(it["owner"], owner_status(it["owner"], it.get("answer"))))
+        ls.write(r, 7, owner_label(it["owner"], owner_mark(it["owner"], it.get("answer"))))
         ls.write(r, 8, float(it["minutes"]), f["n1"])
         ls.write(r, 9, it["note"] or "")
         ls.write(r, 10, it["created_by_name"] or "")

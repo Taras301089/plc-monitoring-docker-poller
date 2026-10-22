@@ -6,7 +6,9 @@
     jobs\<id>\status.json состояние выгрузки (queued, running, done, error), журнал export.log; target и saved_to — куда положена копия ZIP
     out\TIA_<проект>_<дата>.zip готовый ZIP с XML проекта (блоки, типы, таблицы тегов, manifest.csv), контролями ProDiag и текстами проекта в Excel;
                           копия ZIP дополнительно кладётся в папку target (проверка пути Test-TargetDir и пробная запись до запуска TIA)
-    tia-projects.json     список разрешённых проектов (только отсюда берутся пути проектов; сайт путь проекта не передаёт), поле plc — имя ПЛК в PMM
+    tia-projects.json     список разрешённых проектов (только отсюда берутся пути проектов; сайт путь проекта не передаёт), поле plc — имя ПЛК в PMM;
+                          поле roots — папки поиска .ap17 (по умолчанию C:\TIA_for_claude_to_XML и C:\projects); служба сама дописывает пары «ПЛК -> проект»
+    found-projects.json   найденные файлы .ap17 (обновляется каждые 60 с: ключ, путь, относительный путь, дата, размер); из них выбирают проект в окне выгрузки
     bridge.json           отметка «служба жива» (обновляется каждые несколько секунд)
   Выгрузку выполняет tia-export.ps1 (открывает проект без окна TIA, ничего не меняет и не сохраняет). Проект в списке должен быть КОПИЕЙ,
   которая не открыта в TIA. Выгрузки идут по одной; у каждой есть тайм-аут.
@@ -19,6 +21,7 @@ param(
     [int]$TimeoutMin = 40,
     [int]$PollSec = 3,
     [int]$KeepZips = 3,
+    [int]$ScanEverySec = 60,
     [switch]$Once
 )
 
@@ -118,6 +121,112 @@ function Test-TargetWritable([string]$Dir) {
     catch { return "Папка недоступна для записи: $Dir ($($_.Exception.Message))" }
 }
 
+# ---------- Поиск проектов .ap17 в разрешённых папках (выбор проекта в окне «Выгрузка проекта TIA») ----------
+# Корни поиска: поле roots в tia-projects.json, иначе значения по умолчанию. Глубина не более 5 уровней, служебные папки TIA и ссылки пропускаются.
+$DefaultRoots = @('C:\TIA_for_claude_to_XML', 'C:\projects')
+$SkipDirs = @('im', 'xref', 'system', 'logs', 'temp', 'userfiles', 'additionalfiles', 'backup', 'backups', '$recycle.bin')
+$ScanMaxDepth = 5
+$ScanMaxItems = 500
+
+function Get-Roots {
+    $cfg = Read-Json (Join-Path $Root 'tia-projects.json')
+    $list = @()
+    if ($cfg -and $cfg.roots) { $list = @($cfg.roots | Where-Object { $_ -and ([string]$_).Trim() } | ForEach-Object { ([string]$_).Trim().TrimEnd('\') }) }
+    if ($list.Count -eq 0) { $list = $DefaultRoots }
+    @($list | Where-Object { $_ -match '^[A-Za-z]:\\.' -and $_ -notmatch '\.\.' })   # корень диска и пути с «..» не принимаются
+}
+
+# Папка или файл — ссылка (junction, symlink): по ней из разрешённого корня можно выйти наружу
+function Test-Reparse([string]$Path) {
+    try { return [bool]((Get-Item -LiteralPath $Path -Force -ErrorAction Stop).Attributes -band [IO.FileAttributes]::ReparsePoint) } catch { return $true }
+}
+
+# Путь внутри одного из разрешённых корней: без «..» и без выхода по ссылкам (каждая папка между корнем и файлом не ссылка)
+function Test-InsideRoot([string]$Path, $Roots) {
+    if (-not $Path -or $Path -match '(^|[\\/])\.\.([\\/]|$)') { return $false }
+    try { $full = [IO.Path]::GetFullPath($Path) } catch { return $false }
+    foreach ($r in $Roots) {
+        $rf = [IO.Path]::GetFullPath($r).TrimEnd('\')
+        if (-not $full.StartsWith($rf + '\', [StringComparison]::OrdinalIgnoreCase)) { continue }
+        $cur = $full
+        while ($cur.Length -gt $rf.Length) {
+            if (Test-Reparse $cur) { return $false }
+            $cur = Split-Path -Parent $cur
+        }
+        return $true
+    }
+    return $false
+}
+
+function Find-Ap17([string]$Dir, [int]$Depth, [string]$RootDir, [string]$RootLeaf, $Acc) {
+    if ($Acc.Count -ge $ScanMaxItems) { return }
+    foreach ($f in @(Get-ChildItem -LiteralPath $Dir -File -Filter '*.ap17' -ErrorAction SilentlyContinue)) {
+        if ($f.Extension -ne '.ap17' -or $Acc.Count -ge $ScanMaxItems) { continue }
+        $rel = $f.FullName.Substring($RootDir.Length).TrimStart('\')
+        $Acc.Add([ordered]@{ key = ($RootLeaf + '\' + $rel); root = $RootLeaf; rel = $rel; path = $f.FullName
+            modified = $f.LastWriteTimeUtc.ToString('o'); size = $f.Length }) | Out-Null
+    }
+    if ($Depth -ge $ScanMaxDepth) { return }
+    foreach ($d in @(Get-ChildItem -LiteralPath $Dir -Directory -ErrorAction SilentlyContinue | Sort-Object Name)) {
+        if ($SkipDirs -contains $d.Name.ToLower() -or ($d.Attributes -band [IO.FileAttributes]::ReparsePoint)) { continue }
+        Find-Ap17 $d.FullName ($Depth + 1) $RootDir $RootLeaf $Acc
+    }
+}
+
+# Результат поиска пишется атомарно в found-projects.json: время, корни, список (key, путь, относительный путь, дата изменения, размер)
+function Invoke-Scan {
+    $acc = New-Object System.Collections.ArrayList
+    $roots = Get-Roots
+    foreach ($r in $roots) {
+        if (-not (Test-Path -LiteralPath $r -PathType Container)) { continue }
+        $full = [IO.Path]::GetFullPath($r).TrimEnd('\')
+        Find-Ap17 $full 0 $full (Split-Path -Leaf $full) $acc
+    }
+    Write-Json (Join-Path $Root 'found-projects.json') ([ordered]@{ time = (Get-Date).ToUniversalTime().ToString('o'); roots = @($roots); projects = @($acc) })
+}
+
+# Пара «ПЛК -> проект» в tia-projects.json: новая запись или замена пути (прежний путь уходит в history, не более 5)
+function Set-ProjectPair([string]$Id, [string]$Plc, $Found) {
+    $cfgPath = Join-Path $Root 'tia-projects.json'
+    $cfg = Read-Json $cfgPath
+    $h = [ordered]@{}
+    if ($cfg) { $cfg.PSObject.Properties | ForEach-Object { $h[$_.Name] = $_.Value } }
+    $list = @(); if ($h.Contains('projects') -and $h['projects']) { $list = @($h['projects']) }
+    $segs = @($Found.rel -split '\\')
+    $brand = if ($segs.Count -ge 3) { $segs[0] } else { $Plc }
+    $name = $brand + ' · ' + [IO.Path]::GetFileNameWithoutExtension($Found.rel)
+    $mine = $null
+    foreach ($p in $list) { if ($p.id -eq $Id) { $mine = $p } }
+    if ($mine) {
+        if ($mine.path -ne $Found.path) {
+            $hist = @(); if ($mine.history) { $hist = @($mine.history) }
+            $hist = @(@($mine.path) + $hist | Select-Object -First 5)
+            $mine | Add-Member -NotePropertyName history -NotePropertyValue $hist -Force
+            $mine.path = $Found.path
+        }
+        $mine.name = $name
+        $mine | Add-Member -NotePropertyName plc -NotePropertyValue $Plc -Force
+    }
+    else { $list += [pscustomobject]@{ id = $Id; name = $name; plc = $Plc; path = $Found.path } }
+    $h['projects'] = @($list)
+    Write-Json $cfgPath $h
+}
+
+# Заявка с выбором проекта из found: ключ ищется в found-projects.json, путь проверяется ещё раз (файл, .ap17, внутри разрешённых корней)
+function Resolve-FoundProject($Req, [string]$JobDir) {
+    $fp = Read-Json (Join-Path $Root 'found-projects.json')
+    $item = $null
+    if ($fp -and $fp.projects) { $item = @($fp.projects) | Where-Object { $_.key -eq $Req.found_key } | Select-Object -First 1 }
+    if (-not $item) { return @{ error = 'Проект не найден в списке found-projects.json: обновите список и выберите проект снова' } }
+    $path = [string]$item.path
+    if ([IO.Path]::GetExtension($path).ToLower() -ne '.ap17') { return @{ error = "Файл не .ap17: $path" } }
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { return @{ error = "Файл проекта не найден: $path" } }
+    if (-not (Test-InsideRoot $path (Get-Roots))) { return @{ error = "Путь вне разрешённых папок поиска (roots в tia-projects.json): $path" } }
+    if ($Req.project -notmatch '^[A-Za-z0-9_-]{1,40}$' -or -not $Req.plc) { return @{ error = 'В заявке не указан ПЛК или проект' } }
+    Set-ProjectPair ([string]$Req.project) ([string]$Req.plc) $item
+    return @{ error = $null }
+}
+
 function Invoke-Job([IO.FileInfo]$ReqFile) {
     $id = $ReqFile.BaseName
     $req = Read-Json $ReqFile.FullName
@@ -127,6 +236,11 @@ function Invoke-Job([IO.FileInfo]$ReqFile) {
     New-Item -ItemType Directory -Force -Path $jobDir | Out-Null
     $now = { (Get-Date).ToUniversalTime().ToString('o') }
 
+    # проект выбран из найденных (.ap17 в разрешённых папках): служба сама проверяет путь и записывает пару «ПЛК -> проект» в tia-projects.json
+    if ($req -and $req.found_key) {
+        $res = Resolve-FoundProject $req $jobDir
+        if ($res.error) { Set-Status $jobDir @{ state = 'error'; finished_at = (& $now); error = $res.error }; Write-Log "Заявка $id отклонена: $($res.error)"; return }
+    }
     $cfg = Read-Json (Join-Path $Root 'tia-projects.json')
     $proj = $null
     if ($req -and $cfg) { $proj = @($cfg.projects) | Where-Object { $_.id -eq $req.project } | Select-Object -First 1 }
@@ -214,8 +328,13 @@ Get-ChildItem -LiteralPath (Join-Path $Root 'jobs') -Directory -ErrorAction Sile
 }
 
 Write-Log "Служба запущена: папка $Root, скрипт выгрузки $ExportScript"
+$lastScan = [datetime]::MinValue
 do {
     Send-Heartbeat
+    if (((Get-Date) - $lastScan).TotalSeconds -ge $ScanEverySec) {
+        try { Invoke-Scan } catch { Write-Log "Поиск проектов .ap17 не удался: $($_.Exception.Message)" }
+        $lastScan = Get-Date
+    }
     $next = Get-ChildItem -LiteralPath (Join-Path $Root 'requests') -Filter '*.json' -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -First 1
     if ($next) { Invoke-Job $next } elseif (-not $Once) { Start-Sleep -Seconds $PollSec }
 } while (-not $Once -or $next)
