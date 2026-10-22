@@ -75,6 +75,14 @@
 .al-ch-tick, .al-ch-val { fill: var(--fg-secondary); font-size: var(--fs-small); }
 .al-ch-val { fill: var(--fg-primary); }
 .al-ch-hit { fill: transparent; }
+.al-bar-peak { fill: var(--danger); }
+.al-ch-peak { fill: var(--danger); font-size: var(--fs-small); font-weight: 600; }
+.al-tl-card { margin-bottom: 12px; }
+.al-tl-sum { font-size: var(--fs-small); color: var(--fg-primary); font-variant-numeric: tabular-nums; }
+.al-tl-peaks { min-height: 1.3em; font-size: var(--fs-small); color: var(--fg-secondary); font-variant-numeric: tabular-nums; }
+.al-tl-chart { position: relative; }
+.al-tl-hit { cursor: pointer; }
+.al-tl-tip { position: absolute; z-index: 5; padding: 3px 8px; border-radius: 4px; pointer-events: none; white-space: nowrap; font-size: var(--fs-small); color: var(--fg-primary); background: var(--bg-primary); box-shadow: var(--shadow-out); }
 .al-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 4px; font-size: var(--fs-small); color: var(--fg-secondary); }
 .al-leg { display: inline-flex; align-items: center; gap: 6px; }
 .al-sw { display: inline-block; width: 14px; height: 10px; border-radius: 2px; }

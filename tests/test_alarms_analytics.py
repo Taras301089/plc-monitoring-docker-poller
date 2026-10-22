@@ -393,8 +393,8 @@ async def test_excel_pareto_chart_colors_and_metric(anon, pool):
     p = {"brand": "GWM", "from": "2026-03-10", "to": "2026-03-11", "all_hours": "true"}
     z, _ = read_xlsx((await anon.get("/api/alarms/analytics.xlsx", params=p)).content)
     charts = [n for n in z.namelist() if n.startswith("xl/charts/chart")]
-    assert len(charts) == 1
-    xml = z.read(charts[0]).decode("utf-8")
+    assert len(charts) == 3                                  # Парето и два графика «Динамика по времени» (GWM_UB, GWM_MB)
+    xml = z.read("xl/charts/chart1.xml").decode("utf-8")
     assert "Парето аварий (топ-10), по числу появлений" in xml and "Накопленный %" in xml
     assert "2F80ED" in xml and "27AE60" in xml            # столбцы синие, линия зелёная
     z, _ = read_xlsx((await anon.get("/api/alarms/analytics.xlsx", params={**p, "metric": "time"})).content)
@@ -407,7 +407,7 @@ async def test_excel_without_data_is_valid(anon, pool):
     r = await anon.get("/api/alarms/analytics.xlsx", params={"plc_id": plc, "from": "2026-03-10", "to": "2026-03-12"})
     assert r.status_code == 200
     z, rows = read_xlsx(r.content)
-    assert not [n for n in z.namelist() if n.startswith("xl/charts/")]
+    assert not [n for n in z.namelist() if n.startswith("xl/charts/chart") and "Парето" in z.read(n).decode("utf-8")]   # Парето нет, динамика по времени есть
     assert any(c.get("A") == "Нет аварий за выбранный период" for c in rows)
 
 
