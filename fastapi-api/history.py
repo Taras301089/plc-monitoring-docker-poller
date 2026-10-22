@@ -439,7 +439,7 @@ async def build_day_data(pool: asyncpg.Pool, screen_id: int, day: date) -> dict[
             continue
         for it in items:
             lc = it.get("last_comment")
-            part.append(base + [d["minutes"], owner_label(it.get("owner"), it.get("owner_status")), areas.get(it["area_id"], "—"), stations.get(it["station_id"], "—"),
+            part.append(base + [d["minutes"], owner_label(it.get("owner"), it.get("owner_mark") or it.get("owner_status")), areas.get(it["area_id"], "—"), stations.get(it["station_id"], "—"),
                                reasons.get(it["reason_id"], "—"), it["minutes"], it.get("note") or "", it.get("created_by_name") or "",
                                f"{lc['text']} · {lc.get('author') or lc['user_name']}" if lc else ""])
         rest = round(d["minutes"] - d["described"], 1)

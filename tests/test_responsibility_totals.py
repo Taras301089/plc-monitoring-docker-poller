@@ -275,7 +275,7 @@ R = {"total": 20, "owners": {"production": 15, "oto": 5, "ito": 0, "other": 0}, 
 @node
 def test_andon_line_text_and_title():
     got = run(f"r.andonLine({json.dumps(R)})")
-    assert got["text"] == "Отставание за день 20 мин: ПР 15 · ОТО 5 …"                 # только отделы с минутами; «…» у отдела с ожиданием
+    assert got["text"] == "Отставание за день 20 мин: ПР 15 · ОТО 5 …"                 # только отделы с минутами; «○» у отдела с ожиданием
     assert "ИТО" not in got["text"] and "не описано" not in got["text"]
     for part in ("Производство", "ОТО", "ждёт подтверждения", "Не описано"):
         assert part in got["title"], part
