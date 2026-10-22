@@ -118,6 +118,8 @@
   const AN_DAYS_TITLE = 'Динамика по дням';
   const AN_DAYS_COUNT = 'Число аварий по дням';
   const AN_DAYS_MIN = 'Минуты аварий по дням';
+  const AN_TL_TITLE = 'Динамика по времени';
+  const AN_TL_BUCKETS = { 15: '15 мин', 60: '1 час' };
   const AN_PARETO_COUNT = 'По числу';
   const AN_PARETO_TIME = 'По времени';
 
@@ -304,7 +306,63 @@
     return `<svg class="al-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${metric === 'count' ? AN_DAYS_COUNT : AN_DAYS_MIN}" preserveAspectRatio="xMidYMid meet">${g}</svg>`;
   }
 
-  const util = { ackedTitle, anCanRemoveAlarm, filtersConfigured, anCanExclude,anRemovedNote, anExclusionBody, anRemovedItem, exclusionRequest, daysSvg, AN_DAYS_TITLE, AN_DAYS_COUNT, AN_DAYS_MIN, AN_PARETO_COUNT, AN_PARETO_TIME, fmtDuration, parseUtc, toPlant, buildUrl, pageLabel, liveSeconds, nextSort, plcBrand, orderBrands,
+  // Динамика по времени: начало интервала «22.10 14:15» по часам завода (тот же текст в Excel)
+  function tlStamp(iso, off) {
+    const ms = parseUtc(iso);
+    if (Number.isNaN(ms)) return '—';
+    const d = new Date(ms + (Number(off) || 0) * 3600000);
+    return `${pad(d.getUTCDate())}.${pad(d.getUTCMonth() + 1)} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+  }
+  function tlSummary(p, off) {
+    return p.max ? `Всего: ${p.total} · максимум: ${p.max} в ${tlStamp(p.peaks[0].t, off)}` : `Всего: ${p.total}`;
+  }
+  function tlPeaksText(p, off) {
+    return p.peaks.length ? 'Пики: ' + p.peaks.map(x => `${tlStamp(x.t, off)} — ${x.n}`).join('; ') : '';
+  }
+
+  // Динамика по времени: синие столбцы (новых аварий за интервал) одним path, самый большой пик красный, подписаны 3 пика;
+  // возвращает строку SVG (до ~9000 столбцов без заметной нагрузки: нули не рисуются, подсказка одна на весь график)
+  function tlSvg(p, W, off) {
+    const series = p.series || [];
+    if (!series.length) return '';
+    const H = 200, m = { l: 40, r: 12, t: 46, b: 30 };
+    const n = series.length, iw = W - m.l - m.r, ih = H - m.t - m.b, gw = iw / n, bw = Math.max(0.4, gw * 0.8);
+    const max = axisMax(Math.max(...series.map(x => x.n)), 'count');
+    const yv = v => m.t + ih * (1 - v / max), r1 = v => Math.round(v * 100) / 100;
+    const grid = [0, .25, .5, .75, 1].map(v => `<line class="al-ch-grid" x1="${m.l}" x2="${W - m.r}" y1="${yv(max * v)}" y2="${yv(max * v)}"/>` +
+      `<text class="al-ch-tick" x="${m.l - 6}" y="${yv(max * v) + 4}" text-anchor="end">${Math.round(max * v * 10) / 10}</text>`).join('');
+    const top = p.max ? series.findIndex(x => x.t === p.peaks[0].t) : -1;
+    const xs = i => m.l + gw * i + (gw - bw) / 2;
+    let d = '';
+    series.forEach((x, i) => { if (x.n > 0 && i !== top) d += `M${r1(xs(i))} ${r1(yv(x.n))}h${r1(bw)}V${r1(m.t + ih)}h${r1(-bw)}z`; });
+    let g = grid + (d ? `<path class="al-bar" d="${d}"/>` : '');
+    if (top >= 0) g += `<rect class="al-bar al-bar-peak" x="${r1(xs(top))}" y="${r1(yv(series[top].n))}" width="${r1(bw)}" height="${r1(m.t + ih - yv(series[top].n))}"/>`;
+    // подписи пиков (время и число); близкие подписи поднимаются выше, чтобы не налезать друг на друга
+    const placed = [];
+    (p.peaks || []).forEach((pk, k) => {
+      const i = series.findIndex(x => x.t === pk.t);
+      if (i < 0) return;
+      const cx = m.l + gw * i + gw / 2, label = `${tlStamp(pk.t, off)} · ${pk.n}`, wl = label.length * 6.6;
+      const anchor = cx - wl / 2 < m.l ? 'start' : cx + wl / 2 > W - m.r ? 'end' : 'middle';
+      const x0 = anchor === 'start' ? cx : anchor === 'end' ? cx - wl : cx - wl / 2;
+      let y = yv(pk.n) - 4;
+      while (placed.some(b => Math.abs(b.y - y) < 13 && x0 < b.x1 && x0 + wl > b.x0) && y > 12) y -= 13;
+      placed.push({ y, x0, x1: x0 + wl });
+      g += `<text class="${k === 0 ? 'al-ch-peak' : 'al-ch-val'}" x="${r1(anchor === 'middle' ? cx : anchor === 'start' ? cx - 2 : cx + 2)}" y="${r1(y)}" text-anchor="${anchor}">${label}</text>`;
+    });
+    // подписи оси времени: за день каждые 3 часа, за несколько дней начало суток (не чаще ~12 подписей)
+    const perDay = 1440 / p.bucket, days = Math.max(1, Math.round(n / perDay)), dStep = Math.ceil(days / 12);
+    series.forEach((x, i) => {
+      const st = tlStamp(x.t, off);
+      if (days === 1 ? (i * p.bucket) % 180 === 0 : (i % perDay === 0 && (i / perDay) % dStep === 0)) {
+        g += `<text class="al-ch-tick" x="${r1(m.l + gw * i)}" y="${H - m.b + 16}" text-anchor="${days === 1 ? 'middle' : 'start'}">${days === 1 ? st.slice(6) : st.slice(0, 5)}</text>`;
+      }
+    });
+    g += `<rect class="al-ch-hit al-tl-hit" x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" data-n="${n}" data-w="${W}" data-l="${m.l}"/>`;
+    return `<svg class="al-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${AN_TL_TITLE}: ${p.name}" preserveAspectRatio="xMidYMid meet">${g}</svg>`;
+  }
+
+  const util = { tlStamp, tlSummary, tlPeaksText, tlSvg, AN_TL_TITLE, AN_TL_BUCKETS, ackedTitle, anCanRemoveAlarm, filtersConfigured, anCanExclude,anRemovedNote, anExclusionBody, anRemovedItem, exclusionRequest, daysSvg, AN_DAYS_TITLE, AN_DAYS_COUNT, AN_DAYS_MIN, AN_PARETO_COUNT, AN_PARETO_TIME, fmtDuration, parseUtc, toPlant, buildUrl, pageLabel, liveSeconds, nextSort, plcBrand, orderBrands,
     plcArea, anBrands, anAreas, anQueryOf, anNote, anTables, sortRows, filterRows, nextSorts, paretoSvg, fmtMin, fmtPct, AN_TILES, AN_PARETO_TITLE, AN_METRICS };
   root.alarmsUtil = util;
   if (typeof module !== 'undefined' && module.exports) module.exports = util;
@@ -330,7 +388,7 @@
   const KEY = 'alarms:state';
   const PAGE = 200;
   const TIMEOUT = () => AbortSignal.timeout(6000);
-  const st = Object.assign({ plc: '', brand: '', mode: 'active', from: '', to: '', station: '', device: '', cls: '', hstate: 'all', q: '', sort: null, anBrand: '', anPlc: '', anAll: false, anMetric: 'count' }, (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } })());
+  const st = Object.assign({ plc: '', brand: '', mode: 'active', from: '', to: '', station: '', device: '', cls: '', hstate: 'all', q: '', sort: null, anBrand: '', anPlc: '', anAll: false, anMetric: 'count', anBucket: 15 }, (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } })());
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch { /* без сохранения */ } };
 
   let built = false, plcs = [], configured = new Set(), plcsLoading = null, filters = null, data = null, rows = [], page = 0;
@@ -438,6 +496,11 @@
               <div class="al-an-card"><h4 title="Сколько аварий началось в каждый день (с учётом выбранных линии, участка и правила рабочего времени)">${AN_DAYS_COUNT}</h4><div id="al-an-dcount"></div></div>
               <div class="al-an-card"><h4 title="Сколько минут суммарно длились аварии в каждый день (обрезано по рабочему времени линии)">${AN_DAYS_MIN}</h4><div id="al-an-dmin"></div></div>
             </div>
+          </section>
+          <section class="al-an-sec" id="al-s-tl">
+            <div class="al-an-h"><h3 title="Сколько новых аварий появилось в каждый интервал на GWM_UB и GWM_MB, независимо от выбранной линии; по пикам видны лавины аварий">${AN_TL_TITLE}</h3>
+              <span class="al-seg" id="al-tl-seg">${Object.entries(AN_TL_BUCKETS).map(([k, t]) => `<button type="button" class="dt-sec" data-tlb="${k}" title="Считать новые аварии по интервалам ${t}: чем короче интервал, тем точнее видно время пика">${t}</button>`).join('')}</span></div>
+            <div id="al-an-tl"></div>
           </section>
           <section class="al-an-sec">
             <div class="al-an-h"><h3 title="Парето: самые частые и самые долгие аварии и накопленная доля, чтобы увидеть, на какие аварии приходится большая часть потерь">${AN_PARETO_TITLE}</h3></div>
@@ -807,7 +870,7 @@
   const AN_TABS = anTables();
   const GS = {};          // состояние таблиц: сортировка, фильтры, выделение
   const GV = {};          // строки, показанные сейчас в таблицах (после фильтров и сортировки)
-  let an = null, anFail = 0, anTok = 0, anLoaded = false, anDrag = null, pop = null, rmOpen = false, dlg = null;
+  let tl = null, tlFail = 0, tlTok = 0, tlLoaded = false, an = null, anFail = 0, anTok = 0, anLoaded = false, anDrag = null, pop = null, rmOpen = false, dlg = null;
   const authUser = () => { const a = window.authState && window.authState(); return a && a.user ? a.user : null; };
   const canExclude = () => anCanExclude(authUser());
   const apiFetch = (url, o) => fetch(url, Object.assign({ signal: TIMEOUT() }, o));
@@ -831,6 +894,35 @@
     q('#al-an-brand').addEventListener('change', e => { st.anBrand = e.target.value; st.anPlc = ''; anResetFilters(); save(); refreshAn(); });
     q('#al-an-area').addEventListener('change', e => { st.anPlc = e.target.value; anResetFilters(); save(); refreshAn(); });
     q('#al-an-all').addEventListener('change', e => { st.anAll = e.target.checked; save(); refreshAn(); });
+    q('#al-tl-seg').addEventListener('click', e => {
+      const b = e.target.closest('[data-tlb]');
+      if (!b || Number(b.dataset.tlb) === Number(st.anBucket)) return;
+      st.anBucket = Number(b.dataset.tlb); save(); refreshTl();
+    });
+    const tlAt = e => {
+      const hit = e.target.closest('.al-tl-hit');
+      if (!hit || !tl) return null;
+      const card = hit.closest('[data-k]'), p = tl.plcs[Number(card.dataset.k)], rc = hit.ownerSVGElement.getBoundingClientRect();
+      const n = Number(hit.dataset.n), W = Number(hit.dataset.w), l = Number(hit.dataset.l), iw = W - l - 12;
+      const i = Math.max(0, Math.min(n - 1, Math.floor(((e.clientX - rc.left) * W / rc.width - l) / (iw / n))));
+      return { p, i, host: card.querySelector('.al-tl-chart'), rc, hit };
+    };
+    q('#al-an-tl').addEventListener('mousemove', e => {
+      const a = tlAt(e), tip = pane.querySelector('.al-tl-tip');
+      if (tip) tip.hidden = !a;
+      if (!a || !tip) return;
+      const hr = a.host.getBoundingClientRect();
+      tip.textContent = `${tlStamp(a.p.series[a.i].t, tl.offset_hours)}: ${a.p.series[a.i].n} нов. авар.`;
+      tip.style.left = Math.min(e.clientX - hr.left + 12, hr.width - tip.offsetWidth - 4) + 'px';
+      tip.style.top = (e.clientY - hr.top - 30) + 'px';
+    });
+    q('#al-an-tl').addEventListener('mouseleave', () => { const tip = pane.querySelector('.al-tl-tip'); if (tip) tip.hidden = true; });
+    q('#al-an-tl').addEventListener('click', e => {
+      const a = tlAt(e);
+      if (!a || !a.p.plc_id) return;
+      const day = new Date(parseUtc(a.p.series[a.i].t) + (Number(tl.offset_hours) || 0) * 3600000).toISOString().slice(0, 10);
+      openJournalDay(a.p.plc_id, day);
+    });
     q('#al-an-reset').addEventListener('click', () => { AN_KEYS.forEach(k => { GS[k] = { sorts: [], filters: {}, sel: null }; }); drawAn(); });
     q('#al-an-xl').addEventListener('click', async e => {
       const b = e.currentTarget; b.disabled = true;
@@ -852,8 +944,43 @@
 
   function anResetFilters() { AN_KEYS.forEach(k => { gs(k).filters = {}; }); }
 
+  // Журнал событий выбранного ПЛК за сутки (из графика «Динамика по времени»; журнал фильтруется по дням, не по часам)
+  function openJournalDay(plcId, day) {
+    st.mode = 'history'; st.from = st.to = day; page = 0;
+    selectPlc(plcId);
+  }
+
+  async function refreshTl() {
+    if (!built) build();
+    const my = ++tlTok;
+    try {
+      const d = await getJson(buildUrl('/api/alarms/timeline', { from: st.from, to: st.to, bucket: st.anBucket }));
+      if (my !== tlTok) return;
+      tl = d; tlFail = 0;
+    } catch {
+      if (my !== tlTok) return;
+      tlFail++;
+    }
+    tlLoaded = true;
+    drawTl();
+  }
+
+  function drawTl() {
+    pane.querySelectorAll('[data-tlb]').forEach(b => b.classList.toggle('active', Number(b.dataset.tlb) === Number(st.anBucket)));
+    const host = q('#al-an-tl');
+    if (!tl || tlFail >= 2) { host.innerHTML = `<div class="ch-empty">${tlLoaded ? 'Не удалось загрузить динамику по времени' : 'Загрузка…'}</div>`; return; }
+    const off = tl.offset_hours;
+    host.innerHTML = tl.plcs.map((p, k) => `<div class="al-an-card al-tl-card" data-k="${k}">
+        <h4 title="Новые аварии ПЛК ${esc(p.name)} по интервалам: наведите на столбец, чтобы увидеть время и число, нажмите, чтобы открыть журнал этого дня">${esc(p.name)}</h4>
+        <div class="al-tl-sum" title="Сколько новых аварий появилось за период и в какой интервал был максимум">${esc(tlSummary(p, off))}</div>
+        <div class="al-tl-peaks" title="Три самых больших пика: время начала интервала и число новых аварий">${esc(tlPeaksText(p, off))}</div>
+        <div class="al-tl-chart">${tlSvg(p, 900, off)}<div class="al-tl-tip" hidden></div></div>
+      </div>`).join('');
+  }
+
   async function refreshAn() {
     if (!built) build();
+    refreshTl();
     const my = ++anTok;
     try {
       const d = await getJson(buildUrl('/api/alarms/analytics', anQueryOf(st)));

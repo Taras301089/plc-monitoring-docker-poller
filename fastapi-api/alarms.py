@@ -1,6 +1,7 @@
 """Журнал аварий, шаг 1: словарь аварий (бит слова ПЛК -> текст аварии), импорт из экспорта TIA Portal (.xlsx)."""
 from __future__ import annotations
 
+import asyncio
 import io
 import os
 import re
@@ -789,6 +790,11 @@ async def get_events_xlsx(
 TOP_N = 20          # строк в таблицах «Самые частые», «Самые длительные», «Самые долгие случаи»
 PARETO_N = 10       # столбцов в Парето
 DYNAMICS_DAYS = 14  # дней в графиках «Динамика по дням», когда выбран один день
+TIMELINE_TITLE = "Динамика по времени"
+TIMELINE_PLCS = ("GWM_UB", "GWM_MB")        # ПЛК блока «Динамика по времени» (ищутся по имени, не по id)
+TIMELINE_BUCKETS = {15: "15 мин", 60: "1 час"}   # интервалы, минут: подпись кнопки
+TIMELINE_PEAKS = 3                          # сколько самых больших пиков подписано
+TIMELINE_TIMEOUT = 6.0                      # секунд на запрос к БД
 KPI_TEMPLATES = ("body_counter", "fl_counter")   # экраны, у которых есть почасовые данные kpi_hourly
 NO_VALUE = "—"
 TILE_NAMES = ["Событий", "Суммарное время аварий", "Разных аварий"]
@@ -1103,6 +1109,95 @@ async def fetch_analytics(pool: asyncpg.Pool, d1: date, d2: date, brand: str, pl
     return out
 
 
+# ------------------------------------------------------------------ динамика по времени (пики новых аварий)
+def timeline_stamp(iso: str) -> str:
+    """Начало интервала для подписей: «22.10 14:15» по часам завода (как tlStamp в alarms.js)."""
+    return to_plant(datetime.fromisoformat(iso.replace("Z", "+00:00"))).strftime("%d.%m %H:%M")
+
+
+def timeline_summary(p: dict[str, Any]) -> str:
+    """Строка под названием графика: итог, максимум и где он (тот же текст на экране и в Excel)."""
+    if not p["max"]:
+        return f"Всего: {p['total']}"
+    return f"Всего: {p['total']} · максимум: {p['max']} в {timeline_stamp(p['peaks'][0]['t'])}"
+
+
+def timeline_peaks_text(p: dict[str, Any]) -> str:
+    """Подписи самых больших пиков: «Пики: 22.10 14:15 — 215; …» (пусто, если аварий не было)."""
+    if not p["peaks"]:
+        return ""
+    return "Пики: " + "; ".join(f"{timeline_stamp(x['t'])} — {x['n']}" for x in p["peaks"])
+
+
+def build_timeline(counts: dict[int, int], d1: date, d2: date, bucket: int) -> dict[str, Any]:
+    """Ряд «новых аварий по интервалам» без пропусков (пустой интервал даёт 0) и пики.
+
+    counts: номер интервала от начала плантовых суток d1 -> число новых аварий. Единственное место сборки ряда:
+    экран и Excel берут результат отсюда."""
+    start = plant_day_start_utc(d1)
+    n_buckets = ((d2 - d1).days + 1) * 24 * 60 // bucket
+    series = [{"t": _iso(start + timedelta(minutes=bucket * i)), "n": int(counts.get(i, 0))} for i in range(n_buckets)]
+    ranked = sorted((x for x in series if x["n"] > 0), key=lambda x: (-x["n"], x["t"]))
+    peaks = [dict(x) for x in ranked[:TIMELINE_PEAKS]]
+    return {"bucket": bucket, "series": series, "total": sum(x["n"] for x in series),
+            "max": peaks[0]["n"] if peaks else 0, "peaks": peaks}
+
+
+async def fetch_timeline(pool: asyncpg.Pool, d1: date, d2: date, bucket: int) -> dict[str, Any]:
+    """Новые аварии по интервалам для ПЛК из TIMELINE_PLCS за период.
+
+    Считаются начала аварий (started_at внутри интервала); аварии, уже активные при старте записи (active_at_start),
+    не входят; убранные из статистики аварии и станции (alarm_exclusions) не входят, как в остальной аналитике.
+    Правило рабочего времени не применяется: пики после отключения питания приходятся на нерабочее время."""
+    if bucket not in TIMELINE_BUCKETS:
+        raise HTTPException(status_code=422, detail="Интервал: 15 или 60 минут")
+    _check_period(d1, d2)
+    rows = await pool.fetch("SELECT id, name FROM plcs WHERE name = ANY($1::text[])", list(TIMELINE_PLCS))
+    by_name = {r["name"]: r["id"] for r in rows}
+    ids = list(by_name.values())
+    items = await load_exclusions(pool, ids) if ids else []
+    ex_bits: dict[int, list[int]] = {}
+    ex_stations: dict[int, list[str]] = {}
+    for i in items:
+        if i["kind"] == "alarm":
+            ex_bits.setdefault(i["plc_id"], []).append(i["bit_index"])
+        elif i["station"]:
+            ex_stations.setdefault(i["plc_id"], []).append(i["station"])
+    start, end = plant_day_start_utc(d1), plant_day_start_utc(d2 + timedelta(days=1))
+    out = []
+    for name in TIMELINE_PLCS:
+        pid = by_name.get(name)
+        counts: dict[int, int] = {}
+        if pid is not None:
+            try:
+                got = await pool.fetch(
+                    """
+                    SELECT floor(extract(epoch FROM e.started_at - $2::timestamptz) / ($4::int * 60))::int AS b, count(*)::int AS n
+                    FROM alarm_events e LEFT JOIN alarm_catalog c ON c.plc_id = e.plc_id AND c.bit_index = e.bit_index
+                    WHERE e.plc_id = $1 AND e.started_at >= $2 AND e.started_at < $3 AND NOT e.active_at_start
+                      AND NOT (e.bit_index = ANY($5::int[])) AND NOT (COALESCE(c.station, '') = ANY($6::text[]))
+                    GROUP BY 1
+                    """,
+                    pid, start, end, bucket, ex_bits.get(pid, []), ex_stations.get(pid, []), timeout=TIMELINE_TIMEOUT)
+            except asyncio.TimeoutError:
+                raise HTTPException(status_code=504, detail="Расчёт динамики по времени не уложился в 6 секунд")
+            counts = {r["b"]: r["n"] for r in got}
+        out.append({"name": name, "plc_id": pid, **build_timeline(counts, d1, d2, bucket)})
+    return {"from": d1.isoformat(), "to": d2.isoformat(), "bucket": bucket, "offset_hours": UTC_OFFSET_HOURS, "plcs": out}
+
+
+@router.get("/timeline", summary="Новые аварии по интервалам 15 мин или 1 час для GWM_UB и GWM_MB: пики (чтение без входа)")
+async def get_timeline(
+    request: Request,
+    date_from: date | None = Query(None, alias="from"),
+    date_to: date | None = Query(None, alias="to"),
+    bucket: int = Query(15, description="Интервал, минут: 15 или 60"),
+):
+    t = plant_today()
+    d1, d2 = date_from or date_to or t, date_to or date_from or t
+    return await fetch_timeline(request.app.state.pool, d1, d2, bucket)
+
+
 def _analytics_params(
     date_from: date | None = Query(None, alias="from"),
     date_to: date | None = Query(None, alias="to"),
@@ -1120,8 +1215,8 @@ async def get_analytics(request: Request, params: dict[str, Any] = Depends(_anal
     return await fetch_analytics(request.app.state.pool, **params)
 
 
-def build_analytics_workbook(data: dict[str, Any], metric: str) -> bytes:
-    """Excel аналитики: один лист «Аналитика» повторяет экран (заголовок, плитки, график Парето, таблицы); данные графика на скрытом листе «График»."""
+def build_analytics_workbook(data: dict[str, Any], metric: str, timeline: dict[str, Any] | None = None) -> bytes:
+    """Excel аналитики: один лист «Аналитика» повторяет экран (заголовок, плитки, график Парето, «Динамика по времени», таблицы); данные графиков на скрытом листе «График»."""
     import xlsxwriter
 
     buf = io.BytesIO()
@@ -1203,6 +1298,37 @@ def build_analytics_workbook(data: dict[str, Any], metric: str) -> bytes:
         ws.write(row, 0, "Нет аварий за выбранный период", f["muted"])
         row += 2
 
+    if timeline:
+        ws.write(row, 0, f"{TIMELINE_TITLE}, интервал {TIMELINE_BUCKETS[timeline['bucket']]}", f["title"])
+        row += 1
+        for k, p in enumerate(timeline["plcs"]):
+            c0 = 5 + 3 * k
+            gs.write_row(0, c0, ["Интервал", f"{p['name']}: новых аварий"])
+            for i, x in enumerate(p["series"], start=1):
+                gs.write(i, c0, timeline_stamp(x["t"]))
+                gs.write_number(i, c0 + 1, x["n"])
+            ws.write(row, 0, p["name"], f["bold"])
+            ws.write(row, 1, timeline_summary(p), f["muted"])
+            row += 1
+            if p["peaks"]:
+                ws.write(row, 1, timeline_peaks_text(p), f["bad"])
+                row += 1
+            n = len(p["series"])
+            ch = wb.add_chart({"type": "column"})
+            top = max(range(n), key=lambda i: p["series"][i]["n"]) if p["max"] else None
+            ser = {"name": f"{p['name']}: новых аварий", "categories": ["График", 1, c0, n, c0], "values": ["График", 1, c0 + 1, n, c0 + 1],
+                   "fill": {"color": "#2F80ED"}, "gap": 10}
+            if top is not None:
+                ser["points"] = [None] * top + [{"fill": {"color": "#C0392B"}}]   # самый большой пик красный, как на экране
+            ch.add_series(ser)
+            ch.set_title({"name": f"{TIMELINE_TITLE}, {p['name']}, интервал {TIMELINE_BUCKETS[timeline['bucket']]}"})
+            ch.set_y_axis({"name": "Новых аварий", "major_gridlines": {"visible": True, "line": {"color": "#E0E4EA"}}})
+            ch.set_x_axis({"num_font": {"rotation": -45}, "interval_unit": max(1, n // 12)})
+            ch.set_legend({"none": True})
+            ch.set_size({"width": 860, "height": 300})
+            ws.insert_chart(row, 0, ch)
+            row += 17
+
     def head(r: int, title: str, headers: list[str], num_from: int) -> int:
         ws.write(r, 0, title, f["title"])
         for c, h in enumerate(headers):
@@ -1282,11 +1408,13 @@ async def get_analytics_xlsx(
     params: dict[str, Any] = Depends(_analytics_params),
     metric: str = Query("count", pattern="^(count|time)$"),
     src: str = Query("alarms"),
+    bucket: int = Query(15, description="Интервал блока «Динамика по времени», минут: 15 или 60"),
 ):
     from history import download_name, safe_name
 
     data = await fetch_analytics(request.app.state.pool, **params)
-    xls = await run_in_threadpool(build_analytics_workbook, data, metric)
+    timeline = await fetch_timeline(request.app.state.pool, params["d1"], params["d2"], bucket)
+    xls = await run_in_threadpool(build_analytics_workbook, data, metric, timeline)
     d1, d2 = params["d1"], params["d2"]
     days = f"{d1.isoformat()}_{d2.isoformat()}" if d1 != d2 else d1.isoformat()
     fname = download_name(src, f"{safe_name(data['scope']['label'])}_{days}.xlsx")
