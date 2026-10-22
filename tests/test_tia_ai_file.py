@@ -187,7 +187,7 @@ def test_column_texts():
 
 def test_window_has_table_with_titles():
     js = (STATIC / "tiaexport.js").read_text(encoding="utf-8")
-    for need in ("Файл для ИИ", "Выгрузка (ZIP)", "Скачать JSON", "Пересобрать", "Лежит на сервере: C:\\\\tia-bridge\\\\logic\\\\"):
+    for need in ("Файл для ИИ", "Выгрузка (ZIP)", "Скачать JSON", "Пересобрать", "Файл для ИИ нужен затем", "C:\\\\tia-bridge\\\\logic\\\\"):
         assert need in js, need
     assert "/api/tia/logic/" in js
 

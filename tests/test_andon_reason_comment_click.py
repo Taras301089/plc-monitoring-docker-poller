@@ -30,6 +30,8 @@ def _helpers(expr: str):
 def test_title_has_interval_and_time_without_line_name():
     assert _helpers("h.cmTitle(3,'09:00-10:00')") == "Комментарий — интервал 3, 09:00–10:00"
     assert _helpers("h.cmTitle(5,'')") == "Комментарий — интервал 5"
+    assert _helpers("h.cmTitle(2,'08:30-09:30','ОТО')") == "Ответ отдела ОТО и комментарии — интервал 2, 08:30–09:30"   # единое окно ОТО/ИТО
+    assert _helpers("h.cmTitle(null,'20.10 08:30–09:30','ИТО')") == "Ответ отдела ИТО и комментарии — 08:30–09:30"      # из списка «Простои» номера интервала нет
 
 
 @node
@@ -63,7 +65,7 @@ def test_clickable_column_has_item_and_title():
 
 
 def test_window_buttons_keys_and_existing_api():
-    assert "window.dtComments.mount(box, itemId" in JS and "{ open: true }" in JS
+    assert "window.dtComments.mount(box, it.id" in JS and "open: true" in JS
     assert ">Сохранить</button>" in JS and "'Отмена' : 'Закрыть'" in JS
     assert "e.key === 'Escape'" in JS and "e.ctrlKey" in JS
     assert "opts.open" in CM

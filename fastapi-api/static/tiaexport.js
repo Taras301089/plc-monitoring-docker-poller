@@ -1,50 +1,62 @@
 // Выгрузка проекта TIA Portal в XML и Excel (только администратор): кнопка «🧩 Выгрузить проект TIA» в строке выбора ПЛК
-// на вкладке «ПЛК» открывает окно выгрузки: «Источник» (все ПЛК системы; ПЛК без проекта в tia-projects.json серые и не выбираются),
-// «Путь сохранения», «Выгрузить», индикатор службы; ниже состояние и последняя выгрузка выбранного источника с кнопкой «⬇ ZIP».
-// При открытии предвыбран ПЛК, выбранный вверху вкладки (если у него есть проект); дальше выбор в окне от верхнего списка не зависит.
+// на вкладке «ПЛК» открывает окно выгрузки: «ПЛК» (все ПЛК системы), «Проект (папка)» (файлы .ap17, которые служба нашла в разрешённых папках),
+// «Путь сохранения», «Выгрузить», индикатор службы; ниже состояние и последняя выгрузка выбранного ПЛК с кнопкой «⬇ ZIP».
+// Пара «ПЛК -> проект» записывается службой в tia-projects.json; на сервер уходит только имя ПЛК и ключ найденного файла, путь не передаётся.
+// При открытии предвыбран ПЛК, выбранный вверху вкладки; дальше выбор в окне от верхнего списка не зависит.
 // Саму выгрузку делает служба tia-bridge.ps1 на ПК сервера.
 // Чистые функции (список источников, тексты состояния) отдаются через module.exports для проверки в node (tests/test_tia_target.py).
 (function (root) {
   'use strict';
 
   const DEFAULT_TARGET = 'C:\\tia-bridge\\out';
+  const LOGIC_DIR = 'C:\\tia-bridge\\logic';   // папка файлов для ИИ на ПК сервера (в контейнере это /tia-bridge/logic)
+  const PROJECTS_FILE = 'C:\\tia-bridge\\tia-projects.json';
+  const PAIR = '@pair';   // выбор «текущий проект ПЛК», путь которого лежит вне найденных папок
+  // Точный путь файла для ИИ на сервере: <папка logic>\\<id проекта>.json
+  const logicPath = p => (p && p.id ? `${LOGIC_DIR}\\${p.id}.json` : '');
   const ACTIVE = ['queued', 'running'];
-  const NO_PROJECTS = 'Ни для одного ПЛК не задан проект TIA (файл tia-projects.json на ПК сервера)';
   const norm = s => String(s ?? '').trim().toLowerCase();
 
-  // Список «Источник»: каждый ПЛК системы; у кого есть проект (поле plc в tia-projects.json), тот выбирается,
-  // остальные серые «<имя> — проект не задан». Проекты без поля plc (старые файлы) или с незнакомым ПЛК идут в конце по своему имени.
-  function buildSources(plcs, projects) {
+  // Список ПЛК: все ПЛК системы; у кого уже есть пара «ПЛК -> проект» в tia-projects.json, к названию добавляется «— проект: <папка>»
+  function plcOptions(plcs, projects) {
     const prj = Array.isArray(projects) ? projects : [];
-    const used = new Set();
-    const out = [];
-    (Array.isArray(plcs) ? plcs : []).forEach(plc => {
-      const mine = prj.filter(p => p.plc && norm(p.plc) === norm(plc.name));
-      if (!mine.length) {
-        out.push({ value: `plc:${plc.id}`, label: `${plc.name} — проект не задан`, plc: plc.name, project: null, disabled: true });
-        return;
-      }
-      mine.forEach(p => {
-        used.add(p.id);
-        out.push({ value: p.id, label: mine.length > 1 ? `${plc.name} · ${p.name}` : plc.name, plc: plc.name, project: p, disabled: false });
-      });
+    return (Array.isArray(plcs) ? plcs : []).map(plc => {
+      const pair = prj.find(p => p.plc && norm(p.plc) === norm(plc.name)) || null;
+      return { value: plc.name, label: pair ? `${plc.name} — проект: ${pair.folder || pair.name}` : plc.name, project: pair };
     });
-    prj.filter(p => !used.has(p.id)).forEach(p => out.push({ value: p.id, label: p.name, plc: p.plc || '', project: p, disabled: false }));
+  }
+
+  // Список «Проект (папка)»: найденные службой .ap17 «GWM\UB\UB.ap17 — изменён 20.10 12:03»; если проект ПЛК лежит вне найденных папок, он первый
+  function foundOptions(found, project, fmtT) {
+    const f = typeof fmtT === 'function' ? fmtT : (x => String(x ?? ''));
+    const out = (found && Array.isArray(found.items) ? found.items : []).map(i => ({ value: i.key, label: `${i.rel} — изменён ${f(i.modified)}` }));
+    if (project && !project.found_key) out.unshift({ value: PAIR, label: `${project.folder || project.name} — текущий проект ПЛК (вне найденных папок)` });
     return out;
   }
 
-  // Источник ПЛК по его имени (ПЛК, выбранный вверху вкладки): первый выбираемый с этим ПЛК, иначе ''
-  function sourceForPlc(sources, plcName) {
-    const n = norm(plcName);
-    const s = n ? (sources || []).find(x => !x.disabled && norm(x.plc) === n) : null;
-    return s ? s.value : '';
+  // Выбранный проект: прежний выбор, если он остался в списке, иначе проект пары ПЛК, иначе ничего
+  function pickFound(found, project, wanted) {
+    const keys = (found && Array.isArray(found.items) ? found.items : []).map(i => i.key);
+    if (wanted && (keys.includes(wanted) || (wanted === PAIR && project && !project.found_key))) return wanted;
+    if (project && project.found_key && keys.includes(project.found_key)) return project.found_key;
+    return project && !project.found_key ? PAIR : '';
   }
 
-  // Выбранный источник: заданный, если он выбирается, иначе первый доступный
-  function pickSource(sources, wanted) {
-    const ok = sources.filter(s => !s.disabled);
-    if (ok.some(s => s.value === wanted)) return wanted;
-    return ok.length ? ok[0].value : (sources[0] ? sources[0].value : '');
+  // Строка перед запуском: какая пара «ПЛК ↔ проект» будет записана
+  function confirmLine(plc, found, project, choice) {
+    if (!plc || !choice) return '';
+    const it = choice === PAIR ? null : (found && found.items || []).find(i => i.key === choice);
+    const rel = it ? it.rel : (project && (project.folder || project.name)) || '';
+    return rel ? `ПЛК ${plc} ↔ проект ${rel}` : '';
+  }
+
+  // Подпись под списком, если проектов нет или список устарел
+  function foundHint(found) {
+    if (found && Array.isArray(found.items) && found.items.length) {
+      return found.stale ? 'Список проектов устарел: служба выгрузки давно его не обновляла, проверьте, что она запущена на ПК сервера.' : '';
+    }
+    return 'Служба выгрузки не нашла проекты в разрешённых папках. Папки поиска (поле roots) задаются в ' + PROJECTS_FILE
+      + ' (правит администратор сервера); по умолчанию C:\\TIA_for_claude_to_XML и C:\\projects.';
   }
 
   // Путь по умолчанию: последний использованный для этого проекта, иначе папка out службы
@@ -56,9 +68,9 @@
 
   const isActive = p => !!(p && p.job && ACTIVE.includes(p.job.state));
 
-  // Кнопка «Выгрузить» доступна, только если служба работает, у источника есть проект и выгрузка этого проекта не идёт
-  function canExport(alive, src, busy) {
-    return !!alive && !!src && !src.disabled && !!src.project && !busy && !isActive(src.project);
+  // Кнопка «Выгрузить» доступна, только если служба работает, выбраны ПЛК и проект и выгрузка этого проекта не идёт
+  function canExport(alive, plc, choice, busy, project) {
+    return !!alive && !!plc && !!choice && !busy && !isActive(project);
   }
 
   function stateInfo(job) {
@@ -125,7 +137,7 @@
     : 'Собрать файл для ИИ заново из последнего ZIP без новой выгрузки из TIA Portal, занимает несколько секунд');
   const canDownloadLogic = p => !!(p && p.logic && p.logic.state === 'ready');
 
-  const core = { rebuildTitle, zipInfo, logicInfo, canRebuild, canDownloadLogic, DEFAULT_TARGET, NO_PROJECTS, buildSources, sourceForPlc, pickSource, defaultTarget, canExport, stateInfo, excelText, lastText, savedPath, fmtMb };
+  const core = { logicPath, LOGIC_DIR, rebuildTitle, zipInfo, logicInfo, canRebuild, canDownloadLogic, DEFAULT_TARGET, PAIR, plcOptions, foundOptions, pickFound, confirmLine, foundHint, defaultTarget, canExport, stateInfo, excelText, lastText, savedPath, fmtMb };
   root.tiaCore = core;
   if (typeof module !== 'undefined' && module.exports) module.exports = core;
   if (typeof document === 'undefined') return;
@@ -147,7 +159,7 @@
   const BTN_TITLE = 'Выгрузить проект TIA Portal в XML и Excel: откроется окно с выбором ПЛК-источника, путём сохранения, состоянием службы и ZIP';
   const NO_ANSWER = 'Нет ответа сервера о проектах TIA: проверьте связь с сервером, список перечитается сам';
 
-  let data = null, plcs = [], sources = [], current = '', timer = null, busy = false, modal = null, optsKey = '', shownPrj = '';
+  let data = null, plcs = [], plcName = '', choice = '', timer = null, busy = false, modal = null, optsKey = '', shownPrj = '';
   const typed = new Map();   // проект -> путь, введённый вручную (не затирается опросом)
 
   async function api(url, opts) {
@@ -161,13 +173,13 @@
   }
 
   const topName = () => (topPlc.selectedOptions[0] ? topPlc.selectedOptions[0].textContent : '');
-  const srcOf = () => sources.find(s => s.value === current) || null;
-  const hasProjects = () => !!(data && Array.isArray(data.projects) && data.projects.length);
+  const projOf = () => ((data && data.projects) || []).find(p => norm(p.plc) === norm(plcName)) || null;
+  const hasData = () => !!data;
 
   function drawButton() {
     btn.hidden = !isAdmin();
-    btn.disabled = !hasProjects();
-    btn.title = hasProjects() ? BTN_TITLE : (data ? NO_PROJECTS : NO_ANSWER);
+    btn.disabled = !hasData();
+    btn.title = hasData() ? BTN_TITLE : NO_ANSWER;
   }
 
   function onKey(e) { if (e.key === 'Escape') closeModal(); }
@@ -181,22 +193,27 @@
   }
 
   function openModal() {
-    if (modal || !hasProjects()) return;
-    sources = buildSources(plcs, data.projects);
-    current = pickSource(sources, sourceForPlc(sources, topName()) || current);   // по умолчанию ПЛК, выбранный вверху
+    if (modal || !hasData()) return;
+    plcName = plcOptions(plcs, data.projects).some(o => o.value === topName()) ? topName() : plcName;   // по умолчанию ПЛК, выбранный вверху
+    choice = '';
     modal = document.createElement('div');
     modal.className = 'kpi-modal';
     modal.innerHTML = `
       <div class="kpi-modal-box auth-modal tia-box" role="dialog" aria-label="Выгрузка проекта TIA">
         <h3>Выгрузка проекта TIA · <span data-k="name"></span></h3>
+        <p class="tia-intro" title="Что делает окно: служба выгружает проект TIA в XML и Excel, сайт собирает из XML файл JSON для ИИ и хранит его на сервере">Что здесь происходит: 1) служба выгрузки открывает проект TIA Portal и сохраняет его блоки в XML и Excel (архив ZIP, папка C:\\tia-bridge\\out\\); 2) после выгрузки сайт сам собирает из XML файл для ИИ (JSON): короткую запись логики ПЛК, какие условия включают каждый выход. Файл лежит на сервере: C:\\tia-bridge\\logic\\&lt;проект&gt;.json, его можно скачать кнопкой «Скачать JSON».</p>
         <div class="tia-bar">
-          <label class="tia-f" title="Источник выгрузки: ПЛК системы, для которого в файле tia-projects.json на ПК сервера задан проект TIA. Серые ПЛК без проекта выбрать нельзя">Источник
-            <select id="tia-src" title="Выберите ПЛК, проект TIA которого нужно выгрузить; серые строки без проекта: добавьте проект с полем plc в tia-projects.json"></select></label>
+          <label class="tia-f" title="ПЛК системы, для которого выгружается проект TIA: рядом с названием показано, какая папка проекта уже привязана к этому ПЛК">ПЛК
+            <select id="tia-src" title="Выберите ПЛК: у кого уже есть проект, у того в названии указана папка проекта; новому ПЛК проект выбирается справа"></select></label>
+          <label class="tia-f tia-prj" title="Проект TIA из папок, где служба выгрузки нашла файлы .ap17; выбранный проект привяжется к выбранному ПЛК">Проект (папка)
+            <select id="tia-prj" title="Файл проекта .ap17 из разрешённых папок поиска с датой изменения; при выборе ПЛК с проектом список стоит на его проекте"></select></label>
           <label class="tia-f tia-path" title="Папка, куда служба положит копию ZIP: полный путь с буквой диска (C:\\папка) или сетевой путь (\\\\сервер\\папка)">Путь сохранения
             <input type="text" id="tia-target" spellcheck="false" title="Полный путь к папке для копии архива (C:\\папка или \\\\сервер\\папка); системные папки и корень диска запрещены, папка создаётся сама"></label>
-          <button type="button" id="tia-go" disabled title="Выгрузить проект выбранного источника в XML и Excel: служба откроет копию проекта в TIA Portal без окна, проект не меняется; несколько минут">Выгрузить</button>
+          <button type="button" id="tia-go" disabled title="Выгрузить выбранный проект для выбранного ПЛК в XML и Excel: служба откроет копию проекта в TIA Portal без окна, проект не меняется; несколько минут">Выгрузить</button>
           <span class="tia-svc" data-k="svc"></span>
         </div>
+        <div class="tia-line tia-confirm" data-k="confirm" hidden title="Какую пару ПЛК и проект запомнит служба при выгрузке: проверьте её перед нажатием кнопки «Выгрузить»"></div>
+        <div class="tia-note tia-nohint" data-k="found" hidden title="Служба выгрузки ищет файлы .ap17 раз в минуту только в разрешённых папках; их список задаёт администратор сервера в tia-projects.json"></div>
         <div class="tia-line" data-k="state"></div>
         <div class="tia-line" data-k="last"></div>
         <table class="tia-tbl" data-k="tbl" title="Все проекты TIA: состояние выгрузки ZIP и файла для ИИ, который сайт собирает из последнего архива">
@@ -205,7 +222,7 @@
             <th title="Короткая запись логики ПЛК для ИИ: состояние, размер, число блоков и выходов; кнопки скачивания и пересборки">Файл для ИИ</th></tr></thead>
           <tbody data-k="rows"></tbody>
         </table>
-        <div class="tia-note" title="Файл для ИИ собирается автоматически после каждой успешной выгрузки, лежит на сервере в папке logic и скачивается кнопкой в таблице">Файл для ИИ: короткая запись логики ПЛК (какие условия включают каждый выход); по нему локальная модель объяснит, почему встала станция. Лежит на сервере: C:\\tia-bridge\\logic\\</div>
+        <div class="tia-note" title="Файл для ИИ собирается автоматически после каждой успешной выгрузки, лежит на сервере в папке logic и скачивается кнопкой в таблице">Файл для ИИ нужен затем, чтобы по нему локальная модель объяснила, почему встала станция.</div>
         <div class="kpi-modal-actions">
           <button type="button" data-act="cancel" class="tia-close" title="Закрыть окно; начатая выгрузка продолжится на ПК сервера, состояние видно при следующем открытии окна">Закрыть</button>
         </div>
@@ -215,8 +232,9 @@
     const sel = modal.querySelector('#tia-src');
     const inp = modal.querySelector('#tia-target');
     const go = modal.querySelector('#tia-go');
-    sel.addEventListener('change', () => { current = sel.value; drawModal(); });
-    inp.addEventListener('input', () => { const p = srcOf() && srcOf().project; if (p) typed.set(p.id, inp.value); });
+    sel.addEventListener('change', () => { plcName = sel.value; choice = ''; shownPrj = ''; drawModal(); });
+    modal.querySelector('#tia-prj').addEventListener('change', e => { choice = e.target.value; drawModal(); });
+    inp.addEventListener('input', () => { if (plcName) typed.set(plcName, inp.value); });
     inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !go.disabled) go.click(); });
     go.addEventListener('click', exportNow);
     modal.querySelector('[data-k="tbl"]').addEventListener('click', tableClick);
@@ -231,32 +249,42 @@
     if (!modal) return;
     if (!data) { closeModal(); toast(NO_ANSWER); return; }
     const q = s => modal.querySelector(s);
-    sources = buildSources(plcs, data.projects);
-    current = pickSource(sources, current);
-    const sel = q('#tia-src');
-    const key = JSON.stringify(sources.map(s => [s.value, s.label, s.disabled]));
+    const opts = plcOptions(plcs, data.projects);
+    if (!opts.some(o => o.value === plcName)) plcName = opts.length ? opts[0].value : '';
+    const p = projOf();
+    const found = data.found || { items: [], stale: true };
+    choice = pickFound(found, p, choice);
+    const sel = q('#tia-src'), psel = q('#tia-prj');
+    const fopts = foundOptions(found, p, fmtT);
+    const key = JSON.stringify([opts.map(o => [o.value, o.label]), fopts.map(o => [o.value, o.label])]);
     if (key !== optsKey) {
       optsKey = key;
-      sel.innerHTML = sources.length
-        ? sources.map(s => `<option value="${esc(s.value)}"${s.disabled ? ' disabled class="tia-none"' : ''} title="${esc(s.project ? `Проект TIA: ${s.project.name}` : 'Для этого ПЛК нет проекта в tia-projects.json на ПК сервера')}">${esc(s.label)}</option>`).join('')
-        : '<option value="" disabled>Нет ПЛК и проектов</option>';
+      sel.innerHTML = opts.length ? opts.map(o => `<option value="${esc(o.value)}" title="${esc(o.project ? `ПЛК ${o.value}: привязан проект ${o.project.name}, выбрав другой проект справа, вы замените привязку` : `ПЛК ${o.value}: проект ещё не привязан, выберите его в списке справа`)}">${esc(o.label)}</option>`).join('')
+        : '<option value="" disabled>Нет ПЛК в системе</option>';
+      psel.innerHTML = '<option value="">Выберите проект…</option>' + fopts.map(o => `<option value="${esc(o.value)}" title="${esc(`Проект ${o.label}: файл проекта .ap17 в разрешённых папках поиска службы выгрузки`)}">${esc(o.label)}</option>`).join('');
     }
-    sel.value = current;
-    const src = srcOf();
-    const p = src && src.project;
+    sel.value = plcName;
+    psel.value = choice;
     q('[data-k="name"]').textContent = p ? p.name : '';
     const inp = q('#tia-target');
-    const pid = p ? p.id : '';
-    if (pid !== shownPrj || document.activeElement !== inp) inp.value = p ? (typed.get(p.id) ?? defaultTarget(p, data.default_target)) : '';
+    const pid = plcName;
+    if (pid !== shownPrj || document.activeElement !== inp) inp.value = typed.get(plcName) ?? defaultTarget(p, data.default_target);
     shownPrj = pid;
-    inp.disabled = !p;
+    const cl = confirmLine(plcName, found, p, choice);
+    const cbox = q('[data-k="confirm"]');
+    cbox.textContent = cl;
+    cbox.hidden = !cl;
+    const fh = foundHint(found);
+    const fbox = q('[data-k="found"]');
+    fbox.textContent = fh;
+    fbox.hidden = !fh;
     const svc = q('[data-k="svc"]');
     svc.className = `tia-svc ${data.alive ? 'on' : 'off'}`;
     svc.textContent = data.alive ? '● служба работает' : '● служба не запущена';
     svc.title = data.alive ? 'Служба выгрузки tia-bridge работает на ПК сервера и принимает заявки на выгрузку'
       : 'Служба выгрузки не запущена на ПК сервера: задача планировщика «PMM TIA bridge» стартует при входе в Windows под учёткой из группы «Siemens TIA Openness»';
-    q('#tia-go').disabled = !canExport(data.alive, src, busy);
-    const st = p ? stateInfo(p.job) : { cls: 'dim', text: 'Для этого ПЛК не задан проект: добавьте его с полем plc в tia-projects.json на ПК сервера', title: '' };
+    q('#tia-go').disabled = !canExport(data.alive, plcName, choice, busy, p);
+    const st = p ? stateInfo(p.job) : { cls: 'dim', text: 'Для этого ПЛК проект ещё не привязан: выберите проект из списка найденных', title: '' };
     q('[data-k="state"]').innerHTML = `<span class="${st.cls}"${st.title ? ` title="${esc(st.title)}"` : ''}>${esc(st.text)}</span>`;
     drawTable();
     const l = p && p.last;
@@ -283,14 +311,15 @@
   function drawTable() {
     const body = modal.querySelector('[data-k="rows"]');
     const rows = (data.projects || []).map(p => ({ p, z: zipInfo(p, fmtT), g: logicInfo(p, fmtT) }));
-    const key = JSON.stringify(rows.map(r => [r.p.id, r.p.plc, r.z.text, r.g.text, canRebuild(r.p), canDownloadLogic(r.p), r.p.last && r.p.last.file]));
+    const key = JSON.stringify(rows.map(r => [r.p.id, r.p.plc, r.z.text, r.g.text, canRebuild(r.p), canDownloadLogic(r.p), r.p.last && r.p.last.file, r.p.id]));
     if (body.dataset.key === key) return;
     body.dataset.key = key;
     body.innerHTML = rows.map(({ p, z, g }) => `<tr data-id="${esc(p.id)}">`
-      + `<td title="Проект TIA: ${esc(p.name)}">${esc(p.name)}</td><td title="ПЛК системы PMM для этого проекта">${esc(p.plc || '—')}</td>`
-      + `<td><span class="${z.cls}" title="${esc(z.title)}">${esc(z.text)}</span>`
+      + `<td title="Проект TIA: ${esc(p.name)}">${esc(p.name)}</td><td class="tia-plc" title="ПЛК системы PMM для этого проекта">${esc(p.plc || '—')}</td>`
+      + `<td><span class="${z.cls}" title="${esc(`${p.plc ? `ПЛК ${p.plc}: ` : ''}${z.title}`)}">${esc(z.text)}</span>`
       + (p.last && !isActive(p) ? ` <button type="button" class="dt-sec" data-act="zip" title="Скачать архив ZIP последней выгрузки проекта: XML блоков, таблицы тегов и тексты проекта">Скачать ZIP</button>` : '') + `</td>`
-      + `<td><span class="${g.cls}" title="${esc(g.title)}">${esc(g.text)}</span>`
+      + `<td><span class="${g.cls}" title="${esc(`${p.plc ? `ПЛК ${p.plc}: ` : ''}${g.title}`)}">${esc(g.text)}</span>`
+      + (canDownloadLogic(p) ? `<div class="tia-fpath" title="Точный путь файла JSON для ИИ на сервере (ПК, где работает служба выгрузки), скачать его можно кнопкой справа">${p.plc ? `ПЛК ${esc(p.plc)} · ` : ''}${esc(logicPath(p))} (на сервере)</div>` : '')
       + (canDownloadLogic(p) ? ` <button type="button" class="dt-sec" data-act="json" title="Скачать файл JSON с логикой ПЛК для ИИ: для каждого выхода цепочка условий, которые его включают">Скачать JSON</button>` : '')
       + ((p.last || isRo(p)) ? ` <button type="button" class="dt-sec" data-act="rebuild"${canRebuild(p) ? '' : ' disabled'} title="${esc(rebuildTitle(p))}">Пересобрать</button>` : '')
       + `</td></tr>`).join('') || '<tr><td colspan="4" class="dim">Нет проектов</td></tr>';
@@ -316,13 +345,15 @@
   }
 
   async function exportNow() {
-    const src = srcOf();
-    if (!src || !src.project || !modal) return;
+    const p = projOf();
+    if (!modal || !plcName || !choice) return;
     busy = true; drawModal();
     try {
-      await api('/api/tia/export', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project_ids: [src.project.id], target_dir: modal.querySelector('#tia-target').value.trim() || null }) });
-      typed.delete(src.project.id);
+      const target = modal.querySelector('#tia-target').value.trim() || null;
+      // проект из найденных: на сервер уходят только имя ПЛК и ключ найденного файла (пути нет); текущий проект ПЛК вне папок поиска: по его id
+      const body = choice === PAIR && p ? { project_ids: [p.id], target_dir: target } : { plc: plcName, found_key: choice, target_dir: target };
+      await api('/api/tia/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      typed.delete(plcName);
     } catch (ex) { toast(ex.message); }
     busy = false;
     await load();

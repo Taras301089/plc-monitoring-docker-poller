@@ -160,10 +160,10 @@ async def test_downtimes_list_has_owner(app, users, anon, pool):
 
 
 def test_owner_label_is_one_function():
-    assert downtime.owner_label("production", "confirmed") == "ПР ✓"
-    assert downtime.owner_label("oto", "pending") == "ОТО …"
-    assert downtime.owner_label("ito", "pending") == "ИТО …"
-    assert downtime.owner_label("other", "confirmed") == "ДР ✓"
+    assert downtime.owner_label("production", "confirmed") == "ПР ●"
+    assert downtime.owner_label("oto", "pending") == "ОТО ○"
+    assert downtime.owner_label("ito", "pending") == "ИТО ○"
+    assert downtime.owner_label("other", "confirmed") == "ДР ●"
     assert downtime.owner_label("oto", "disputed") == "ОТО !"      # статус появится на шаге 2
 
 
@@ -174,7 +174,7 @@ async def test_excel_day_has_owner_column_like_screen(app, users, anon, pool):
     assert "Отв." in pv["headers"]
     c = pv["headers"].index("Отв.")
     assert c == pv["headers"].index("Отставание мин") + 1   # как на экране Andon: «Отв.» сразу после «Простой, мин»
-    assert [r[c] for r in pv["rows"]] == ["ОТО …", "ПР ✓", ""]       # две причины и «не описан» (пусто)
+    assert [r[c] for r in pv["rows"]] == ["ОТО ○", "ПР ●", ""]       # две причины и «не описан» (пусто)
     assert len(pv["headers"]) == len(pv["rows"][0])
     xl = await anon.get(f"/api/kpi/screens/{scr}/day.xlsx", params={"date": DAY.isoformat()})
     assert xl.status_code == 200
@@ -193,7 +193,7 @@ async def test_period_excel_list_has_owner(app, users, anon, pool):
     xl = await anon.get(f"/api/kpi/screens/{scr}/period.xlsx", params={"from": DAY.isoformat(), "to": DAY.isoformat()})
     assert xl.status_code == 200
     s = _sheet_strings(xl.content).decode("utf-8")
-    assert "Отв." in s and "ИТО …" in s
+    assert "Отв." in s and "ИТО ○" in s
 
 
 # ---------- интерфейс (исходники страниц) ----------

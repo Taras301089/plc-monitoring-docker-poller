@@ -121,6 +121,9 @@
   }
 
   function attachPixels(table, key, ths) {
+    // таблицу перерисовали (innerHTML): раскладка от прошлого показа сжала бы узкие колонки (width: 1%) почти до нуля
+    table.style.tableLayout = '';
+    table.style.width = '';
     const natural = ths.map(th => Math.round(th.getBoundingClientRect().width));
     if (natural.some(w => w < 1)) return;   // таблица сейчас не показана: ширины измерить нельзя
     const colgroup = document.createElement('colgroup');
