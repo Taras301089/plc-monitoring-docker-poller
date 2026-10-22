@@ -38,6 +38,7 @@ from backups import router as backups_router
 from trends import ensure_trends_schema, router as trends_router
 from alarms import ensure_alarms_schema, router as alarms_router
 from tia import router as tia_router
+from why import router as why_router
 from lift_cycles import router as lift_cycles_router
 from tgnotify import TgSender, TgUpdatesPoller, ensure_tg_schema, router as tgnotify_router
 from repair import ensure_repair_binding
@@ -341,6 +342,7 @@ app.include_router(backups_router)
 app.include_router(trends_router)
 app.include_router(alarms_router)
 app.include_router(tia_router)
+app.include_router(why_router)
 app.include_router(lift_cycles_router)
 app.include_router(tgnotify_router)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
