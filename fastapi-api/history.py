@@ -94,8 +94,14 @@ def safe_name(s: str) -> str:
 
 
 async def _day_rows(pool: asyncpg.Pool, screen_id: int, day: date) -> list[asyncpg.Record]:
+    # у линии бренда период без галочки «показывать» не виден нигде (кузова из него остаются в итоге дня);
+    # у Finish Line такой период скрыт только пустым: план даёт ПЛК, иначе итоги разойдутся
     return await pool.fetch(
-        "SELECT idx, start_min, end_min, plan, fact, takt_sec, starve_ms, repair_cnt, bdc_ms, repair_pct_plc FROM kpi_hourly WHERE screen_id = $1 AND prod_date = $2 ORDER BY idx",
+        "SELECT h.idx, h.start_min, h.end_min, h.plan, h.fact, h.takt_sec, h.starve_ms, h.repair_cnt, h.bdc_ms, h.repair_pct_plc "
+        "FROM kpi_hourly h JOIN kpi_screens s ON s.id = h.screen_id "
+        "LEFT JOIN kpi_schedule k ON k.screen_id = h.screen_id AND k.idx = h.idx "
+        "WHERE h.screen_id = $1 AND h.prod_date = $2 "
+        "AND NOT (s.template = 'body_counter' AND k.active IS FALSE) ORDER BY h.idx",
         screen_id, day,
     )
 

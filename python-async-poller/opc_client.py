@@ -574,6 +574,30 @@ class PlcOpcClient:
             new = await asyncio.wait_for(node.read_value(), timeout=10.0)
         return {"old": _to_jsonable(old), "readback": _to_jsonable(new)}
 
+    async def write_dint_array(self, node_id: str, values: list[int]) -> dict[str, Any]:
+        """Запись массива DInt целиком (расписание интервалов) с чтением до и после.
+
+        Как write_int: работает только при APP_ENV=prod; в разработке запись запрещена."""
+        if os.getenv("APP_ENV", "dev").strip().lower() != "prod":
+            raise PermissionError("Режим разработки: запись в ПЛК отключена")
+        async with self._lock:
+            if not await self._ensure_connected_unlocked():
+                raise ConnectionError("OPC UA connection is unavailable")
+            client = self._client
+            if client is None:
+                raise ConnectionError("OPC UA client is unavailable")
+            node = client.get_node(node_id)
+            variant_type = await asyncio.wait_for(node.read_data_type_as_variant_type(), timeout=10.0)
+            if variant_type != ua.VariantType.Int32:
+                raise ValueError(f"Тип переменной {variant_type.name} не подходит для записи расписания")
+            old = await asyncio.wait_for(node.read_value(), timeout=10.0)
+            if not isinstance(old, list) or len(old) != len(values):
+                raise ValueError("Размер массива в ПЛК не совпадает с записываемым")
+            await asyncio.wait_for(
+                node.write_value(ua.DataValue(ua.Variant([int(v) for v in values], variant_type))), timeout=10.0)
+            new = await asyncio.wait_for(node.read_value(), timeout=10.0)
+        return {"old": _to_jsonable(old), "readback": _to_jsonable(new)}
+
     async def read_node_info(self, node_id: str) -> dict[str, str]:
         """Тип данных узла и тип тега для БД: Boolean -> DIGITAL, остальное -> ANALOG."""
         async with self._lock:

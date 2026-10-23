@@ -809,6 +809,42 @@ async def write_plan_day(screen_id: int, body: PlanDayBody, user: dict[str, Any]
     return {"old": result.get("old"), "new": body.value, "readback": result.get("readback"), "interval_plan": result.get("interval_plan")}
 
 
+class ScheduleToPlcBody(BaseModel):
+    start: list[int] = Field(max_length=48)     # начала интервалов, минуты от полуночи
+    end: list[int] = Field(max_length=48)       # концы интервалов, минуты от полуночи
+
+
+@app.post("/api/kpi/screens/{screen_id}/schedule-plc")
+async def write_schedule_to_plc(
+    screen_id: int, body: ScheduleToPlcBody, user: dict[str, Any] = Depends(require_editor)
+) -> dict[str, Any]:
+    """Запись границ интервалов линии бренда в блок ПЛК (массивы начала и конца): все роли, кроме «Просмотр»,
+    только в среде prod; значения проверяет и контрольно перечитывает поллер, кто и что записал, пишется в лог API."""
+    pool = await get_pool(app)
+    screen = await pool.fetchrow("SELECT id, name, template, bindings FROM kpi_screens WHERE id = $1", screen_id)
+    if screen is None or screen["template"] != "body_counter":
+        raise HTTPException(status_code=404, detail="Экран не найден или не поддерживает запись границ интервалов")
+    raw = screen["bindings"]
+    bindings = json.loads(raw) if isinstance(raw, str) else dict(raw or {})
+    if not bindings.get("sched_start") or not bindings.get("sched_end"):
+        raise HTTPException(status_code=422, detail="У экрана не заданы переменные границ интервалов в ПЛК")
+    if app_env() != "prod":
+        raise HTTPException(status_code=403, detail="Режим разработки: запись в ПЛК отключена")
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(20.0, connect=5.0)) as client:
+            response = await client.post(
+                f"{POLLER_URL}/internal/kpi/screens/{screen_id}/schedule-plc", json={"start": body.start, "end": body.end}
+            )
+        result = response.json()
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=f"Поллер недоступен: {exc}")
+    if response.status_code >= 400:
+        raise HTTPException(status_code=422 if response.status_code == 422 else 502, detail=result.get("detail", "Ошибка записи"))
+    print(f"Границы интервалов записаны в ПЛК: экран «{screen['name']}», {user['full_name']}, "
+          f"было {result.get('old_start')} / {result.get('old_end')}, стало {body.start} / {body.end}", flush=True)
+    return result
+
+
 @app.get("/api/kpi/screens/{screen_id}/plan-writes")
 async def list_plan_writes(screen_id: int, limit: int = Query(default=20, ge=1, le=200)) -> list[dict[str, Any]]:
     pool = await get_pool(app)

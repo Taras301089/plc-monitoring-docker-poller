@@ -14,6 +14,7 @@ from aiohttp import web
 from checker import TagChecker
 from config import load_settings
 from database import Database
+from intervals import validate_schedule
 from alarm_collector import AlarmCollector
 from ac_collector import AcCollector
 from kpi_collector import BodyEventLogger, KpiCollector
@@ -474,8 +475,55 @@ async def _async_main() -> None:
             log.exception("Запись плана на день не выполнена")
             return web.json_response({"detail": f"{exc.__class__.__name__}: {exc}"}, status=502)
 
+    async def schedule_plc_handler(request: web.Request) -> web.Response:
+        """Запись границ интервалов (начала и концы) в массивы блока ПЛК линии бренда: привязки sched_start и sched_end."""
+        try:
+            screen_id = int(request.match_info["screen_id"])
+            data = await request.json()
+            start, end = list(data["start"]), list(data["end"])
+        except Exception:
+            return web.json_response({"detail": "Некорректный запрос"}, status=400)
+        error = validate_schedule(start, end)
+        if error:
+            return web.json_response({"detail": error}, status=422)
+        row = await db.get_pool().fetchrow(
+            "SELECT plc_id, template, bindings FROM kpi_screens WHERE id = $1", screen_id
+        )
+        if row is None or row["template"] != "body_counter":
+            return web.json_response({"detail": "Экран не найден или не поддерживает запись границ интервалов"}, status=404)
+        raw = row["bindings"]
+        bindings = json.loads(raw) if isinstance(raw, str) else dict(raw or {})
+        node_start, node_end = bindings.get("sched_start"), bindings.get("sched_end")
+        if not node_start or not node_end:
+            return web.json_response({"detail": "У экрана не заданы переменные границ интервалов"}, status=422)
+        client = service._clients.get(row["plc_id"])
+        if client is None:
+            return web.json_response({"detail": "ПЛК не подключён"}, status=404)
+        try:
+            r_start = await client.write_dint_array(node_start, start)
+            r_end = await client.write_dint_array(node_end, end)
+            if r_start["readback"] != start or r_end["readback"] != end:
+                return web.json_response({"detail": "ПЛК вернул другие значения после записи"}, status=502)
+            applied = None
+            if bindings.get("starts_plc"):
+                await asyncio.sleep(1.5)      # ПЛК за скан копирует начала в stat_Start_Minutes, если подключён новый код
+                read = await client.read_values([bindings["starts_plc"]])
+                item = read.get(bindings["starts_plc"], {})
+                applied = bool(item.get("ok") and item.get("v") == start)
+            log.warning("Границы интервалов: экран %s, ПЛК %s, начала %s -> %s, концы %s -> %s, ПЛК применил: %s",
+                        screen_id, row["plc_id"], r_start["old"], start, r_end["old"], end, applied)
+            return web.json_response({"old_start": r_start["old"], "old_end": r_end["old"],
+                                      "readback_start": r_start["readback"], "readback_end": r_end["readback"],
+                                      "applied": applied})
+        except PermissionError as exc:
+            return web.json_response({"detail": str(exc)}, status=403)
+        except Exception as exc:
+            log.exception("Запись границ интервалов не выполнена")
+            return web.json_response({"detail": f"{exc.__class__.__name__}: {exc}"}, status=502)
+
     browse_app = web.Application()
     browse_app.router.add_post("/internal/kpi/screens/{screen_id}/plan-day", plan_day_handler)
+    browse_app.router.add_post("/internal/kpi/screens/{screen_id}/schedule-plc", schedule_plc_handler)
     browse_app.router.add_post("/internal/plcs/{plc_id}/opcua/values", values_handler)
     browse_app.router.add_get("/internal/plcs/{plc_id}/opcua/node-info", node_info_handler)
     browse_app.router.add_get("/internal/plcs/{plc_id}/opcua/variables", browse_handler)
